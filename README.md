@@ -1,14 +1,40 @@
-# TI-32
+# CalcAI Management Dashboard
 
-![built pcb](./pcb/built.png)
+A device management dashboard for CalcAI ESP32 devices with OTA (Over-The-Air) update capabilities.
 
-[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/purple_img.png)](https://buymeacoffee.com/contactchrh)
+## Features
 
-## Documentation
+- **Device Registration & Monitoring** - Track ESP32 devices with advanced status
+- **OTA Firmware Updates** - Upload and deploy firmware remotely
+- **Advanced ESP32 Status** - Memory, CPU, WiFi, temperature monitoring
+- **Real-time Dashboard** - Web interface for device management
 
-Read the DOCUMENTATION.md file
+## Advanced ESP32 Monitoring
 
-## Video
-[![YouTube](http://i.ytimg.com/vi/Bicjxl4EcJg/hqdefault.jpg)](https://www.youtube.com/watch?v=Bicjxl4EcJg)
+- Memory usage and heap statistics
+- CPU frequency monitoring  
+- WiFi signal strength with quality indicators
+- Network configuration details
+- Internal temperature monitoring
+- Uptime tracking
+- Reset reason analysis
 
+## Deployment
 
+Deployed on Railway at: https://calcai-management-dashboard-production.up.railway.app
+
+## Usage
+
+1. ESP32 devices automatically register when connecting to WiFi
+2. Upload firmware .bin files through the dashboard
+3. Push updates to individual devices or all devices
+4. Monitor device health and status in real-time
+5. Click "+" button on device cards for detailed ESP32 status
+
+## API Endpoints
+
+- `POST /api/devices/register` - Device registration with advanced status
+- `GET /api/devices/list` - Get all registered devices
+- `POST /api/ota/upload` - Upload firmware files
+- `POST /api/ota/push-update` - Push updates to devices
+- `GET /api/devices/firmware/:version` - Download firmware files
