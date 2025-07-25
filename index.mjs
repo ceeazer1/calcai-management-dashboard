@@ -3,7 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import dot from "dotenv";
 import path from "path";
-import session from "express-session";
+// Removed express-session import as we're using custom session handling
 import cookieParser from "cookie-parser";
 import { devices } from "./routes/devices.mjs";
 import { ota } from "./routes/ota.mjs";
@@ -15,18 +15,26 @@ app.use(morgan("dev"));
 app.use(cors("*"));
 app.use(express.json());
 app.use(cookieParser());
+app.use(sessionMiddleware);
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'calcai-super-secret-key-change-in-production',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+// Simple in-memory session store for serverless (not ideal for production)
+const activeSessions = new Map();
+
+// Generate simple session token
+function generateSessionToken() {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Session middleware replacement
+function sessionMiddleware(req, res, next) {
+  const token = req.cookies['calcai-auth'];
+  if (token && activeSessions.has(token)) {
+    req.session = activeSessions.get(token);
+  } else {
+    req.session = {};
   }
-}));
+  next();
+}
 
 // Login page (public)
 app.get("/login", (req, res) => {
@@ -44,8 +52,22 @@ app.post("/login", async (req, res) => {
   const isValid = await authenticateUser(username, password);
 
   if (isValid) {
-    req.session.authenticated = true;
-    req.session.username = username;
+    const token = generateSessionToken();
+    const sessionData = {
+      authenticated: true,
+      username: username,
+      createdAt: Date.now()
+    };
+
+    activeSessions.set(token, sessionData);
+
+    // Set cookie
+    res.cookie('calcai-auth', token, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax'
+    });
+
     res.json({ success: true, message: "Login successful" });
   } else {
     res.status(401).json({ error: "Invalid credentials" });
@@ -54,17 +76,17 @@ app.post("/login", async (req, res) => {
 
 // Logout endpoint
 app.post("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ error: "Could not log out" });
-    }
-    res.clearCookie('connect.sid');
-    res.json({ success: true, message: "Logged out successfully" });
-  });
+  const token = req.cookies['calcai-auth'];
+  if (token) {
+    activeSessions.delete(token);
+    res.clearCookie('calcai-auth');
+  }
+  res.json({ success: true, message: "Logged out successfully" });
 });
 
 // Auth check endpoint
 app.get("/api/auth/check", (req, res) => {
+  console.log('Auth check - Session:', req.session);
   if (req.session && req.session.authenticated) {
     res.json({ authenticated: true, username: req.session.username });
   } else {
