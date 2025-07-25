@@ -5,15 +5,53 @@ let firmwareVersions = [];
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
+    checkAuthentication();
     setupEventListeners();
     loadDevices();
     loadFirmwareVersions();
-    
+
     // Auto-refresh every 30 seconds
     setInterval(() => {
         loadDevices();
     }, 30000);
 });
+
+// Check if user is authenticated
+async function checkAuthentication() {
+    try {
+        const response = await fetch('/api/auth/check');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('username').textContent = data.username || 'Admin';
+        } else {
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        window.location.href = '/login';
+    }
+}
+
+// Logout function
+async function logout() {
+    try {
+        const response = await fetch('/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            window.location.href = '/login';
+        } else {
+            alert('Logout failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        alert('Logout failed. Please try again.');
+    }
+}
 
 function setupEventListeners() {
     const uploadArea = document.getElementById('uploadArea');

@@ -25,7 +25,40 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 1rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            font-size: 0.9rem;
+            color: #bdc3c7;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
         }
 
         .header .logo {
@@ -246,8 +279,14 @@
 </head>
 <body>
     <div class="header">
-        <img src="calcai-logo.svg" alt="CalcAI Logo" class="logo">
-        <h1>Device Management Dashboard</h1>
+        <div class="header-left">
+            <img src="calcai-logo.svg" alt="CalcAI Logo" class="logo">
+            <h1>Device Management Dashboard</h1>
+        </div>
+        <div class="header-right">
+            <span class="user-info">Welcome, <span id="username">Admin</span></span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
     </div>
     
     <div class="container">
