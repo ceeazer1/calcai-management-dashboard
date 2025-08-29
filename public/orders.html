@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Orders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .orders-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .orders-grid { overflow:auto; }
+    table.orders { width:100%; border-collapse:collapse; }
+    table.orders th, table.orders td { padding:12px; border-bottom:1px solid var(--border-color); text-align:left; }
+    table.orders thead th { background:#1f2235; }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <div class="content" style="margin:0; min-height:100vh;">
+    <div class="header">
+      <div class="header-left">
+        <img src="calcai-logo.svg" alt="CalcAI Logo" class="logo" />
+        <h1>Orders</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="/admin">Back to Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="ordersAlert"></div>
+
+      <div class="section orders-header">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input id="ordersSearch" placeholder="Search by customer or email" />
+          <select id="ordersStatus">
+            <option value="">All statuses</option>
+            <option value="complete">Completed</option>
+            <option value="paid">Paid</option>
+            <option value="processing">Processing</option>
+            <option value="requires_payment_method">Requires Payment</option>
+            <option value="failed">Failed</option>
+            <option value="refunded">Refunded</option>
+          </select>
+          <button class="btn" id="refreshBtn"><i class="fa fa-rotate"></i> Refresh</button>
+        </div>
+      </div>
+
+      <div class="section orders-grid" style="padding:0;">
+        <table class="orders">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Email</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ordersTable"></tbody>
+        </table>
+      </div>
+
+      <div id="orderDetails" class="section hidden">
+        <h3>Order Details</h3>
+        <div id="orderDetailsContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="orders.js"></script>
+</body>
+</html>
+

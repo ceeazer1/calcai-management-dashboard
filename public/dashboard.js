@@ -13,8 +13,7 @@ async function loadOrders() {
         console.error(e);
         showOrdersAlert('Failed to load orders', 'error');
     }
-    // initial load orders
-    loadOrders();
+    // initial load handled elsewhere (orders page).
 }
 
 function renderOrders() {

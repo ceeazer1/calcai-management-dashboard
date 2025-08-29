@@ -23,7 +23,7 @@
             <a href="#firmware"><i class="fa-solid fa-microchip"></i><span>Firmware</span></a>
             <a href="#devices"><i class="fa-solid fa-tablet-screen-button"></i><span>Devices</span></a>
             <a href="#settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
-            <a href="#orders"><i class="fa-solid fa-receipt"></i><span>Orders</span></a>
+            <a href="/admin/orders.html"><i class="fa-solid fa-receipt"></i><span>Orders</span></a>
         </nav>
     </aside>
     <div class="content">
@@ -97,43 +97,7 @@
                 </div>
             </div>
 
-            <!-- Orders Section -->
-            <div class="section" id="orders">
-                <h2>Orders</h2>
-                <div id="ordersAlert"></div>
-                <div class="form-group" style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <input id="ordersSearch" placeholder="Search orders by ID or customer..." />
-                    <select id="ordersStatus">
-                        <option value="">All statuses</option>
-                        <option value="processing">Processing</option>
-                        <option value="completed">Completed</option>
-                        <option value="failed">Failed</option>
-                        <option value="refunded">Refunded</option>
-                    </select>
-                    <button class="btn" onclick="loadOrders()"><i class="fa fa-rotate"></i> Refresh</button>
-                </div>
-                <div class="section" style="padding:0; overflow:auto;">
-                    <table style="width:100%; border-collapse:collapse;">
-                        <thead>
-                            <tr style="background:#1f2235;">
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Order ID</th>
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Date</th>
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Customer</th>
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Amount</th>
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Status</th>
-                                <th style="padding:12px; text-align:left; border-bottom:1px solid var(--border-color);">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTable">
-                            <!-- Orders will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="orderDetails" class="section hidden">
-                    <h3>Order Details</h3>
-                    <div id="orderDetailsContent"></div>
-                </div>
-            </div>
+            <!-- Orders moved to dedicated page at /admin/orders.html -->
             <!-- Device Management Section -->
             <div class="section" id="devices">
                 <h2>Connected Devices</h2>
