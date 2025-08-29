@@ -43,7 +43,10 @@ body {
   display: flex; align-items: center; gap: 12px;
   padding: 8px 8px 20px 8px;
 }
-.sidebar .brand img { height: 38px; width: auto; }
+.sidebar .brand img { height: 28px; width: auto; }
+.sidebar .brand img { height: 28px; width: auto; }
+.header .logo { height: 28px; }
+
 .sidebar .brand .name { font-weight: 700; letter-spacing: 0.5px; }
 
 .sidebar nav a {
@@ -207,7 +210,7 @@ select option { background: #1b1d2e; color: var(--text-primary); }
 .success-message { background: rgba(46, 204, 113, 0.15); color: #b9f6ca; border: 1px solid rgba(46,204,113,0.35); }
 /* Login refinements */
 .login-container { width: clamp(320px, 92vw, 420px); padding: 28px 24px; }
-.login-container .logo { width: 156px; height: auto; display: block; margin: 4px auto 8px auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35)); }
+.login-container .logo { width: 120px; height: auto; display: block; margin: 4px auto 8px auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35)); }
 .login-title { font-size: 2rem; font-weight: 800; margin: 8px 0 8px; }
 .login-subtitle { margin: 0 0 14px 0; }
 .form-group input { outline: none; }
