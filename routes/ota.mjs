@@ -3,9 +3,15 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 
+
+// Ensure firmware directory and define devices file path
+const firmwareDir = path.join(process.cwd(), "firmware");
+try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+const devicesFile = path.join(process.cwd(), "devices.json");
+
 export function ota() {
   const router = express.Router();
-  
+
   // In-memory storage for serverless environment
   // Note: In production, you'd want to use cloud storage like AWS S3, Vercel Blob, etc.
   let firmwareData = {};
@@ -25,7 +31,7 @@ export function ota() {
       fileSize: 10 * 1024 * 1024 // 10MB limit
     }
   });
-  
+
   // Load devices from file
   function loadDevices() {
     try {
@@ -37,7 +43,7 @@ export function ota() {
     }
     return {};
   }
-  
+
   // Save devices to file
   function saveDevices(devices) {
     try {
@@ -46,27 +52,35 @@ export function ota() {
       console.error('Error saving devices:', error);
     }
   }
-  
+
   // Upload firmware endpoint
   router.post("/upload", upload.single('firmware'), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No firmware file uploaded" });
     }
-    
-    const version = req.body.version || path.basename(req.file.filename, '.bin');
+
+    const version = (req.body.version || '').trim() || 'firmware';
+    const safeVersion = version.replace(/[^a-zA-Z0-9._-]/g, '_');
     const description = req.body.description || '';
-    
-    console.log(`Firmware uploaded: ${version} (${req.file.size} bytes)`);
-    
+
+    const filepath = path.join(firmwareDir, `${safeVersion}.bin`);
+    try {
+      fs.writeFileSync(filepath, req.file.buffer);
+      console.log(`Firmware saved: ${filepath} (${req.file.size} bytes)`);
+    } catch (e) {
+      console.error('Failed to save firmware:', e);
+      return res.status(500).json({ error: 'Failed to save firmware' });
+    }
+
     res.json({
       success: true,
-      version: version,
-      filename: req.file.filename,
+      version: safeVersion,
+      filename: `${safeVersion}.bin`,
       size: req.file.size,
       description: description
     });
   });
-  
+
   // List available firmware versions
   router.get("/firmware/list", (req, res) => {
     try {
@@ -83,31 +97,31 @@ export function ota() {
           };
         })
         .sort((a, b) => b.modified - a.modified);
-      
+
       res.json(files);
     } catch (error) {
       console.error('Error listing firmware:', error);
       res.status(500).json({ error: "Failed to list firmware" });
     }
   });
-  
+
   // Push update to specific devices
   router.post("/push-update", (req, res) => {
     const { version, deviceIds, allDevices } = req.body;
-    
+
     if (!version) {
       return res.status(400).json({ error: "Firmware version required" });
     }
-    
+
     // Check if firmware file exists
     const firmwarePath = path.join(firmwareDir, `${version}.bin`);
     if (!fs.existsSync(firmwarePath)) {
       return res.status(404).json({ error: "Firmware file not found" });
     }
-    
+
     const devices = loadDevices();
     let updatedCount = 0;
-    
+
     if (allDevices) {
       // Update all devices
       Object.keys(devices).forEach(deviceId => {
@@ -125,11 +139,11 @@ export function ota() {
         }
       });
     }
-    
+
     saveDevices(devices);
-    
+
     console.log(`Pushed update ${version} to ${updatedCount} devices`);
-    
+
     res.json({
       success: true,
       version: version,
@@ -137,14 +151,14 @@ export function ota() {
       message: `Update pushed to ${updatedCount} device(s)`
     });
   });
-  
+
   // Cancel pending updates
   router.post("/cancel-update", (req, res) => {
     const { deviceIds, allDevices } = req.body;
-    
+
     const devices = loadDevices();
     let cancelledCount = 0;
-    
+
     if (allDevices) {
       // Cancel for all devices
       Object.keys(devices).forEach(deviceId => {
@@ -164,25 +178,25 @@ export function ota() {
         }
       });
     }
-    
+
     saveDevices(devices);
-    
+
     res.json({
       success: true,
       devicesCancelled: cancelledCount,
       message: `Updates cancelled for ${cancelledCount} device(s)`
     });
   });
-  
+
   // Delete firmware file
   router.delete("/firmware/:version", (req, res) => {
     const { version } = req.params;
     const firmwarePath = path.join(firmwareDir, `${version}.bin`);
-    
+
     if (!fs.existsSync(firmwarePath)) {
       return res.status(404).json({ error: "Firmware file not found" });
     }
-    
+
     try {
       fs.unlinkSync(firmwarePath);
       console.log(`Deleted firmware: ${version}`);
@@ -192,6 +206,6 @@ export function ota() {
       res.status(500).json({ error: "Failed to delete firmware" });
     }
   });
-  
+
   return router;
 }

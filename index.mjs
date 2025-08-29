@@ -3,11 +3,28 @@ import cors from "cors";
 import morgan from "morgan";
 import dot from "dotenv";
 import path from "path";
+import fs from "fs";
 // Removed express-session import as we're using custom session handling
 import cookieParser from "cookie-parser";
 import { devices } from "./routes/devices.mjs";
+import { orders } from "./routes/orders.mjs";
 import { ota } from "./routes/ota.mjs";
 import { requireAuth, authenticateUser } from "./auth.mjs";
+// Optionally load STRIPE_SECRET_KEY from website/.env.local if present
+try {
+  const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
+  if (fs.existsSync(envLocal)) {
+    const content = fs.readFileSync(envLocal, 'utf8');
+    content.split(/\r?\n/).forEach(line => {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.+)\s*$/);
+      if (m && !process.env[m[1]]) {
+        process.env[m[1]] = m[2].replace(/^['\"]|['\"]$/g, '');
+      }
+    });
+    console.log('[env] Loaded keys from website/.env.local');
+  }
+} catch {}
+
 dot.config();
 
 const app = express();
@@ -16,6 +33,9 @@ app.use(cors("*"));
 app.use(express.json());
 app.use(cookieParser());
 app.use(sessionMiddleware);
+// Public assets (for login page)
+app.use("/assets", express.static(path.join(process.cwd(), "public")));
+
 
 // Simple in-memory session store for serverless (not ideal for production)
 const activeSessions = new Map();
@@ -113,6 +133,9 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Orders (protected)
+app.use("/api/orders", requireAuth, orders());
 
 // Device Management & OTA Updates (protected)
 app.use("/api/devices", requireAuth, devices());
