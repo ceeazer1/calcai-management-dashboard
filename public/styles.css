@@ -128,6 +128,27 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* Global form controls (consistent across pages) */
+input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="url"], input[type="tel"], select, textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #1b1d2e; color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(30,136,229,0.2);
+}
+/* Themed select arrow */
+select {
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e0e6f0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 12px; padding-right: 36px;
+}
+
 /* Progress */
 .progress { width: 100%; height: 10px; background: #15172a; border-radius: 10px; overflow: hidden; margin: 10px 0; border: 1px solid var(--border-color); }
 .progress-bar { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-2)); width: 0%; }
@@ -163,12 +184,17 @@ body {
 /* Uses same HTML markup; this styling will apply automatically */
 body { background-attachment: fixed; }
 .login-container {
+
   background: var(--bg-panel);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   border-radius: 16px;
   box-shadow: var(--shadow);
 }
+/* Tighten input spacing inside the orders toolbar */
+#ordersSearch, #ordersStatus { min-width: 220px; }
+/* Options dropdown palette */
+select option { background: #1b1d2e; color: var(--text-primary); }
 .login-title { color: var(--text-primary); }
 .login-subtitle { color: var(--text-muted); }
 .form-group input { background: #1b1d2e; color: var(--text-primary); border: 1px solid var(--border-color); }
