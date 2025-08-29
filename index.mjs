@@ -4,6 +4,7 @@ import morgan from "morgan";
 import dot from "dotenv";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 // Removed express-session import as we're using custom session handling
 import cookieParser from "cookie-parser";
 import { devices } from "./routes/devices.mjs";
@@ -37,19 +38,29 @@ app.use(sessionMiddleware);
 app.use("/assets", express.static(path.join(process.cwd(), "public")));
 
 
-// Simple in-memory session store for serverless (not ideal for production)
-const activeSessions = new Map();
-
-// Generate simple session token
-function generateSessionToken() {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+// Stateless signed-cookie auth so it works on serverless
+const SESSION_SECRET = process.env.SESSION_SECRET || (process.env.ADMIN_PASSWORD_HASH || "calcai-dev-secret");
+function signSession(payload) {
+  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('base64url');
+  return `${data}.${sig}`;
+}
+function verifySession(token) {
+  if (!token || token.indexOf('.') === -1) return null;
+  const [data, sig] = token.split('.');
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('base64url');
+  if (sig !== expected) return null;
+  try {
+    return JSON.parse(Buffer.from(data, 'base64url').toString('utf8'));
+  } catch { return null; }
 }
 
-// Session middleware replacement
+// Session middleware replacement (verifies signed cookie)
 function sessionMiddleware(req, res, next) {
   const token = req.cookies['calcai-auth'];
-  if (token && activeSessions.has(token)) {
-    req.session = activeSessions.get(token);
+  const data = verifySession(token);
+  if (data && data.authenticated) {
+    req.session = data;
   } else {
     req.session = {};
   }
@@ -72,20 +83,16 @@ app.post("/login", async (req, res) => {
   const isValid = await authenticateUser(username, password);
 
   if (isValid) {
-    const token = generateSessionToken();
-    const sessionData = {
-      authenticated: true,
-      username: username,
-      createdAt: Date.now()
-    };
-
-    activeSessions.set(token, sessionData);
+    const sessionData = { authenticated: true, username, iat: Date.now() };
+    const token = signSession(sessionData);
 
     // Set cookie
     res.cookie('calcai-auth', token, {
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
     });
 
     res.json({ success: true, message: "Login successful" });
@@ -96,11 +103,7 @@ app.post("/login", async (req, res) => {
 
 // Logout endpoint
 app.post("/logout", (req, res) => {
-  const token = req.cookies['calcai-auth'];
-  if (token) {
-    activeSessions.delete(token);
-    res.clearCookie('calcai-auth');
-  }
+  res.clearCookie('calcai-auth', { path: '/' });
   res.json({ success: true, message: "Logged out successfully" });
 });
 
