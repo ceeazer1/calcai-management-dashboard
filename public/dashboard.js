@@ -123,11 +123,13 @@ async function checkAuthentication() {
             const data = await response.json();
             document.getElementById('username').textContent = data.username || 'Admin';
         } else {
-            window.location.href = '/login';
+            const next = encodeURIComponent(location.pathname + location.search);
+            window.location.href = `/login?next=${next}`;
         }
     } catch (error) {
         console.error('Auth check failed:', error);
-        window.location.href = '/login';
+        const next = encodeURIComponent(location.pathname + location.search);
+        window.location.href = `/login?next=${next}`;
     }
 }
 
@@ -156,13 +158,15 @@ function setupEventListeners() {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('firmwareFile');
 
-    // File upload drag and drop
-    uploadArea.addEventListener('click', () => fileInput.click());
-    uploadArea.addEventListener('dragover', handleDragOver);
-    uploadArea.addEventListener('dragleave', handleDragLeave);
-    uploadArea.addEventListener('drop', handleDrop);
+    if (uploadArea && fileInput) {
+        // File upload drag and drop
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
 
-    fileInput.addEventListener('change', handleFileSelect);
+        fileInput.addEventListener('change', handleFileSelect);
+    }
 }
 
 function handleDragOver(e) {
