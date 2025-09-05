@@ -103,12 +103,16 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
     loadDevices();
-    loadFirmwareVersions();
 
     // Auto-refresh every 30 seconds
     setInterval(() => {
         loadDevices();
     }, 30000);
+
+    // Only load firmware UI on the firmware page
+    if (document.getElementById('firmwareList') || document.getElementById('uploadArea')) {
+        loadFirmwareVersions();
+    }
 });
 
 // Check if user is authenticated

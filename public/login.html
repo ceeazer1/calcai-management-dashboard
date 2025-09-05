@@ -71,9 +71,11 @@
                 });
                 const result = await response.json();
                 if (response.ok) {
+                    const params = new URLSearchParams(location.search);
+                    const next = params.get('next') || '/admin';
                     successMessage.textContent = 'Login successful! Redirecting...';
                     successMessage.style.display = 'block';
-                    setTimeout(() => { window.location.href = '/admin'; }, 1000);
+                    setTimeout(() => { window.location.href = next; }, 500);
                 } else {
                     errorMessage.textContent = result.error || 'Login failed';
                     errorMessage.style.display = 'block';
@@ -85,7 +87,7 @@
                 loginBtn.disabled = false; loginText.style.display = 'inline'; loginLoading.style.display = 'none';
             }
         });
-        fetch('/api/auth/check').then(r => { if (r.ok) window.location.href = '/admin'; }).catch(() => {});
+        (function(){ const p=new URLSearchParams(location.search); const next=p.get('next')||'/admin'; fetch('/api/auth/check').then(r=>{ if(r.ok) window.location.href = next; }).catch(()=>{}); })();
     </script>
 </body>
 </html>
