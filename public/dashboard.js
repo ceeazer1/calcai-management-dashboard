@@ -123,13 +123,12 @@ async function checkAuthentication() {
             const data = await response.json();
             document.getElementById('username').textContent = data.username || 'Admin';
         } else {
-            const next = encodeURIComponent(location.pathname + location.search);
-            window.location.href = `/login?next=${next}`;
+            // Do not client-redirect; server already protects /admin/*
+            return false;
         }
     } catch (error) {
-        console.error('Auth check failed:', error);
-        const next = encodeURIComponent(location.pathname + location.search);
-        window.location.href = `/login?next=${next}`;
+        console.warn('Auth check failed (non-blocking):', error);
+        return false;
     }
 }
 

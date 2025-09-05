@@ -87,7 +87,8 @@
                 loginBtn.disabled = false; loginText.style.display = 'inline'; loginLoading.style.display = 'none';
             }
         });
-        (function(){ const p=new URLSearchParams(location.search); const next=p.get('next')||'/admin'; fetch('/api/auth/check').then(r=>{ if(r.ok) window.location.href = next; }).catch(()=>{}); })();
+        // On login page, don't auto-redirect unless we know we're authenticated
+        fetch('/api/auth/check').then(r=>{ if(r.ok){ const p=new URLSearchParams(location.search); const next=p.get('next')||'/admin'; window.location.href = next; } }).catch(()=>{});
     </script>
 </body>
 </html>

@@ -120,7 +120,10 @@ app.get("/api/auth/check", (req, res) => {
 });
 
 // Serve static files for dashboard (protected)
-app.use("/admin", requireAuth, express.static(path.join(process.cwd(), "public")));
+app.use("/admin", (req, res, next) => {
+  // allow login page to be reached without loops
+  return requireAuth(req, res, next);
+}, express.static(path.join(process.cwd(), "public")));
 
 // Redirect root to login or admin
 app.get("/", (req, res) => {
