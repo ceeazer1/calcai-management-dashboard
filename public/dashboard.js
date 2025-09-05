@@ -305,7 +305,6 @@ function renderDevices() {
         <div class="device-card ${device.status}">
             <h3>${device.name}</h3>
             <p><strong>MAC:</strong> ${device.mac}</p>
-            <p><strong>Model:</strong> ${device.model}</p>
             <p><strong>Firmware:</strong> ${device.firmware}</p>
             <p><strong>Status:</strong> <span class="device-status status-${device.status}">${device.status.toUpperCase()}</span></p>
             <p><strong>Last Seen:</strong> ${formatDate(device.lastSeen)}</p>
@@ -318,7 +317,9 @@ function renderDevices() {
                 </select>
                 <button class="btn" onclick="pushUpdateToDevice('${deviceId}')">Push Update</button>
                 ${device.updateAvailable ? `<button class="btn btn-danger" onclick="cancelUpdate('${deviceId}')">Cancel Update</button>` : ''}
+                <button class="btn" onclick="viewLogs('${device.mac}')">View Logs</button>
             </div>
+            ${device.logs ? `<pre style="margin-top:8px; max-height:180px; overflow:auto; background:#0b0f1a; padding:8px; border-radius:6px; border:1px solid var(--border-color)">${device.logs.join('\n')}</pre>` : ''}
         </div>
     `).join('');
 }
@@ -503,6 +504,23 @@ function showAlert(message, type) {
     setTimeout(() => {
         alertDiv.style.display = 'none';
     }, 5000);
+}
+
+async function viewLogs(mac) {
+    try {
+        const id = (mac||'').toLowerCase().replace(/:/g,'');
+        // Simple refresh to pull latest device list (logs are embedded in device object)
+        await loadDevices();
+        const device = Object.values(devices).find(d => (d.mac||'').toLowerCase()===mac.toLowerCase());
+        if (!device || !device.logs) {
+            showAlert('No logs available yet for this device', 'error');
+            return;
+        }
+        showAlert(`Loaded ${device.logs.length} log lines for ${mac}`, 'success');
+    } catch (e) {
+        console.error(e);
+        showAlert('Failed to load logs', 'error');
+    }
 }
 
 function formatDate(dateString) {

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Firmware</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="content" style="margin:0; min-height:100vh;">
+    <div class="header">
+      <div class="header-left">
+        <img src="calcai-logo.png" alt="CalcAI Logo" class="logo" />
+        <h1>Firmware</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="/admin">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="section">
+        <h2>Upload New Firmware</h2>
+        <div id="uploadAlert"></div>
+        <div class="upload-area" id="uploadArea"><p>Drag and drop a .bin file here, or click to select</p><input type="file" id="firmwareFile" accept=".bin" style="display:none;" /></div>
+        <div class="form-group"><label for="firmwareVersion">Version Name:</label><input type="text" id="firmwareVersion" placeholder="e.g., v1.2.0"></div>
+        <div class="form-group"><label for="firmwareDescription">Description (optional):</label><input type="text" id="firmwareDescription" placeholder="Bug fixes and improvements"></div>
+        <div class="progress hidden" id="uploadProgress"><div class="progress-bar" id="uploadProgressBar"></div></div>
+        <button class="btn" id="uploadBtn">Upload Firmware</button>
+      </div>
+
+      <div class="section">
+        <h2>Available Firmware Versions</h2>
+        <div id="firmwareList" class="firmware-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+  <script>
+    // Reuse existing upload handlers from dashboard.js
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('uploadArea').addEventListener('click', ()=>document.getElementById('firmwareFile').click());
+      document.getElementById('firmwareFile').addEventListener('change', handleFileSelect);
+      document.getElementById('uploadBtn').addEventListener('click', uploadFirmware);
+      loadFirmwareVersions();
+    });
+  </script>
+</body>
+</html>
+

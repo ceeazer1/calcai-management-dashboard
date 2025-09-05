@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Devices</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="content" style="margin:0; min-height:100vh;">
+    <div class="header">
+      <div class="header-left">
+        <img src="calcai-logo.png" alt="CalcAI Logo" class="logo" />
+        <h1>Devices</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="/admin">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="section" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <input id="deviceSearch" type="search" placeholder="Search by MAC address or name" />
+        <button class="btn" id="refreshDevices">Refresh</button>
+      </div>
+
+      <div id="deviceList" class="device-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    let allDevices = {};
+    function normalize(str){return (str||'').toString().toLowerCase();}
+    function matches(device, q){
+      if(!q) return true;
+      q = normalize(q);
+      const mac = normalize(device.mac);
+      const name = normalize(device.name);
+      return mac.includes(q) || name.includes(q);
+    }
+    function render(){
+      const q = document.getElementById('deviceSearch').value;
+      const el = document.getElementById('deviceList');
+      const items = Object.values(allDevices).filter(d=>matches(d,q));
+      if(items.length===0){ el.innerHTML = '<p>No devices found.</p>'; return; }
+      el.innerHTML = items.map(d=>`
+        <div class="device-card ${d.status}">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>${d.name||'Device'}</strong>
+            <span class="device-status status-${d.status}">${(d.status||'offline').toUpperCase()}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">MAC: ${d.mac||'—'}</div>
+          <div style="display:grid; grid-template-columns: repeat(2,1fr); gap:6px; margin-top:8px; font-size:12px;">
+            <div><strong>Model:</strong> ${d.model||'—'}</div>
+            <div><strong>Firmware:</strong> ${d.firmware||'—'}</div>
+            <div><strong>Last Seen:</strong> ${d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</div>
+            ${d.updateAvailable ? `<div><strong>Update:</strong> ${d.targetFirmware}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+    async function load(){
+      try {
+        const r = await fetch('/api/devices/list');
+        if(r.ok){ allDevices = await r.json(); render(); }
+      } catch(e){ console.error(e); }
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      load();
+      document.getElementById('refreshDevices').addEventListener('click', load);
+      document.getElementById('deviceSearch').addEventListener('input', render);
+      setInterval(load, 30000);
+    });
+  </script>
+</body>
+</html>
+
