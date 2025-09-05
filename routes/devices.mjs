@@ -2,6 +2,8 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 
+import { getDevices as storeGetDevices, saveDevices as storeSaveDevices, upsertDevice } from "./devices_store.mjs";
+
 // Ensure firmware directory path used for downloads
 const firmwareDir = path.join(process.cwd(), "firmware");
 try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
@@ -10,35 +12,9 @@ try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: tr
 export function devices() {
   const router = express.Router();
 
-  // In-memory storage for serverless environment
-  // Note: In production, you'd want to use a database like Vercel KV or external service
-  let devicesData = {};
-
-  // Load devices from memory (fallback data)
-  function loadDevices() {
-    // In serverless environment, return in-memory data or default
-    if (Object.keys(devicesData).length === 0) {
-      // Initialize with some default data if needed
-      devicesData = {
-        "sample-device": {
-          id: "sample-device",
-          name: "Sample CalcAI Device",
-          lastSeen: new Date().toISOString(),
-          version: "1.0.0",
-          status: "offline"
-        }
-      };
-    }
-    return devicesData;
-  }
-
-  // Save devices to memory
-  function saveDevices(devices) {
-    // In serverless environment, just update in-memory data
-    // In production, you'd save to a database
-    devicesData = devices;
-    console.log('Devices updated in memory:', Object.keys(devices).length, 'devices');
-  }
+  // Use shared store helpers so public ingest and admin share the same data
+  const loadDevices = storeGetDevices;
+  const saveDevices = storeSaveDevices;
 
   // Device registration endpoint
   router.post("/register", (req, res) => {
