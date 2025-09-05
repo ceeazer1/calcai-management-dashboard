@@ -11,6 +11,7 @@ import { devices } from "./routes/devices.mjs";
 import { orders } from "./routes/orders.mjs";
 import { ota } from "./routes/ota.mjs";
 import { requireAuth, authenticateUser } from "./auth.mjs";
+import { devicesIngestPublic } from "./routes/devices_ingest.mjs";
 // Optionally load STRIPE_SECRET_KEY from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
@@ -139,6 +140,9 @@ app.get("/health", (req, res) => {
 
 // Orders (protected)
 app.use("/api/orders", requireAuth, orders());
+
+// Device Public Ingest (no auth, token validated inside)
+app.use("/api/devices", devicesIngestPublic());
 
 // Device Management & OTA Updates (protected)
 app.use("/api/devices", requireAuth, devices());
