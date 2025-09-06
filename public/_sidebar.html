@@ -2,10 +2,22 @@
   <div class="brand">
     <a href="/admin" style="display:inline-flex;align-items:center"><img src="calcai-logo.png" alt="CalcAI"></a>
   </div>
-  <nav>
-    <a href="/admin" class="active"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></a>
+  <nav id="sideNav">
+    <a href="/admin"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></a>
     <a href="/admin/firmware.html"><i class="fa-solid fa-microchip"></i><span>Firmware</span></a>
     <a href="/admin/devices.html"><i class="fa-solid fa-tablet-screen-button"></i><span>Devices</span></a>
+    <a href="/admin/settings.html"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
   </nav>
+  <script>
+    (function(){
+      const here = location.pathname.replace(/\/index\.html$/, '/');
+      document.querySelectorAll('#sideNav a').forEach(a=>{
+        const href = a.getAttribute('href');
+        if(here === href || (here.endsWith('/') && href === here.slice(0,-1))) {
+          a.classList.add('active');
+        }
+      });
+    })();
+  </script>
 </aside>
 

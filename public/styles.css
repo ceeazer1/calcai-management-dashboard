@@ -54,6 +54,8 @@ body {
   margin: 6px 0;
   color: var(--text-muted); text-decoration: none;
   border-radius: 8px;
+.sidebar nav a.active { background: rgba(30, 136, 229, 0.18); color: var(--text-primary); }
+
   transition: background .2s, color .2s;
 }
 .sidebar nav a i { width: 18px; text-align: center; }

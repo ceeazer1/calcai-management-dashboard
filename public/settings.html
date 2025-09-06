@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="include.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .settings-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  </style>
+</head>
+<body>
+  <!-- Shared sidebar -->
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left">
+        <h1>Settings</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="/admin">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="settings-grid">
+        <div class="section">
+          <h2>Change Password</h2>
+          <div class="form-group">
+            <label for="currentPassword">Current password</label>
+            <input type="password" id="currentPassword" placeholder="••••••••" />
+          </div>
+          <div class="form-group">
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" placeholder="New strong password" />
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" placeholder="Repeat new password" />
+          </div>
+          <button class="btn" id="changePasswordBtn">Update Password</button>
+          <div id="pwdMsg" class="alert" style="display:none;margin-top:10px;"></div>
+        </div>
+
+        <div class="section">
+          <h2>Session</h2>
+          <p class="text-muted">You are signed in as <strong id="whoami">—</strong></p>
+          <button class="btn btn-danger" onclick="logout()">Sign out</button>
+        </div>
+
+        <div class="section">
+          <h2>Appearance</h2>
+          <p>Dark mode is enabled by default. More options coming soon.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      // Highlight active link
+      highlightActive();
+      // Who am I
+      try{ const r=await fetch('/api/auth/check'); if(r.ok){ const j=await r.json(); document.getElementById('whoami').textContent = j.username||'Admin'; }}catch{}
+      // Change password (placeholder client-side validation)
+      document.getElementById('changePasswordBtn').addEventListener('click', async ()=>{
+        const cur = document.getElementById('currentPassword').value;
+        const p1 = document.getElementById('newPassword').value;
+        const p2 = document.getElementById('confirmPassword').value;
+        const msg = document.getElementById('pwdMsg');
+        if(!cur || !p1 || !p2){ msg.textContent='Please fill all fields.'; msg.className='alert alert-error'; msg.style.display='block'; return; }
+        if(p1!==p2){ msg.textContent='Passwords do not match.'; msg.className='alert alert-error'; msg.style.display='block'; return; }
+        msg.textContent='This is a placeholder. Hook to backend endpoint when ready.'; msg.className='alert alert-success'; msg.style.display='block';
+      });
+    });
+
+    function highlightActive(){
+      const path = location.pathname;
+      const links = document.querySelectorAll('.sidebar nav a');
+      links.forEach(a=>{ a.classList.toggle('active', a.getAttribute('href')===path); });
+    }
+  </script>
+</body>
+</html>
+
