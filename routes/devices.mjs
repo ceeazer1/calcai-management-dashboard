@@ -8,11 +8,14 @@ import { getDevices as storeGetDevices, saveDevices as storeSaveDevices, upsertD
 const firmwareDir = path.join(process.cwd(), "firmware");
 try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
 
+// Base URL of Fly.io server for persistent device registry
+const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";
+const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN;
 
 export function devices() {
   const router = express.Router();
 
-  // Use shared store helpers so public ingest and admin share the same data
+  // Use shared store helpers so public ingest and admin share the same data (still used by firmware download)
   const loadDevices = storeGetDevices;
   const saveDevices = storeSaveDevices;
 
@@ -110,45 +113,46 @@ export function devices() {
     res.sendFile(path.resolve(firmwarePath));
   });
 
-  // Get all devices (for dashboard)
-  router.get("/list", (req, res) => {
-    const devices = loadDevices();
-
-    // Mark devices as offline if not seen in 5 minutes
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-    Object.values(devices).forEach(device => {
-      if (new Date(device.lastSeen) < fiveMinutesAgo) {
-        device.status = 'offline';
-      }
-    });
-
-    saveDevices(devices);
-    res.json(devices);
+  // Get all devices (proxy to Fly server persistent registry)
+  router.get("/list", async (req, res) => {
+    try {
+      const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
+        headers: {
+          ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
+        },
+      });
+      const status = resp.status;
+      const json = await resp.json().catch(() => ({}));
+      return res.status(status).json(json);
+    } catch (e) {
+      console.error("[dashboard] list proxy error:", e?.message || e);
+      res.status(500).json({ error: "list_proxy_failed" });
+    }
   });
 
-  // Update device settings
-  router.put("/update/:deviceId", (req, res) => {
-    const { deviceId } = req.params;
-    const updates = req.body;
-
-    const devices = loadDevices();
-    const device = devices[deviceId];
-
-    if (!device) {
-      return res.status(404).json({ error: "Device not found" });
+  // Update device settings (proxy to Fly server persistent registry)
+  router.put("/update/:deviceId", async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const updates = req.body || {};
+      const resp = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(deviceId)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
+        },
+        body: JSON.stringify({
+          updateAvailable: updates.updateAvailable,
+          targetFirmware: updates.targetFirmware,
+        }),
+      });
+      const status = resp.status;
+      const json = await resp.json().catch(() => ({}));
+      return res.status(status).json(json);
+    } catch (e) {
+      console.error("[dashboard] update proxy error:", e?.message || e);
+      res.status(500).json({ error: "update_proxy_failed" });
     }
-
-    // Update allowed fields
-    const allowedFields = ['name', 'updateAvailable', 'targetFirmware'];
-    allowedFields.forEach(field => {
-      if (updates[field] !== undefined) {
-        device[field] = updates[field];
-      }
-    });
-
-    saveDevices(devices);
-    res.json({ success: true, device: device });
   });
 
   // Delete device
