@@ -31,6 +31,14 @@
 
       <div id="deviceList" class="device-grid"></div>
     </div>
+      <div id="deviceLogsPanel" class="section hidden" style="margin-top:12px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+          <h3 id="deviceLogsTitle" style="margin:0; font-size:1rem;">Device Logs</h3>
+          <button class="btn btn-danger" onclick="closeDeviceLogs()">Close</button>
+        </div>
+        <pre id="deviceLogsPre" style="max-height:420px; overflow:auto; background:#0b0f1a; padding:12px; border-radius:8px; border:1px solid var(--border-color)"></pre>
+      </div>
+
   </div>
 
   <script>
@@ -61,9 +69,39 @@
             <div><strong>Last Seen:</strong> ${d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</div>
             ${d.updateAvailable ? `<div><strong>Update:</strong> ${d.targetFirmware}</div>` : ''}
           </div>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button class="btn" onclick="openDeviceLogs('${d.mac||''}')">View Logs</button>
+          </div>
         </div>
       `).join('');
     }
+
+      let logsTimer = null;
+      let logsMac = null;
+      async function refreshLogs(){
+        if(!logsMac) return;
+        try {
+          await load();
+          const dev = Object.values(allDevices).find(d => (d.mac||'').toLowerCase() === logsMac.toLowerCase());
+          const pre = document.getElementById('deviceLogsPre');
+          pre.textContent = dev && dev.logs ? dev.logs.join('\n') : 'No logs yet';
+          pre.scrollTop = pre.scrollHeight;
+        } catch(e) { console.error(e); }
+      }
+      function openDeviceLogs(mac){
+        logsMac = (mac||'');
+        document.getElementById('deviceLogsTitle').textContent = `Logs for ${logsMac}`;
+        document.getElementById('deviceLogsPanel').classList.remove('hidden');
+        refreshLogs();
+        if(logsTimer) clearInterval(logsTimer);
+        logsTimer = setInterval(refreshLogs, 5000);
+      }
+      function closeDeviceLogs(){
+        if(logsTimer) clearInterval(logsTimer);
+        logsTimer = null; logsMac = null;
+        document.getElementById('deviceLogsPanel').classList.add('hidden');
+      }
+
     async function load(){
       try {
         const r = await fetch('/api/devices/list');

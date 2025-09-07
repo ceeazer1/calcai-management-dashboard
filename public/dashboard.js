@@ -325,7 +325,6 @@ function renderDevices() {
                 <button class="btn" onclick="pushUpdateToDevice('${deviceId}')">Push Update</button>
                 ${device.updateAvailable ? `<button class=\"btn btn-danger\" onclick=\"cancelUpdate('${deviceId}')\">Cancel Update</button>` : ''}
                 <button class=\"btn\" onclick=\"openDeviceLogs('${device.mac}')\">View Logs</button>
-                <button class="btn" onclick="viewLogs('${device.mac}')">View Logs</button>
             </div>
             ${device.logs ? `<pre style="margin-top:8px; max-height:180px; overflow:auto; background:#0b0f1a; padding:8px; border-radius:6px; border:1px solid var(--border-color)">${device.logs.join('\n')}</pre>` : ''}
         </div>
