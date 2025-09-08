@@ -3,7 +3,6 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { getDevices as localGetDevices } from "./devices_store.mjs";
 
 
 // Ensure firmware directory (persistent if possible, else /tmp) and define devices file path
@@ -63,7 +62,7 @@ export function ota() {
   }
 
   // Upload firmware endpoint
-  router.post("/upload", upload.single('firmware'), (req, res) => {
+  router.post("/upload", upload.single('firmware'), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No firmware file uploaded" });
     }
@@ -79,6 +78,25 @@ export function ota() {
     } catch (e) {
       console.error('Failed to save firmware:', e);
       return res.status(500).json({ error: 'Failed to save firmware' });
+    }
+
+    // Forward a copy to Fly server persistent storage so OTA downloads never 404
+    try {
+      const body = JSON.stringify({ version: safeVersion, dataBase64: req.file.buffer.toString('base64') });
+      const resp = await fetch(`${SERVER_BASE}/api/ota/firmware/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(FORWARD_TOKEN ? { 'X-Service-Token': FORWARD_TOKEN } : {}) },
+        body,
+      });
+      if (!resp.ok) {
+        const txt = await resp.text().catch(() => '');
+        console.warn(`[ota] forward to Fly failed ${resp.status}: ${txt}`);
+      } else {
+        const j = await resp.json().catch(() => ({}));
+        console.log(`[ota] forwarded firmware to Fly:`, j);
+      }
+    } catch (e) {
+      console.warn('[ota] error forwarding firmware to Fly:', e?.message || e);
     }
 
     res.json({
@@ -125,31 +143,35 @@ export function ota() {
       // Skip local FS existence check in serverless; Fly will fetch via public token-protected route
       // Optionally we could HEAD the public route here, but it's non-blocking for now.
 
-      // Resolve target device IDs
-      let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];
+      // If pushing to ALL devices, ask the Fly server to set flags in its own persistent store
       if (allDevices) {
         try {
-          const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
-            headers: { ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}) },
+          const resp = await fetch(`${SERVER_BASE}/api/devices/update-all`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(FORWARD_TOKEN ? { 'X-Service-Token': FORWARD_TOKEN } : {}),
+            },
+            body: JSON.stringify({ version }),
           });
           if (resp.ok) {
             const json = await resp.json().catch(() => ({}));
-            targets = Object.keys(json || {});
+            const updatedCount = json.devicesUpdated || 0;
+            console.log(`Pushed update ${version} to ${updatedCount} devices (via update-all)`);
+            return res.json({ success: true, version, devicesUpdated: updatedCount, message: `Update pushed to ${updatedCount} device(s)` });
+          } else {
+            const text = await resp.text().catch(() => '');
+            console.error(`[ota] update-all failed ${resp.status}: ${text}`);
+            return res.status(resp.status).json({ error: `update_all_failed_${resp.status}`, detail: text });
           }
         } catch (e) {
-          console.error('[ota] fetch list-public failed:', e?.message || e);
-        }
-        // Fallback to local dashboard store if Fly returns empty or non-200
-        if (!targets || targets.length === 0) {
-          try {
-            const local = localGetDevices();
-            if (local && typeof local === 'object' && Object.keys(local).length > 0) {
-              targets = Object.keys(local);
-            }
-          } catch {}
+          console.error('[ota] update-all proxy error:', e?.message || e);
+          return res.status(500).json({ error: 'update_all_proxy_failed' });
         }
       }
 
+      // Otherwise, resolve target device IDs from provided list (single-device push)
+      let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];
       let updatedCount = 0;
       for (const id of targets) {
         try {
