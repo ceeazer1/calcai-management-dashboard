@@ -167,7 +167,11 @@ function setupEventListeners() {
         fileInput.type = 'file';
         fileInput.accept = '.bin';
         fileInput.id = 'firmwareFile';
-        fileInput.style.display = 'none';
+        fileInput.style.position = 'absolute';
+        fileInput.style.left = '-9999px';
+        fileInput.style.width = '1px';
+        fileInput.style.height = '1px';
+        fileInput.style.opacity = '0';
         uploadArea.appendChild(fileInput);
     }
 
@@ -206,7 +210,11 @@ function handleDrop(e) {
                 fileInput.type = 'file';
                 fileInput.accept = '.bin';
                 fileInput.id = 'firmwareFile';
-                fileInput.style.display = 'none';
+                fileInput.style.position = 'absolute';
+                fileInput.style.left = '-9999px';
+                fileInput.style.width = '1px';
+                fileInput.style.height = '1px';
+                fileInput.style.opacity = '0';
                 area.appendChild(fileInput);
             } else {
                 showAlert('Upload area not found', 'error');
@@ -251,7 +259,11 @@ async function uploadFirmware() {
         fileInput.type = 'file';
         fileInput.accept = '.bin';
         fileInput.id = 'firmwareFile';
-        fileInput.style.display = 'none';
+        fileInput.style.position = 'absolute';
+        fileInput.style.left = '-9999px';
+        fileInput.style.width = '1px';
+        fileInput.style.height = '1px';
+        fileInput.style.opacity = '0';
         area.appendChild(fileInput);
         fileInput.addEventListener('change', handleFileSelect);
     }

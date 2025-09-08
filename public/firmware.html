@@ -54,7 +54,11 @@
           file.type = 'file';
           file.accept = '.bin';
           file.id = 'firmwareFile';
-          file.style.display = 'none';
+          file.style.position = 'absolute';
+          file.style.left = '-9999px';
+          file.style.width = '1px';
+          file.style.height = '1px';
+          file.style.opacity = '0';
           area.appendChild(file);
         }
         area.addEventListener('click', ()=> file && file.click());
