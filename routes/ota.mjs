@@ -22,6 +22,8 @@ export function ota() {
 
   // Upstream Fly server base for device updates (proxy writes there)
   const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || (process.env.NODE_ENV === 'production' ? "https://calcai-server.fly.dev" : "http://localhost:3000");
+  const BASE = (SERVER_BASE || '').replace(/\/\/+$/, '');
+
   const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN || process.env.DEVICES_SERVICE_TOKEN;
 
   // Configure multer for in-memory uploads
@@ -83,7 +85,7 @@ export function ota() {
     // Forward a copy to Fly server persistent storage so OTA downloads never 404
     try {
       const body = JSON.stringify({ version: safeVersion, dataBase64: req.file.buffer.toString('base64') });
-      const resp = await fetch(`${SERVER_BASE}/api/ota/firmware/upload`, {
+      const resp = await fetch(`${BASE}/api/ota/firmware/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(FORWARD_TOKEN ? { 'X-Service-Token': FORWARD_TOKEN } : {}) },
         body,
@@ -146,7 +148,7 @@ export function ota() {
       // If pushing to ALL devices, ask the Fly server to set flags in its own persistent store
       if (allDevices) {
         try {
-          const resp = await fetch(`${SERVER_BASE}/api/devices/update-all`, {
+          const resp = await fetch(`${BASE}/api/devices/update-all`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -175,7 +177,7 @@ export function ota() {
       let updatedCount = 0;
       for (const id of targets) {
         try {
-          const u = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(id)}`, {
+          const u = await fetch(`${BASE}/api/devices/update/${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -206,7 +208,7 @@ export function ota() {
       let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];
       if (allDevices) {
         try {
-          const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
+          const resp = await fetch(`${BASE}/api/devices/list-public`, {
             headers: { ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}) },
           });
           if (resp.ok) {
@@ -221,7 +223,7 @@ export function ota() {
       let cancelledCount = 0;
       for (const id of targets) {
         try {
-          const u = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(id)}`, {
+          const u = await fetch(`${BASE}/api/devices/update/${encodeURIComponent(id)}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
