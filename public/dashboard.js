@@ -215,9 +215,10 @@ function formatFileSize(bytes) {
 }
 
 async function uploadFirmware() {
-    const fileInput = document.getElementById('firmwareFile');
-    const versionInput = document.getElementById('firmwareVersion');
-    const descriptionInput = document.getElementById('firmwareDescription');
+    // Try strict IDs first, then safe fallbacks
+    const fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"], input[id*="firmware"]');
+    const versionInput = document.getElementById('firmwareVersion') || document.querySelector('input#firmwareVersion, input[name="firmwareVersion"]');
+    const descriptionInput = document.getElementById('firmwareDescription') || document.querySelector('#firmwareDescription, input[name="firmwareDescription"]');
 
     // Defensive: ensure we're on the Firmware page
     if (!fileInput || !versionInput) {
