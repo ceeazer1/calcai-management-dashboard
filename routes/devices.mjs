@@ -121,12 +121,18 @@ export function devices() {
           ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
         },
       });
-      const status = resp.status;
-      const json = await resp.json().catch(() => ({}));
-      return res.status(status).json(json);
+      if (resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        return res.json(json);
+      }
+      // Fallback: return local store so dashboard still shows devices if Fly proxy fails
+      const fallback = loadDevices();
+      console.warn(`[dashboard] list proxy non-200 ${resp.status}; serving fallback store`);
+      return res.status(200).json(fallback);
     } catch (e) {
       console.error("[dashboard] list proxy error:", e?.message || e);
-      res.status(500).json({ error: "list_proxy_failed" });
+      const fallback = loadDevices();
+      return res.status(200).json(fallback);
     }
   });
 
