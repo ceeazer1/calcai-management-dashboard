@@ -13,7 +13,7 @@ export function requireAuth(req, res, next) {
     return next();
   } else {
     // If it's an API request, return JSON error
-    if (req.path.startsWith('/api/')) {
+    if ((req.originalUrl || '').startsWith('/api/')) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     // Otherwise redirect to login with next param
