@@ -12,6 +12,10 @@ try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: tr
 const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";
 const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN;
 
+// Cache last successful Fly device list to avoid UI flicker when proxy hiccups
+let lastFlyDevices = null;
+let lastFlyAt = 0;
+
 export function devices() {
   const router = express.Router();
 
@@ -123,14 +127,24 @@ export function devices() {
       });
       if (resp.ok) {
         const json = await resp.json().catch(() => ({}));
+        lastFlyDevices = (json && typeof json === 'object') ? json : lastFlyDevices;
+        lastFlyAt = Date.now();
         return res.json(json);
       }
-      // Fallback: return local store so dashboard still shows devices if Fly proxy fails
+      // Fallback 1: serve last good Fly response if available
+      if (lastFlyDevices && Object.keys(lastFlyDevices).length > 0) {
+        console.warn(`[dashboard] list proxy non-200 ${resp.status}; serving cached Fly list`);
+        return res.status(200).json(lastFlyDevices);
+      }
+      // Fallback 2: return local store so dashboard still shows devices if Fly proxy fails
       const fallback = loadDevices();
       console.warn(`[dashboard] list proxy non-200 ${resp.status}; serving fallback store`);
       return res.status(200).json(fallback);
     } catch (e) {
       console.error("[dashboard] list proxy error:", e?.message || e);
+      if (lastFlyDevices && Object.keys(lastFlyDevices).length > 0) {
+        return res.status(200).json(lastFlyDevices);
+      }
       const fallback = loadDevices();
       return res.status(200).json(fallback);
     }
