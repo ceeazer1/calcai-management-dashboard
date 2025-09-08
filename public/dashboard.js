@@ -172,23 +172,40 @@ function setupEventListeners() {
         uploadArea.appendChild(fileInput);
     }
 
-    // Ensure file input is offscreen but clickable
+    // Ensure file input is hidden (we trigger it programmatically from the drop zone)
     if (fileInput) {
-        fileInput.style.position = 'absolute';
-        fileInput.style.left = '-9999px';
-        fileInput.style.width = '1px';
-        fileInput.style.height = '1px';
-        fileInput.style.opacity = '0';
+        fileInput.style.display = 'none';
     }
 
     if (uploadArea && fileInput) {
         // File upload drag and drop
-        uploadArea.addEventListener('click', () => fileInput && fileInput.click());
+        uploadArea.addEventListener('click', (e) => {
+            // If the native file input was the target, let the browser handle it once
+            const t = e?.target;
+            if (t && t.tagName === 'INPUT' && t.type === 'file') {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            if (fileInput) fileInput.click();
+        });
         uploadArea.addEventListener('dragover', handleDragOver);
         uploadArea.addEventListener('dragleave', handleDragLeave);
         uploadArea.addEventListener('drop', handleDrop);
 
         fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    // Persist firmware version across refreshes/tabs
+    const versionInput = document.getElementById('firmwareVersion') || document.querySelector('input#firmwareVersion, input[name="firmwareVersion"]');
+    if (versionInput) {
+        try {
+            const saved = localStorage.getItem('otaVersion');
+            if (saved && !versionInput.value) versionInput.value = saved;
+        } catch(e) {}
+        versionInput.addEventListener('input', () => {
+            try { localStorage.setItem('otaVersion', versionInput.value || ''); } catch(e) {}
+        });
     }
 }
 
@@ -217,6 +234,7 @@ function handleDrop(e) {
         const versionInput = document.getElementById('firmwareVersion');
         if (versionInput && !versionInput.value) {
             versionInput.value = selectedFirmwareFile.name.replace('.bin', '');
+            try { localStorage.setItem('otaVersion', versionInput.value || ''); } catch(e) {}
         }
     }
 }
@@ -236,6 +254,7 @@ function handleFileSelect() {
     if (versionInput && !versionInput.value) {
         const baseName = selectedFirmwareFile.name.replace('.bin', '');
         versionInput.value = baseName;
+        try { localStorage.setItem('otaVersion', versionInput.value || ''); } catch(e) {}
     }
 }
 
@@ -280,10 +299,17 @@ async function uploadFirmware() {
         return;
     }
 
-    const version = (versionInput.value || '').trim();
+    let version = (versionInput.value || '').trim();
     if (!version) {
-        showAlert('Please enter a version name', 'error');
-        return;
+        const suggested = selectedFirmwareFile ? selectedFirmwareFile.name.replace('.bin','') : '';
+        const entered = window.prompt('Enter firmware version (e.g., 1.0.2):', suggested);
+        if (!entered) {
+            showAlert('Upload cancelled: version required', 'error');
+            return;
+        }
+        version = entered.trim();
+        versionInput.value = version;
+        try { localStorage.setItem('otaVersion', version || ''); } catch(e) {}
     }
 
     const formData = new FormData();
@@ -309,13 +335,13 @@ async function uploadFirmware() {
             const result = await response.json();
             showAlert(`Firmware ${result.version} uploaded successfully!`, 'success');
 
-            // Reset form
+            // Reset file selection and description; keep version (persisted)
             selectedFirmwareFile = null;
             if (fileInput) fileInput.value = '';
-            if (versionInput) versionInput.value = '';
             if (descriptionInput) descriptionInput.value = '';
             const area = document.getElementById('uploadArea');
             if (area) area.innerHTML = '<p>Drag and drop a .bin file here, or click to select</p>';
+            try { localStorage.setItem('otaVersion', (versionInput?.value || '')); } catch(e) {}
 
             // Reload firmware list
             loadFirmwareVersions();
