@@ -3,6 +3,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { getDevices as localGetDevices } from "./devices_store.mjs";
 
 
 // Ensure firmware directory (persistent if possible, else /tmp) and define devices file path
@@ -137,6 +138,15 @@ export function ota() {
           }
         } catch (e) {
           console.error('[ota] fetch list-public failed:', e?.message || e);
+        }
+        // Fallback to local dashboard store if Fly returns empty or non-200
+        if (!targets || targets.length === 0) {
+          try {
+            const local = localGetDevices();
+            if (local && typeof local === 'object' && Object.keys(local).length > 0) {
+              targets = Object.keys(local);
+            }
+          } catch {}
         }
       }
 
