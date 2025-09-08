@@ -444,14 +444,19 @@ function renderFirmwareList() {
 }
 
 function updateStats() {
-    const deviceArray = Object.values(devices);
+    const deviceArray = Object.values(devices || {});
     const totalDevices = deviceArray.length;
     const onlineDevices = deviceArray.filter(d => d.status === 'online').length;
     const pendingUpdates = deviceArray.filter(d => d.updateAvailable).length;
 
-    document.getElementById('totalDevices').textContent = totalDevices;
-    document.getElementById('onlineDevices').textContent = onlineDevices;
-    document.getElementById('pendingUpdates').textContent = pendingUpdates;
+    const totalEl = document.getElementById('totalDevices');
+    const onlineEl = document.getElementById('onlineDevices');
+    const pendingEl = document.getElementById('pendingUpdates');
+    if (!totalEl || !onlineEl || !pendingEl) return; // Not on a page with stats
+
+    totalEl.textContent = totalDevices;
+    onlineEl.textContent = onlineDevices;
+    pendingEl.textContent = pendingUpdates;
 }
 
 async function pushUpdateToDevice(deviceId) {
@@ -476,7 +481,7 @@ async function pushUpdateToDevice(deviceId) {
         if (response.ok) {
             const result = await response.json();
             showAlert(result.message, 'success');
-            loadDevices();
+            if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
             const error = await response.json();
             showAlert(`Failed to push update: ${error.error}`, 'error');
@@ -504,7 +509,7 @@ async function pushUpdateToAll(version) {
         if (response.ok) {
             const result = await response.json();
             showAlert(result.message, 'success');
-            loadDevices();
+            if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
             const error = await response.json();
             showAlert(`Failed to push update: ${error.error}`, 'error');
@@ -527,7 +532,7 @@ async function cancelUpdate(deviceId) {
         if (response.ok) {
             const result = await response.json();
             showAlert(result.message, 'success');
-            loadDevices();
+            if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
             const error = await response.json();
             showAlert(`Failed to cancel update: ${error.error}`, 'error');
@@ -554,7 +559,7 @@ async function cancelAllUpdates() {
         if (response.ok) {
             const result = await response.json();
             showAlert(result.message, 'success');
-            loadDevices();
+            if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
             const error = await response.json();
             showAlert(`Failed to cancel updates: ${error.error}`, 'error');
