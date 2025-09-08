@@ -116,6 +116,11 @@ export function devices() {
     res.setHeader('Content-Disposition', `attachment; filename="${version}.bin"`);
     res.sendFile(path.resolve(firmwarePath));
   });
+  // Debug config (helps verify env on Vercel)
+  router.get("/debug-config", (req, res) => {
+    res.json({ serverBase: SERVER_BASE, tokenPresent: !!FORWARD_TOKEN });
+  });
+
 
   // Get all devices (proxy to Fly server persistent registry)
   router.get("/list", async (req, res) => {
