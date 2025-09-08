@@ -218,36 +218,43 @@ async function uploadFirmware() {
     const fileInput = document.getElementById('firmwareFile');
     const versionInput = document.getElementById('firmwareVersion');
     const descriptionInput = document.getElementById('firmwareDescription');
-    const alertDiv = document.getElementById('uploadAlert');
 
-    if (!fileInput.files[0]) {
+    // Defensive: ensure we're on the Firmware page
+    if (!fileInput || !versionInput) {
+        console.warn('Firmware upload UI elements not found on this page.');
+        showAlert('Open Admin → Firmware to upload firmware.', 'error');
+        return;
+    }
+
+    if (!fileInput.files || !fileInput.files[0]) {
         showAlert('Please select a firmware file', 'error');
         return;
     }
 
-    if (!versionInput.value.trim()) {
+    const version = (versionInput.value || '').trim();
+    if (!version) {
         showAlert('Please enter a version name', 'error');
         return;
     }
 
     const formData = new FormData();
     formData.append('firmware', fileInput.files[0]);
-    formData.append('version', versionInput.value.trim());
-    formData.append('description', descriptionInput.value.trim());
+    formData.append('version', version);
+    formData.append('description', (descriptionInput?.value || '').trim());
 
     const progressDiv = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('uploadProgressBar');
 
     try {
-        progressDiv.classList.remove('hidden');
-        progressBar.style.width = '0%';
+        progressDiv?.classList.remove('hidden');
+        if (progressBar) progressBar.style.width = '0%';
 
         const response = await fetch('/api/ota/upload', {
             method: 'POST',
             body: formData
         });
 
-        progressBar.style.width = '100%';
+        if (progressBar) progressBar.style.width = '100%';
 
         if (response.ok) {
             const result = await response.json();
@@ -256,20 +263,22 @@ async function uploadFirmware() {
             // Reset form
             fileInput.value = '';
             versionInput.value = '';
-            descriptionInput.value = '';
-            document.getElementById('uploadArea').innerHTML = '<p>Drag and drop a .bin file here, or click to select</p>';
+            if (descriptionInput) descriptionInput.value = '';
+            const area = document.getElementById('uploadArea');
+            if (area) area.innerHTML = '<p>Drag and drop a .bin file here, or click to select</p>';
 
             // Reload firmware list
             loadFirmwareVersions();
         } else {
-            const error = await response.json();
-            showAlert(`Upload failed: ${error.error}`, 'error');
+            let errorMsg = 'unknown_error';
+            try { const err = await response.json(); errorMsg = err?.error || errorMsg; } catch {}
+            showAlert(`Upload failed: ${errorMsg}`, 'error');
         }
     } catch (error) {
         showAlert(`Upload failed: ${error.message}`, 'error');
     } finally {
         setTimeout(() => {
-            progressDiv.classList.add('hidden');
+            progressDiv?.classList.add('hidden');
         }, 2000);
     }
 }
