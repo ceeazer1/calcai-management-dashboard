@@ -21,7 +21,7 @@ export function ota() {
   const router = express.Router();
 
   // Upstream Fly server base for device updates (proxy writes there)
-  const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";
+  const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || (process.env.NODE_ENV === 'production' ? "https://calcai-server.fly.dev" : "http://localhost:3000");
   const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN || process.env.DEVICES_SERVICE_TOKEN;
 
   // Configure multer for in-memory uploads
@@ -157,12 +157,12 @@ export function ota() {
           if (resp.ok) {
             const json = await resp.json().catch(() => ({}));
             const updatedCount = json.devicesUpdated || 0;
-            console.log(`Pushed update ${version} to ${updatedCount} devices (via update-all)`);
+            console.log(`Pushed update ${version} to ${updatedCount} devices (via update-all @ ${SERVER_BASE})`);
             return res.json({ success: true, version, devicesUpdated: updatedCount, message: `Update pushed to ${updatedCount} device(s)` });
           } else {
             const text = await resp.text().catch(() => '');
-            console.error(`[ota] update-all failed ${resp.status}: ${text}`);
-            return res.status(resp.status).json({ error: `update_all_failed_${resp.status}`, detail: text });
+            console.error(`[ota] update-all failed ${resp.status} via ${SERVER_BASE}: ${text}`);
+            return res.status(resp.status).json({ error: `update_all_failed_${resp.status}`, base: SERVER_BASE, detail: text });
           }
         } catch (e) {
           console.error('[ota] update-all proxy error:', e?.message || e);
