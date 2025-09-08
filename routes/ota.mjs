@@ -22,7 +22,8 @@ export function ota() {
 
   // Upstream Fly server base for device updates (proxy writes there)
   const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || (process.env.NODE_ENV === 'production' ? "https://calcai-server.fly.dev" : "http://localhost:3000");
-  const BASE = (SERVER_BASE || '').replace(/\/\/+$/, '');
+  // Remove any trailing slashes (one or more)
+  const BASE = (SERVER_BASE || '').replace(/\/+$/, '');
 
   const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN || process.env.DEVICES_SERVICE_TOKEN;
 
