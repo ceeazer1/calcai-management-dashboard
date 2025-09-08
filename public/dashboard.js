@@ -124,7 +124,8 @@ async function checkAuthentication() {
         const response = await fetch('/api/auth/check');
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('username').textContent = data.username || 'Admin';
+            const nameEl = document.getElementById('username');
+            if (nameEl) nameEl.textContent = data.username || 'Admin';
         } else {
             // Do not client-redirect; server already protects /admin/*
             return false;
@@ -158,11 +159,21 @@ async function logout() {
 
 function setupEventListeners() {
     const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('firmwareFile');
+    let fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
+
+    // Create a hidden file input if missing
+    if (uploadArea && !fileInput) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.bin';
+        fileInput.id = 'firmwareFile';
+        fileInput.style.display = 'none';
+        uploadArea.appendChild(fileInput);
+    }
 
     if (uploadArea && fileInput) {
         // File upload drag and drop
-        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('click', () => fileInput && fileInput.click());
         uploadArea.addEventListener('dragover', handleDragOver);
         uploadArea.addEventListener('dragleave', handleDragLeave);
         uploadArea.addEventListener('drop', handleDrop);
@@ -187,25 +198,39 @@ function handleDrop(e) {
 
     const files = e.dataTransfer.files;
     if (files.length > 0 && files[0].name.endsWith('.bin')) {
-        document.getElementById('firmwareFile').files = files;
+        let fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
+        if (!fileInput) {
+            const area = document.getElementById('uploadArea');
+            if (area) {
+                fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.bin';
+                fileInput.id = 'firmwareFile';
+                fileInput.style.display = 'none';
+                area.appendChild(fileInput);
+            } else {
+                showAlert('Upload area not found', 'error');
+                return;
+            }
+        }
+        fileInput.files = files;
         handleFileSelect();
     }
 }
 
 function handleFileSelect() {
-    const fileInput = document.getElementById('firmwareFile');
+    const fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
     const file = fileInput.files[0];
 
-    if (file) {
-        const uploadArea = document.getElementById('uploadArea');
-        uploadArea.innerHTML = `<p>Selected: ${file.name} (${formatFileSize(file.size)})</p>`;
+    const uploadArea = document.getElementById('uploadArea');
+    if (uploadArea) uploadArea.innerHTML = `<p>Selected: ${file.name} (${formatFileSize(file.size)})</p>`;
 
-        // Auto-generate version name from filename
-        const versionInput = document.getElementById('firmwareVersion');
-        if (!versionInput.value) {
-            const baseName = file.name.replace('.bin', '');
-            versionInput.value = baseName;
-        }
+    // Auto-generate version name from filename
+    const versionInput = document.getElementById('firmwareVersion');
+    if (versionInput && !versionInput.value) {
+        const baseName = file.name.replace('.bin', '');
+        versionInput.value = baseName;
     }
 }
 
@@ -218,8 +243,18 @@ function formatFileSize(bytes) {
 }
 
 async function uploadFirmware() {
-    // Try strict IDs first, then safe fallbacks
-    const fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"], input[id*="firmware"]');
+    // Ensure a file input exists and is used
+    const area = document.getElementById('uploadArea');
+    let fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
+    if (!fileInput && area) {
+        fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.bin';
+        fileInput.id = 'firmwareFile';
+        fileInput.style.display = 'none';
+        area.appendChild(fileInput);
+        fileInput.addEventListener('change', handleFileSelect);
+    }
     const versionInput = document.getElementById('firmwareVersion') || document.querySelector('input#firmwareVersion, input[name="firmwareVersion"]');
     const descriptionInput = document.getElementById('firmwareDescription') || document.querySelector('#firmwareDescription, input[name="firmwareDescription"]');
 
