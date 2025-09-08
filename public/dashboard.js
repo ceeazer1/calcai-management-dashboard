@@ -483,8 +483,10 @@ async function pushUpdateToDevice(deviceId) {
             showAlert(result.message, 'success');
             if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
-            const error = await response.json();
-            showAlert(`Failed to push update: ${error.error}`, 'error');
+            const error = await response.json().catch(() => ({}));
+            const base = error.base ? ` @ ${error.base}` : '';
+            const detail = error.detail ? ` - ${error.detail}` : '';
+            showAlert(`Failed to push update: ${error.error || response.status}${base}${detail}`, 'error');
         }
     } catch (error) {
         showAlert(`Failed to push update: ${error.message}`, 'error');
@@ -511,8 +513,10 @@ async function pushUpdateToAll(version) {
             showAlert(result.message, 'success');
             if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
         } else {
-            const error = await response.json();
-            showAlert(`Failed to push update: ${error.error}`, 'error');
+            const error = await response.json().catch(() => ({}));
+            const base = error.base ? ` @ ${error.base}` : '';
+            const detail = error.detail ? ` - ${error.detail}` : '';
+            showAlert(`Failed to push update: ${error.error || response.status}${base}${detail}`, 'error');
         }
     } catch (error) {
         showAlert(`Failed to push update: ${error.message}`, 'error');
