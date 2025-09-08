@@ -102,12 +102,15 @@ let firmwareVersions = [];
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthentication();
     setupEventListeners();
-    loadDevices();
 
-    // Auto-refresh every 30 seconds
-    setInterval(() => {
+    // Only init devices UI if devices container exists on this page
+    if (document.getElementById('deviceList')) {
         loadDevices();
-    }, 30000);
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            loadDevices();
+        }, 30000);
+    }
 
     // Only load firmware UI on the firmware page
     if (document.getElementById('firmwareList') || document.getElementById('uploadArea')) {
@@ -341,6 +344,7 @@ async function loadFirmwareVersions() {
 
 function renderDevices() {
     const deviceList = document.getElementById('deviceList');
+    if (!deviceList) return; // Not on devices page
     const deviceArray = Object.entries(devices);
 
     if (deviceArray.length === 0) {

@@ -45,10 +45,25 @@
   <script>
     // Reuse existing upload handlers from dashboard.js
     document.addEventListener('DOMContentLoaded', ()=>{
-      document.getElementById('uploadArea').addEventListener('click', ()=>document.getElementById('firmwareFile').click());
-      document.getElementById('firmwareFile').addEventListener('change', handleFileSelect);
-      document.getElementById('uploadBtn').addEventListener('click', uploadFirmware);
-      loadFirmwareVersions();
+      const area = document.getElementById('uploadArea');
+      if (area) {
+        // Ensure a file input exists even if DOM changed
+        let file = document.getElementById('firmwareFile');
+        if (!file) {
+          file = document.createElement('input');
+          file.type = 'file';
+          file.accept = '.bin';
+          file.id = 'firmwareFile';
+          file.style.display = 'none';
+          area.appendChild(file);
+        }
+        area.addEventListener('click', ()=> file && file.click());
+        file.addEventListener('change', handleFileSelect);
+      }
+      const btn = document.getElementById('uploadBtn');
+      if (btn) btn.addEventListener('click', uploadFirmware);
+      // Load list if container present
+      if (document.getElementById('firmwareList')) loadFirmwareVersions();
     });
   </script>
 </body>
