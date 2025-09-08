@@ -276,14 +276,44 @@ async function uploadFirmware() {
 
 async function loadDevices() {
     try {
-        const response = await fetch('/api/devices/list');
+        const response = await fetch('/api/devices/list', { cache: 'no-store' });
         if (response.ok) {
-            devices = await response.json();
-            renderDevices();
-            updateStats();
+            const data = await response.json();
+            if (data && Object.keys(data).length > 0) {
+                devices = data;
+                window.__lastDevicesSnapshot = data;
+                window.__devicesStale = false;
+                window.__listErrorCount = 0;
+            } else {
+                window.__listErrorCount = (window.__listErrorCount || 0) + 1;
+                if (window.__lastDevicesSnapshot && Object.keys(window.__lastDevicesSnapshot).length > 0 && window.__listErrorCount < 3) {
+                    devices = window.__lastDevicesSnapshot;
+                    window.__devicesStale = true;
+                } else {
+                    devices = data || {};
+                    window.__devicesStale = false;
+                }
+            }
+        } else {
+            window.__listErrorCount = (window.__listErrorCount || 0) + 1;
+            if (window.__lastDevicesSnapshot && Object.keys(window.__lastDevicesSnapshot).length > 0) {
+                devices = window.__lastDevicesSnapshot;
+                window.__devicesStale = true;
+            }
         }
+        renderDevices();
+        updateStats();
+        renderStaleBanner();
     } catch (error) {
         console.error('Failed to load devices:', error);
+        window.__listErrorCount = (window.__listErrorCount || 0) + 1;
+        if (window.__lastDevicesSnapshot && Object.keys(window.__lastDevicesSnapshot).length > 0) {
+            devices = window.__lastDevicesSnapshot;
+            window.__devicesStale = true;
+            renderDevices();
+            updateStats();
+            renderStaleBanner();
+        }
     }
 }
 
@@ -484,6 +514,7 @@ async function deleteFirmware(version) {
             method: 'DELETE'
         });
 
+
         if (response.ok) {
             const result = await response.json();
             showAlert(result.message, 'success');
@@ -529,6 +560,22 @@ async function viewLogs(mac) {
         showAlert('Failed to load logs', 'error');
     }
 }
+
+function renderStaleBanner() {
+    const alertDiv = document.getElementById('uploadAlert');
+    if (!alertDiv) return;
+    if (window.__devicesStale) {
+        alertDiv.className = 'alert alert-warning';
+        alertDiv.textContent = 'Showing last known devices (connection unstable)...';
+        alertDiv.style.display = 'block';
+    } else {
+        // Hide only if this banner set it
+        if (alertDiv.textContent && alertDiv.textContent.indexOf('Showing last known devices') === 0) {
+            alertDiv.style.display = 'none';
+        }
+    }
+}
+
 
 function formatDate(dateString) {
     const date = new Date(dateString);
