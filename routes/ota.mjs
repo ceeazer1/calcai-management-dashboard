@@ -121,11 +121,8 @@ export function ota() {
         return res.status(400).json({ error: "Firmware version required" });
       }
 
-      // Ensure firmware exists locally (upload should have created it)
-      const firmwarePath = path.join(firmwareDir, `${version}.bin`);
-      if (!fs.existsSync(firmwarePath)) {
-        return res.status(404).json({ error: "Firmware file not found" });
-      }
+      // Skip local FS existence check in serverless; Fly will fetch via public token-protected route
+      // Optionally we could HEAD the public route here, but it's non-blocking for now.
 
       // Resolve target device IDs
       let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];

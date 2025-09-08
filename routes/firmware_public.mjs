@@ -1,13 +1,22 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 // Public (token-protected) firmware download route for OTA
 // This allows the Fly server to fetch firmware binaries using an X-Service-Token
 // without requiring a browser session cookie.
 
-const firmwareDir = path.join(process.cwd(), "firmware");
-try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+// Use the same directory logic as OTA upload: prefer process env or repo dir if writable, else fall back to tmp
+let firmwareDir = process.env.FIRMWARE_DIR || path.join(process.cwd(), "firmware");
+try {
+  if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true });
+  // try to access (may throw on read-only)
+  fs.accessSync(firmwareDir, fs.constants.R_OK);
+} catch {
+  firmwareDir = path.join(os.tmpdir(), "firmware");
+  try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+}
 
 function checkToken(req, res) {
   // Accept either DASHBOARD_SERVICE_TOKEN or DEVICES_SERVICE_TOKEN
