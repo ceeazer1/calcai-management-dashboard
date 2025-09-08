@@ -13,6 +13,7 @@ import { ota } from "./routes/ota.mjs";
 import { requireAuth, authenticateUser } from "./auth.mjs";
 import { devicesIngestPublic } from "./routes/devices_ingest.mjs";
 import { devicesLogsPublic } from "./routes/devices_logs.mjs";
+import { firmwarePublic } from "./routes/firmware_public.mjs";
 // Optionally load STRIPE_SECRET_KEY from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
@@ -148,6 +149,9 @@ app.use("/api/orders", requireAuth, orders());
 // Device Public Ingest (no auth, token validated inside)
 app.use("/api/devices", devicesIngestPublic());
 app.use("/api/devices", devicesLogsPublic());
+
+// Public token-protected firmware download for OTA (so Fly can fetch binaries)
+app.use("/api/devices/firmware", firmwarePublic());
 
 // Device Management & OTA Updates (protected)
 app.use("/api/devices", requireAuth, devices());

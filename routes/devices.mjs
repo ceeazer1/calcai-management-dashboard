@@ -1,12 +1,19 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 import { getDevices as storeGetDevices, saveDevices as storeSaveDevices, upsertDevice } from "./devices_store.mjs";
 
-// Ensure firmware directory path used for downloads
-const firmwareDir = path.join(process.cwd(), "firmware");
-try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+// Ensure firmware directory path used for downloads (fallback to tmp if read-only)
+let firmwareDir = process.env.FIRMWARE_DIR || path.join(process.cwd(), "firmware");
+try {
+  if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true });
+  fs.accessSync(firmwareDir, fs.constants.W_OK);
+} catch {
+  firmwareDir = path.join(os.tmpdir(), "firmware");
+  try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+}
 
 // Base URL of Fly.io server for persistent device registry
 const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";

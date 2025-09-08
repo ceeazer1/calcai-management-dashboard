@@ -2,19 +2,27 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 
-// Ensure firmware directory and define devices file path
-const firmwareDir = path.join(process.cwd(), "firmware");
-try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+// Ensure firmware directory (persistent if possible, else /tmp) and define devices file path
+let firmwareDir = process.env.FIRMWARE_DIR || path.join(process.cwd(), "firmware");
+try {
+  if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true });
+  fs.accessSync(firmwareDir, fs.constants.W_OK);
+} catch {
+  // Fallback to tmp on platforms like Vercel where repo FS is read-only
+  firmwareDir = path.join(os.tmpdir(), "firmware");
+  try { if (!fs.existsSync(firmwareDir)) fs.mkdirSync(firmwareDir, { recursive: true }); } catch {}
+}
 const devicesFile = path.join(process.cwd(), "devices.json");
 
 export function ota() {
   const router = express.Router();
 
-  // In-memory storage for serverless environment
-  // Note: In production, you'd want to use cloud storage like AWS S3, Vercel Blob, etc.
-  let firmwareData = {};
+  // Upstream Fly server base for device updates (proxy writes there)
+  const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";
+  const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN || process.env.DEVICES_SERVICE_TOKEN;
 
   // Configure multer for in-memory uploads
   const upload = multer({
@@ -105,87 +113,104 @@ export function ota() {
     }
   });
 
-  // Push update to specific devices
-  router.post("/push-update", (req, res) => {
-    const { version, deviceIds, allDevices } = req.body;
+  // Push update to devices (proxy to Fly persistent registry)
+  router.post("/push-update", async (req, res) => {
+    try {
+      const { version, deviceIds, allDevices } = req.body || {};
+      if (!version) {
+        return res.status(400).json({ error: "Firmware version required" });
+      }
 
-    if (!version) {
-      return res.status(400).json({ error: "Firmware version required" });
-    }
+      // Ensure firmware exists locally (upload should have created it)
+      const firmwarePath = path.join(firmwareDir, `${version}.bin`);
+      if (!fs.existsSync(firmwarePath)) {
+        return res.status(404).json({ error: "Firmware file not found" });
+      }
 
-    // Check if firmware file exists
-    const firmwarePath = path.join(firmwareDir, `${version}.bin`);
-    if (!fs.existsSync(firmwarePath)) {
-      return res.status(404).json({ error: "Firmware file not found" });
-    }
-
-    const devices = loadDevices();
-    let updatedCount = 0;
-
-    if (allDevices) {
-      // Update all devices
-      Object.keys(devices).forEach(deviceId => {
-        devices[deviceId].updateAvailable = true;
-        devices[deviceId].targetFirmware = version;
-        updatedCount++;
-      });
-    } else if (deviceIds && Array.isArray(deviceIds)) {
-      // Update specific devices
-      deviceIds.forEach(deviceId => {
-        if (devices[deviceId]) {
-          devices[deviceId].updateAvailable = true;
-          devices[deviceId].targetFirmware = version;
-          updatedCount++;
+      // Resolve target device IDs
+      let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];
+      if (allDevices) {
+        try {
+          const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
+            headers: { ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}) },
+          });
+          if (resp.ok) {
+            const json = await resp.json().catch(() => ({}));
+            targets = Object.keys(json || {});
+          }
+        } catch (e) {
+          console.error('[ota] fetch list-public failed:', e?.message || e);
         }
-      });
+      }
+
+      let updatedCount = 0;
+      for (const id of targets) {
+        try {
+          const u = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(FORWARD_TOKEN ? { 'X-Service-Token': FORWARD_TOKEN } : {}),
+            },
+            body: JSON.stringify({ updateAvailable: true, targetFirmware: version }),
+          });
+          if (u.ok) updatedCount++;
+        } catch (e) {
+          console.error('[ota] update proxy error:', e?.message || e);
+        }
+      }
+
+      console.log(`Pushed update ${version} to ${updatedCount} devices`);
+      return res.json({ success: true, version, devicesUpdated: updatedCount, message: `Update pushed to ${updatedCount} device(s)` });
+    } catch (e) {
+      console.error('[ota] push-update error:', e?.message || e);
+      return res.status(500).json({ error: 'push_update_failed' });
     }
-
-    saveDevices(devices);
-
-    console.log(`Pushed update ${version} to ${updatedCount} devices`);
-
-    res.json({
-      success: true,
-      version: version,
-      devicesUpdated: updatedCount,
-      message: `Update pushed to ${updatedCount} device(s)`
-    });
   });
 
-  // Cancel pending updates
-  router.post("/cancel-update", (req, res) => {
-    const { deviceIds, allDevices } = req.body;
+  // Cancel pending updates (proxy to Fly persistent registry)
+  router.post("/cancel-update", async (req, res) => {
+    try {
+      const { deviceIds, allDevices } = req.body || {};
 
-    const devices = loadDevices();
-    let cancelledCount = 0;
+      // Resolve targets
+      let targets = Array.isArray(deviceIds) ? [...deviceIds] : [];
+      if (allDevices) {
+        try {
+          const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
+            headers: { ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}) },
+          });
+          if (resp.ok) {
+            const json = await resp.json().catch(() => ({}));
+            targets = Object.keys(json || {});
+          }
+        } catch (e) {
+          console.error('[ota] fetch list-public failed:', e?.message || e);
+        }
+      }
 
-    if (allDevices) {
-      // Cancel for all devices
-      Object.keys(devices).forEach(deviceId => {
-        if (devices[deviceId].updateAvailable) {
-          devices[deviceId].updateAvailable = false;
-          devices[deviceId].targetFirmware = null;
-          cancelledCount++;
+      let cancelledCount = 0;
+      for (const id of targets) {
+        try {
+          const u = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(FORWARD_TOKEN ? { 'X-Service-Token': FORWARD_TOKEN } : {}),
+            },
+            body: JSON.stringify({ updateAvailable: false, targetFirmware: null }),
+          });
+          if (u.ok) cancelledCount++;
+        } catch (e) {
+          console.error('[ota] cancel update proxy error:', e?.message || e);
         }
-      });
-    } else if (deviceIds && Array.isArray(deviceIds)) {
-      // Cancel for specific devices
-      deviceIds.forEach(deviceId => {
-        if (devices[deviceId] && devices[deviceId].updateAvailable) {
-          devices[deviceId].updateAvailable = false;
-          devices[deviceId].targetFirmware = null;
-          cancelledCount++;
-        }
-      });
+      }
+
+      return res.json({ success: true, devicesCancelled: cancelledCount, message: `Updates cancelled for ${cancelledCount} device(s)` });
+    } catch (e) {
+      console.error('[ota] cancel-update error:', e?.message || e);
+      return res.status(500).json({ error: 'cancel_update_failed' });
     }
-
-    saveDevices(devices);
-
-    res.json({
-      success: true,
-      devicesCancelled: cancelledCount,
-      message: `Updates cancelled for ${cancelledCount} device(s)`
-    });
   });
 
   // Delete firmware file
