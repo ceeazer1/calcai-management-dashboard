@@ -97,6 +97,8 @@ function showOrdersAlert(msg, type) {
 
 let devices = {};
 let firmwareVersions = [];
+let selectedFirmwareFile = null;
+
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
@@ -167,12 +169,16 @@ function setupEventListeners() {
         fileInput.type = 'file';
         fileInput.accept = '.bin';
         fileInput.id = 'firmwareFile';
+        uploadArea.appendChild(fileInput);
+    }
+
+    // Ensure file input is offscreen but clickable
+    if (fileInput) {
         fileInput.style.position = 'absolute';
         fileInput.style.left = '-9999px';
         fileInput.style.width = '1px';
         fileInput.style.height = '1px';
         fileInput.style.opacity = '0';
-        uploadArea.appendChild(fileInput);
     }
 
     if (uploadArea && fileInput) {
@@ -202,42 +208,33 @@ function handleDrop(e) {
 
     const files = e.dataTransfer.files;
     if (files.length > 0 && files[0].name.endsWith('.bin')) {
-        let fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
-        if (!fileInput) {
-            const area = document.getElementById('uploadArea');
-            if (area) {
-                fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.bin';
-                fileInput.id = 'firmwareFile';
-                fileInput.style.position = 'absolute';
-                fileInput.style.left = '-9999px';
-                fileInput.style.width = '1px';
-                fileInput.style.height = '1px';
-                fileInput.style.opacity = '0';
-                area.appendChild(fileInput);
-            } else {
-                showAlert('Upload area not found', 'error');
-                return;
-            }
+        // Use the dropped file directly; do not try to assign to input.files (read-only in most browsers)
+        selectedFirmwareFile = files[0];
+
+        const uploadArea = document.getElementById('uploadArea');
+        if (uploadArea) uploadArea.innerHTML = `<p>Selected: ${selectedFirmwareFile.name} (${formatFileSize(selectedFirmwareFile.size)})</p>`;
+
+        const versionInput = document.getElementById('firmwareVersion');
+        if (versionInput && !versionInput.value) {
+            versionInput.value = selectedFirmwareFile.name.replace('.bin', '');
         }
-        fileInput.files = files;
-        handleFileSelect();
     }
 }
 
 function handleFileSelect() {
     const fileInput = document.getElementById('firmwareFile') || document.querySelector('input[type="file"]');
-    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
-    const file = fileInput.files[0];
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        selectedFirmwareFile = fileInput.files[0];
+    }
+    if (!selectedFirmwareFile) return;
 
     const uploadArea = document.getElementById('uploadArea');
-    if (uploadArea) uploadArea.innerHTML = `<p>Selected: ${file.name} (${formatFileSize(file.size)})</p>`;
+    if (uploadArea) uploadArea.innerHTML = `<p>Selected: ${selectedFirmwareFile.name} (${formatFileSize(selectedFirmwareFile.size)})</p>`;
 
     // Auto-generate version name from filename
     const versionInput = document.getElementById('firmwareVersion');
     if (versionInput && !versionInput.value) {
-        const baseName = file.name.replace('.bin', '');
+        const baseName = selectedFirmwareFile.name.replace('.bin', '');
         versionInput.value = baseName;
     }
 }
@@ -277,7 +274,8 @@ async function uploadFirmware() {
         return;
     }
 
-    if (!fileInput.files || !fileInput.files[0]) {
+    const chosenFile = selectedFirmwareFile || (fileInput.files && fileInput.files[0]);
+    if (!chosenFile) {
         showAlert('Please select a firmware file', 'error');
         return;
     }
@@ -289,7 +287,7 @@ async function uploadFirmware() {
     }
 
     const formData = new FormData();
-    formData.append('firmware', fileInput.files[0]);
+    formData.append('firmware', chosenFile);
     formData.append('version', version);
     formData.append('description', (descriptionInput?.value || '').trim());
 
@@ -312,8 +310,9 @@ async function uploadFirmware() {
             showAlert(`Firmware ${result.version} uploaded successfully!`, 'success');
 
             // Reset form
-            fileInput.value = '';
-            versionInput.value = '';
+            selectedFirmwareFile = null;
+            if (fileInput) fileInput.value = '';
+            if (versionInput) versionInput.value = '';
             if (descriptionInput) descriptionInput.value = '';
             const area = document.getElementById('uploadArea');
             if (area) area.innerHTML = '<p>Drag and drop a .bin file here, or click to select</p>';
