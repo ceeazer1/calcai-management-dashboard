@@ -398,13 +398,17 @@ function renderDevices() {
         return;
     }
 
-    deviceList.innerHTML = deviceArray.map(([deviceId, device]) => `
+    deviceList.innerHTML = deviceArray.map(([deviceId, device]) => {
+        const updStatus = (device.lastUpdateStatus || (device.updateAvailable ? 'not_updated' : 'updated')).toUpperCase();
+        const updClass = updStatus === 'UPDATED' ? 'status-online' : 'status-offline';
+        return `
         <div class="device-card ${device.status}">
             <h3>${device.name}</h3>
             <p><strong>MAC:</strong> ${device.mac}</p>
             <p><strong>Firmware:</strong> ${device.firmware}</p>
             <p><strong>Status:</strong> <span class="device-status status-${device.status}">${device.status.toUpperCase()}</span></p>
             <p><strong>Last Seen:</strong> ${formatDate(device.lastSeen)}</p>
+            <p><strong>Update Status:</strong> <span class="device-status ${updClass}">${updStatus}</span>${device.targetFirmware ? ` <small>(target ${device.targetFirmware})</small>` : ''}</p>
             ${device.updateAvailable ? `<p><strong>Update Available:</strong> ${device.targetFirmware}</p>` : ''}
 
             <div style="margin-top: 1rem;">
@@ -417,8 +421,8 @@ function renderDevices() {
                 <button class=\"btn\" onclick=\"openDeviceLogs('${device.mac}')\">View Logs</button>
             </div>
             ${device.logs ? `<pre style="margin-top:8px; max-height:180px; overflow:auto; background:#0b0f1a; padding:8px; border-radius:6px; border:1px solid var(--border-color)">${device.logs.join('\n')}</pre>` : ''}
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 function renderFirmwareList() {

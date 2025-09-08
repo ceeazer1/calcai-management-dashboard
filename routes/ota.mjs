@@ -148,7 +148,8 @@ export function ota() {
       // If pushing to ALL devices, ask the Fly server to set flags in its own persistent store
       if (allDevices) {
         try {
-          const resp = await fetch(`${BASE}/api/devices/update-all`, {
+          const url = `${BASE}/api/devices/update-all`;
+          const resp = await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -159,12 +160,12 @@ export function ota() {
           if (resp.ok) {
             const json = await resp.json().catch(() => ({}));
             const updatedCount = json.devicesUpdated || 0;
-            console.log(`Pushed update ${version} to ${updatedCount} devices (via update-all @ ${SERVER_BASE})`);
+            console.log(`Pushed update ${version} to ${updatedCount} devices (via update-all @ ${url})`);
             return res.json({ success: true, version, devicesUpdated: updatedCount, message: `Update pushed to ${updatedCount} device(s)` });
           } else {
             const text = await resp.text().catch(() => '');
-            console.error(`[ota] update-all failed ${resp.status} via ${SERVER_BASE}: ${text}`);
-            return res.status(resp.status).json({ error: `update_all_failed_${resp.status}`, base: SERVER_BASE, detail: text });
+            console.error(`[ota] update-all failed ${resp.status} via ${url}: ${text}`);
+            return res.status(resp.status).json({ error: `update_all_failed_${resp.status}`, base: url, detail: text });
           }
         } catch (e) {
           console.error('[ota] update-all proxy error:', e?.message || e);

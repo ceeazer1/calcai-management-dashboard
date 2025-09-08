@@ -16,7 +16,8 @@ try {
 }
 
 // Base URL of Fly.io server for persistent device registry
-const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || "http://localhost:3000";
+const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || (process.env.NODE_ENV === 'production' ? 'https://calcai-server.fly.dev' : 'http://localhost:3000');
+const BASE = (SERVER_BASE || '').replace(/\/+$/, '');
 const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN;
 
 // Cache last successful Fly device list to avoid UI flicker when proxy hiccups
@@ -132,7 +133,8 @@ export function devices() {
   // Get all devices (proxy to Fly server persistent registry)
   router.get("/list", async (req, res) => {
     try {
-      const resp = await fetch(`${SERVER_BASE}/api/devices/list-public`, {
+      const url = `${BASE}/api/devices/list-public`;
+      const resp = await fetch(url, {
         headers: {
           ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
         },
@@ -167,7 +169,8 @@ export function devices() {
     try {
       const { deviceId } = req.params;
       const updates = req.body || {};
-      const resp = await fetch(`${SERVER_BASE}/api/devices/update/${encodeURIComponent(deviceId)}`, {
+      const url = `${BASE}/api/devices/update/${encodeURIComponent(deviceId)}`;
+      const resp = await fetch(url, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
