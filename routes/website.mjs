@@ -86,6 +86,7 @@ export function websitePublic() {
   loadFromDisk();
   const router = express.Router();
   router.get("/settings", (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.json(settings);
   });
   return router;
