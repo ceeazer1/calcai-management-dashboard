@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Website Controls</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="include.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .inline { display:flex; gap:10px; align-items:center; }
+  </style>
+</head>
+<body>
+  <!-- Shared sidebar -->
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left">
+        <h1>Website · Product Page</h1>
+      </div>
+      <div class="header-right">
+        <a class="btn" href="/admin">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="section">
+        <h2>Pricing & Stock</h2>
+        <div id="msg" class="alert hidden"></div>
+        <div class="grid">
+          <div>
+            <div class="form-group">
+              <label for="price">Price (USD)</label>
+              <input id="price" type="number" step="0.01" min="0" placeholder="174.99" />
+            </div>
+            <div class="form-group">
+              <label for="compareAt">Compare-at (optional)</label>
+              <input id="compareAt" type="number" step="0.01" min="0" placeholder="199.99" />
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label for="inStock">Stock Status</label>
+              <select id="inStock">
+                <option value="true">In Stock</option>
+                <option value="false">Out of Stock</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <button id="saveBtn" class="btn">Save Changes</button>
+            </div>
+          </div>
+        </div>
+        <hr class="hr">
+        <p class="text-muted">These values are stored in the dashboard and can be consumed by calcai.cc to render the product page and configure checkout. (Hook-up to site can be added next.)</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadSettings(){
+      try{
+        const r = await fetch('/api/website/settings', { credentials: 'include' });
+        if(!r.ok) throw new Error('Failed to load');
+        const j = await r.json();
+        document.getElementById('price').value = j.price ?? '';
+        document.getElementById('compareAt').value = (j.compareAt ?? '')
+        document.getElementById('inStock').value = String(!!j.inStock);
+      }catch(e){
+        showMsg('Could not load current settings.', true);
+      }
+    }
+    async function saveSettings(){
+      const btn = document.getElementById('saveBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const payload = {
+        price: Number(document.getElementById('price').value),
+        compareAt: document.getElementById('compareAt').value === '' ? null : Number(document.getElementById('compareAt').value),
+        inStock: document.getElementById('inStock').value === 'true'
+      };
+      try{
+        const r = await fetch('/api/website/settings', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', body: JSON.stringify(payload)
+        });
+        const j = await r.json();
+        if(!r.ok) throw new Error(j.error||'Save failed');
+        showMsg('Saved successfully.', false);
+      }catch(e){
+        showMsg(e.message || 'Save failed.', true);
+      }finally{
+        btn.disabled = false; btn.textContent = 'Save Changes';
+      }
+    }
+    function showMsg(text, isError){
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = 'alert ' + (isError ? 'alert-error' : 'alert-success');
+      el.classList.remove('hidden');
+      setTimeout(()=>{ el.classList.add('hidden'); }, 3000);
+    }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      loadSettings();
+      document.getElementById('saveBtn').addEventListener('click', saveSettings);
+    });
+  </script>
+</body>
+</html>
+

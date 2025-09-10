@@ -14,6 +14,7 @@ import { requireAuth, authenticateUser } from "./auth.mjs";
 import { devicesIngestPublic } from "./routes/devices_ingest.mjs";
 import { devicesLogsPublic } from "./routes/devices_logs.mjs";
 import { firmwarePublic } from "./routes/firmware_public.mjs";
+import { website } from "./routes/website.mjs";
 // Optionally load STRIPE_SECRET_KEY from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
@@ -155,6 +156,9 @@ app.use("/api/devices/firmware", firmwarePublic());
 
 // Device Management & OTA Updates (protected)
 app.use("/api/devices", requireAuth, devices());
+// Website (product page controls) - protected
+app.use("/api/website", requireAuth, website());
+
 app.use("/api/ota", requireAuth, ota());
 
 // For local development
