@@ -13,6 +13,7 @@ let settings = {
   price: 174.99,
   compareAt: 199.99,
   inStock: true,
+  stockCount: 12,
 };
 
 function loadFromDisk() {
@@ -51,7 +52,7 @@ export function website() {
 
   // Update settings (admin)
   router.post("/settings", (req, res) => {
-    const { price, compareAt, inStock } = req.body || {};
+    const { price, compareAt, inStock, stockCount } = req.body || {};
 
     const next = { ...settings };
 
@@ -71,6 +72,12 @@ export function website() {
       if (typeof inStock === "boolean") next.inStock = inStock;
       else if (typeof inStock === "string") next.inStock = inStock === "true";
       else return res.status(400).json({ error: "Invalid inStock" });
+    }
+
+    if (stockCount !== undefined && stockCount !== null && stockCount !== "") {
+      const s = Number(stockCount);
+      if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
+      else return res.status(400).json({ error: "Invalid stockCount" });
     }
 
     settings = next;
