@@ -44,12 +44,12 @@ export function website() {
 
   const router = express.Router();
 
-  // Get current settings
+  // Get current settings (admin)
   router.get("/settings", (req, res) => {
     res.json(settings);
   });
 
-  // Update settings
+  // Update settings (admin)
   router.post("/settings", (req, res) => {
     const { price, compareAt, inStock } = req.body || {};
 
@@ -78,6 +78,16 @@ export function website() {
     res.json({ ok: true, settings });
   });
 
+  return router;
+}
+
+// Public, read-only router for the website to consume (no auth)
+export function websitePublic() {
+  loadFromDisk();
+  const router = express.Router();
+  router.get("/settings", (req, res) => {
+    res.json(settings);
+  });
   return router;
 }
 
