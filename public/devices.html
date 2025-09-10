@@ -65,13 +65,9 @@
           </div>
           <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">MAC: ${d.mac||'—'}</div>
           <div style="display:grid; grid-template-columns: repeat(2,1fr); gap:6px; margin-top:8px; font-size:12px;">
-            <div><strong>Model:</strong> ${d.model||'—'}</div>
             <div><strong>Firmware:</strong> ${d.firmware||'—'}</div>
             <div><strong>Last Seen:</strong> ${d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</div>
             ${d.updateAvailable ? `<div><strong>Update:</strong> ${d.targetFirmware}</div>` : ''}
-          </div>
-          <div style="margin-top:8px; display:flex; gap:8px;">
-            <button class="btn" onclick="openDeviceLogs('${d.mac||''}')">View Logs</button>
           </div>
         </div>
       `).join('');
@@ -109,6 +105,25 @@
         if(r.ok){ allDevices = await r.json(); render(); }
       } catch(e){ console.error(e); }
     }
+    // Clear all devices (admin) – exposed globally for onclick
+    async function clearAllDevices(){
+      try{
+        if(!confirm('Really clear ALL devices? This cannot be undone.')) return;
+        const resp = await fetch('/api/devices/clear-all', { method:'POST' });
+        if(!resp.ok){
+          const t = await resp.text();
+          alert('Failed to clear: ' + (t || resp.status));
+          return;
+        }
+        alert('All devices cleared');
+        await load();
+      }catch(e){
+        console.error(e);
+        alert('Error clearing devices');
+      }
+    }
+    window.clearAllDevices = clearAllDevices;
+
     document.addEventListener('DOMContentLoaded', ()=>{
       load();
       document.getElementById('refreshDevices').addEventListener('click', load);
