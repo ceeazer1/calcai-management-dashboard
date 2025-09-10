@@ -414,6 +414,23 @@ async function loadFirmwareVersions() {
     }
 }
 
+async function clearAllDevices(){
+    if (!confirm('Clear ALL registered devices? This cannot be undone.')) return;
+    try {
+        const r = await fetch('/api/devices/clear-all', { method: 'POST' });
+        if (r.ok) {
+            const j = await r.json().catch(()=>({}));
+            showAlert(`Cleared ${j.cleared||0} devices`, 'success');
+            if (document.getElementById('deviceList') || document.getElementById('totalDevices')) loadDevices();
+        } else {
+            const t = await r.text();
+            showAlert(`Failed to clear devices: ${t||r.status}`, 'error');
+        }
+    } catch (e) {
+        showAlert(`Failed to clear devices: ${e.message}`, 'error');
+    }
+}
+
 function renderDevices() {
     const deviceList = document.getElementById('deviceList');
     if (!deviceList) return; // Not on devices page
@@ -431,7 +448,9 @@ function renderDevices() {
         <div class="device-card ${device.status}">
             <h3>${device.name}</h3>
             <p><strong>MAC:</strong> ${device.mac}</p>
-            <p><strong>Firmware:</strong> ${device.firmware}</p>
+            <p><strong>Firmware (reported):</strong> ${device.firmware}</p>
+            ${device.lastDownloaded ? `<p><strong>Downloaded:</strong> ${device.lastDownloaded} <small>at ${formatDate(device.lastDownloadedAt)}</small></p>` : ''}
+            ${device.updateAvailable && device.targetFirmware ? `<p><strong>Target:</strong> ${device.targetFirmware}</p>` : ''}
             <p><strong>Status:</strong> <span class="device-status status-${device.status}">${device.status.toUpperCase()}</span></p>
             <p><strong>Last Seen:</strong> ${formatDate(device.lastSeen)}</p>
             <p><strong>Update Status:</strong> <span class="device-status ${updClass}">${updStatus}</span>${device.targetFirmware ? ` <small>(target ${device.targetFirmware})</small>` : ''}</p>

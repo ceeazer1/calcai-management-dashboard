@@ -164,6 +164,29 @@ export function devices() {
     }
   });
 
+  // Admin: Clear all devices on Fly server (proxy)
+  router.post("/clear-all", async (req, res) => {
+    try {
+      const url = `${BASE}/api/devices/clear-all`;
+      const resp = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
+        },
+      });
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        return res.status(resp.status).json({ ok: false, error: text || "proxy_failed" });
+      }
+      const json = await resp.json().catch(() => ({}));
+      return res.json(json);
+    } catch (e) {
+      console.error("[dashboard] clear-all proxy error:", e?.message || e);
+      return res.status(500).json({ ok: false, error: "proxy_error" });
+    }
+  });
+
+
   // Update device settings (proxy to Fly server persistent registry)
   router.put("/update/:deviceId", async (req, res) => {
     try {

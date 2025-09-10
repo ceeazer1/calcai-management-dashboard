@@ -61,7 +61,7 @@
           file.style.opacity = '0';
           area.appendChild(file);
         }
-        area.addEventListener('click', ()=> file && file.click());
+        // Click handler handled centrally in dashboard.js to avoid double file picker
         file.addEventListener('change', handleFileSelect);
       }
       const btn = document.getElementById('uploadBtn');
