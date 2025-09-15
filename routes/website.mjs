@@ -15,11 +15,16 @@ const kvClient = (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
   : null;
 const KV_KEY = "website:settings";
 
+if (!kvClient) {
+  console.warn("[website_settings] KV not configured; using ephemeral file fallback. Set KV_REST_API_URL and KV_REST_API_TOKEN.");
+}
+
 let settings = {
   price: 174.99,
   compareAt: 199.99,
   inStock: true,
   stockCount: 12,
+  lastUpdated: 0,
 };
 
 async function loadFromKV() {
@@ -125,9 +130,10 @@ export function website() {
       else return res.status(400).json({ error: "Invalid stockCount" });
     }
 
+    next.lastUpdated = Date.now();
     settings = next;
     await persistSettings();
-    res.json({ ok: true, settings });
+    res.json({ ok: true, settings, storage: kvClient ? 'kv' : 'file' });
   });
 
   return router;
