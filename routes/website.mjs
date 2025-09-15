@@ -96,7 +96,7 @@ export function website() {
   // Get current settings (admin)
   router.get("/settings", async (req, res) => {
     await loadSettings();
-    res.json(settings);
+    res.json({ ...settings, storage: kvClient ? 'kv' : 'file' });
   });
 
   // Update settings (admin)
