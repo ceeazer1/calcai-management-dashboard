@@ -1,13 +1,19 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import { createClient } from "@vercel/kv";
 
-// Lightweight settings store for website product page controls.
-// NOTE: On serverless (Vercel), file writes may be ephemeral. For durability,
-// move to a KV/DB later. This mirrors devices_store.mjs best-effort persistence.
+// Durable settings store for website product page controls.
+// - Primary: Vercel KV (if KV_REST_API_URL and KV_REST_API_TOKEN are set)
+// - Fallback: local file for dev (ephemeral on serverless)
 
 const dataDir = path.join(process.cwd(), "data");
 const dataFile = path.join(dataDir, "website-settings.json");
+
+const kvClient = (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN)
+  ? createClient({ url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN })
+  : null;
+const KV_KEY = "website:settings";
 
 let settings = {
   price: 174.99,
@@ -16,44 +22,83 @@ let settings = {
   stockCount: 12,
 };
 
+async function loadFromKV() {
+  if (!kvClient) return null;
+  try {
+    const v = await kvClient.get(KV_KEY);
+    if (v && typeof v === 'object') return v;
+  } catch (e) {
+    console.warn("[website_settings] loadFromKV failed:", e?.message || e);
+  }
+  return null;
+}
+
 function loadFromDisk() {
   try {
     if (fs.existsSync(dataFile)) {
       const raw = fs.readFileSync(dataFile, "utf8");
       const parsed = JSON.parse(raw || "{}");
       if (parsed && typeof parsed === "object") {
-        settings = { ...settings, ...parsed };
+        return parsed;
       }
     }
   } catch (e) {
     console.warn("[website_settings] loadFromDisk failed:", e?.message || e);
   }
+  return null;
 }
 
-function saveToDisk() {
+async function saveToKV(obj) {
+  if (!kvClient) return;
+  try { await kvClient.set(KV_KEY, obj); } catch (e) {
+    console.warn("[website_settings] saveToKV failed:", e?.message || e);
+  }
+}
+
+function saveToDisk(obj) {
   try {
     try { if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true }); } catch {}
-    fs.writeFileSync(dataFile, JSON.stringify(settings, null, 2), "utf8");
+    fs.writeFileSync(dataFile, JSON.stringify(obj, null, 2), "utf8");
   } catch (e) {
     // Non-fatal on serverless
   }
 }
 
-export function website() {
-  // Initialize from disk once per cold start
-  loadFromDisk();
+async function loadSettings() {
+  // Prefer KV
+  const fromKV = await loadFromKV();
+  if (fromKV) {
+    settings = { ...settings, ...fromKV };
+    return settings;
+  }
+  // Fallback to disk (dev)
+  const fromDisk = loadFromDisk();
+  if (fromDisk) {
+    settings = { ...settings, ...fromDisk };
+  }
+  return settings;
+}
 
+async function persistSettings() {
+  // Write to KV if available; always try file as best-effort dev fallback
+  await saveToKV(settings);
+  try { saveToDisk(settings); } catch {}
+}
+
+export function website() {
   const router = express.Router();
 
   // Get current settings (admin)
-  router.get("/settings", (req, res) => {
+  router.get("/settings", async (req, res) => {
+    await loadSettings();
     res.json(settings);
   });
 
   // Update settings (admin)
-  router.post("/settings", (req, res) => {
+  router.post("/settings", async (req, res) => {
     const { price, compareAt, inStock, stockCount } = req.body || {};
 
+    await loadSettings();
     const next = { ...settings };
 
     if (price !== undefined) {
@@ -81,7 +126,7 @@ export function website() {
     }
 
     settings = next;
-    saveToDisk();
+    await persistSettings();
     res.json({ ok: true, settings });
   });
 
@@ -90,9 +135,9 @@ export function website() {
 
 // Public, read-only router for the website to consume (no auth)
 export function websitePublic() {
-  loadFromDisk();
   const router = express.Router();
-  router.get("/settings", (req, res) => {
+  router.get("/settings", async (req, res) => {
+    await loadSettings();
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
     res.json(settings);
   });
