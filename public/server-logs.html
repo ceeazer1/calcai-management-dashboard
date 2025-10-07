@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Server Logs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="include.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .logs-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .logs-view { background:#0b0f1a; border:1px solid var(--border-color); border-radius:10px; padding:12px; max-height:60vh; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .log-line { white-space: pre-wrap; font-size: 12px; line-height: 1.4; color:#e5e7eb; }
+    .log-info { color:#e5e7eb; }
+    .log-warn { color:#f5c542; }
+    .log-error { color:#ff6961; }
+    .log-gpt { color:#93c5fd; }
+    .chip { display:inline-block; padding:4px 8px; border-radius:999px; background: rgba(30, 136, 229, 0.15); border:1px solid rgba(30, 136, 229, 0.35); color:#bbdefb; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left"><h1>Server Logs</h1></div>
+      <div class="header-right"><a class="btn" href="/admin">Dashboard</a></div>
+    </div>
+
+    <div class="container">
+      <div class="section">
+        <div class="logs-toolbar">
+          <label for="timeRange" style="font-weight:600; color: var(--text-muted)">Time Range</label>
+          <select id="timeRange">
+            <option value="5m">Last 5 minutes</option>
+            <option value="15m" selected>Last 15 minutes</option>
+            <option value="1h">Last 1 hour</option>
+            <option value="1d">Last 1 day</option>
+          </select>
+          <button id="refreshBtn" class="btn">Refresh</button>
+          <label style="display:inline-flex; align-items:center; gap:6px; margin-left:12px;">
+            <input type="checkbox" id="liveToggle" /> Live
+          </label>
+          <input id="searchBox" type="search" placeholder="Search in results (optional)" style="min-width:240px; margin-left:auto;" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div id="logsView" class="logs-view"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let liveTimer = null;
+
+    function formatLine(e){
+      const t = new Date(e.ts||Date.now()).toLocaleString();
+      const lvl = (e.level||'info').toLowerCase();
+      const msg = e.message || '';
+      const extraKeys = Object.keys(e).filter(k=>!['ts','iso','level','message'].includes(k));
+      const extra = extraKeys.length ? ' ' + JSON.stringify(Object.fromEntries(extraKeys.map(k=>[k,e[k]]))) : '';
+      const gpt = /\/gpt\//.test(msg);
+      const cls = gpt ? 'log-gpt' : (lvl==='error'?'log-error': lvl==='warn'?'log-warn':'log-info');
+      return `<div class="log-line ${cls}">[${t}] ${lvl.toUpperCase()} ${msg}${extra}</div>`;
+    }
+
+    async function fetchLogs(){
+      const range = document.getElementById('timeRange').value;
+      const r = await fetch(`/api/logs?range=${encodeURIComponent(range)}`);
+      if(!r.ok){ throw new Error('Failed to fetch logs'); }
+      const data = await r.json();
+      return Array.isArray(data.logs) ? data.logs : [];
+    }
+
+    function renderLogs(list){
+      const q = (document.getElementById('searchBox').value||'').toLowerCase();
+      const el = document.getElementById('logsView');
+      const filtered = q ? list.filter(e => JSON.stringify(e).toLowerCase().includes(q)) : list;
+      if(filtered.length===0){ el.innerHTML = '<div class="log-line log-info">No logs found for this range.</div>'; return; }
+      el.innerHTML = filtered.map(formatLine).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function refresh(){
+      try{
+        const logs = await fetchLogs();
+        renderLogs(logs);
+      }catch(e){ console.error(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      document.getElementById('refreshBtn').addEventListener('click', refresh);
+      document.getElementById('timeRange').addEventListener('change', refresh);
+      document.getElementById('searchBox').addEventListener('input', ()=>{
+        // re-render current cache quickly
+        refresh();
+      });
+      document.getElementById('liveToggle').addEventListener('change', (ev)=>{
+        if(ev.target.checked){
+          if(liveTimer) clearInterval(liveTimer);
+          liveTimer = setInterval(refresh, 3000);
+          refresh();
+        } else {
+          if(liveTimer) clearInterval(liveTimer);
+          liveTimer = null;
+        }
+      });
+      refresh();
+    });
+  </script>
+</body>
+</html>
+
