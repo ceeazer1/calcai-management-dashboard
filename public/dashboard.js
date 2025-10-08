@@ -1,4 +1,6 @@
 // CalcAI Dashboard JavaScript
+// API base for server calls (esp. OTA endpoints)
+const API_BASE = (window.CALCAI_API_BASE && String(window.CALCAI_API_BASE)) || "https://calcai-server.fly.dev";
 // Orders data and helpers
 let orders = [];
 
@@ -324,9 +326,22 @@ async function uploadFirmware() {
         progressDiv?.classList.remove('hidden');
         if (progressBar) progressBar.style.width = '0%';
 
-        const response = await fetch('/api/ota/upload', {
+        // Read file as base64 (Data URL) and strip prefix
+        const base64 = await new Promise((resolve, reject) => {
+            const fr = new FileReader();
+            fr.onerror = () => reject(new Error('file_read_error'));
+            fr.onload = () => {
+                const s = String(fr.result||'');
+                const idx = s.indexOf('base64,');
+                resolve(idx>=0 ? s.slice(idx+7) : s);
+            };
+            fr.readAsDataURL(chosenFile);
+        });
+
+        const response = await fetch(`${API_BASE}/api/ota/firmware/upload`, {
             method: 'POST',
-            body: formData
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ version, dataBase64: base64, description: (descriptionInput?.value||'').trim() })
         });
 
         if (progressBar) progressBar.style.width = '100%';
@@ -404,7 +419,7 @@ async function loadDevices() {
 
 async function loadFirmwareVersions() {
     try {
-        const response = await fetch('/api/ota/firmware/list');
+        const response = await fetch(`${API_BASE}/api/ota/firmware/list`, { cache: 'no-store' });
         if (response.ok) {
             firmwareVersions = await response.json();
             renderFirmwareList();
@@ -478,18 +493,42 @@ function renderFirmwareList() {
         return;
     }
 
-    firmwareList.innerHTML = firmwareVersions.map(firmware => `
-        <div class="firmware-item">
+    // Show current and past updates
+    const current = firmwareVersions[0];
+    const past = firmwareVersions.slice(1);
+    let html = '';
+    if (current) {
+        html += `
+        <div class="firmware-item" style="border-left:3px solid var(--primary)">
             <div>
-                <strong>${firmware.version}</strong><br>
-                <small>${formatFileSize(firmware.size)} • ${formatDate(firmware.created)}</small>
+                <div class="chip" style="margin-bottom:6px;">Current Update</div>
+                <strong>${current.version}</strong><br>
+                <small>${formatFileSize(current.size)} • ${formatDate(current.created)}</small>
+                ${current.description ? `<div style='color:var(--text-muted); margin-top:4px;'>${current.description}</div>` : ''}
             </div>
             <div>
-                <button class="btn" onclick="pushUpdateToAll('${firmware.version}')">Push to All</button>
-                <button class="btn btn-danger" onclick="deleteFirmware('${firmware.version}')">Delete</button>
+                <a class="btn" href="${API_BASE}/api/ota/firmware/${encodeURIComponent(current.version)}" target="_blank" rel="noopener">Download</a>
+                <button class="btn btn-danger" onclick="deleteFirmware('${current.version}')">Delete</button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }
+    if (past.length) {
+        html += `<h3 style="margin-top:12px;">Past Updates</h3>`;
+        html += past.map(firmware => `
+            <div class="firmware-item">
+                <div>
+                    <strong>${firmware.version}</strong><br>
+                    <small>${formatFileSize(firmware.size)} • ${formatDate(firmware.created)}</small>
+                    ${firmware.description ? `<div style='color:var(--text-muted); margin-top:4px;'>${firmware.description}</div>` : ''}
+                </div>
+                <div>
+                    <a class="btn" href="${API_BASE}/api/ota/firmware/${encodeURIComponent(firmware.version)}" target="_blank" rel="noopener">Download</a>
+                    <button class="btn btn-danger" onclick="deleteFirmware('${firmware.version}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    firmwareList.innerHTML = html || '<p>No firmware versions uploaded yet.</p>';
 }
 
 function updateStats() {
@@ -628,7 +667,7 @@ async function deleteFirmware(version) {
     }
 
     try {
-        const response = await fetch(`/api/ota/firmware/${version}`, {
+        const response = await fetch(`${API_BASE}/api/ota/firmware/${encodeURIComponent(version)}`, {
             method: 'DELETE'
         });
 
