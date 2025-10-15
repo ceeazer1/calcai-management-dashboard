@@ -685,6 +685,22 @@ async function deleteFirmware(version) {
     }
 }
 
+async function clearAllFirmware() {
+    if (!confirm('Delete ALL firmware versions from the server? This cannot be undone.')) return;
+    try {
+        const resp = await fetch(`${API_BASE}/api/ota/firmware/clear-all`, { method: 'DELETE' });
+        if (resp.ok) {
+            showAlert('All firmware deleted', 'success');
+            loadFirmwareVersions();
+        } else {
+            const t = await resp.text();
+            showAlert(`Failed to clear firmware: ${t || resp.status}`,'error');
+        }
+    } catch (e) {
+        showAlert(`Failed to clear firmware: ${e.message}`, 'error');
+    }
+}
+
 function refreshDevices() {
     loadDevices();
     showAlert('Device list refreshed', 'success');
