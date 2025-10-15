@@ -69,6 +69,9 @@
             <div><strong>Last Seen:</strong> ${d.lastSeen ? new Date(d.lastSeen).toLocaleString() : '—'}</div>
             ${d.updateAvailable ? `<div><strong>Update:</strong> ${d.targetFirmware}</div>` : ''}
           </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
+            <button class="btn btn-danger" onclick="deleteDevice('${(d.mac||'').toLowerCase().replace(/:/g,'')}','${d.mac||''}')">Remove</button>
+          </div>
         </div>
       `).join('');
     }
@@ -108,14 +111,14 @@
     // Clear all devices (admin) – exposed globally for onclick
     async function clearAllDevices(){
       try{
-        if(!confirm('Really clear ALL devices? This cannot be undone.')) return;
+        if(!confirm('WARNING: This will remove ALL registered devices on the server. You will need to re-register devices. Continue?')) return;
         const resp = await fetch('/api/devices/clear-all', { method:'POST' });
         if(!resp.ok){
           const t = await resp.text();
           alert('Failed to clear: ' + (t || resp.status));
           return;
         }
-        alert('All devices cleared');
+        alert('All devices cleared on server');
         await load();
       }catch(e){
         console.error(e);
@@ -123,6 +126,24 @@
       }
     }
     window.clearAllDevices = clearAllDevices;
+
+    // Delete a single device by deviceId
+    async function deleteDevice(deviceId, mac){
+      try{
+        if(!confirm(`Remove device ${mac}? This cannot be undone.`)) return;
+        const resp = await fetch(`/api/devices/delete/${encodeURIComponent(deviceId)}`, { method:'DELETE' });
+        if(!resp.ok){
+          const t = await resp.text();
+          alert('Failed to remove device: ' + (t || resp.status));
+          return;
+        }
+        await load();
+      }catch(e){
+        console.error(e);
+        alert('Error removing device');
+      }
+    }
+    window.deleteDevice = deleteDevice;
 
     document.addEventListener('DOMContentLoaded', ()=>{
       load();

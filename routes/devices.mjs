@@ -18,7 +18,7 @@ try {
 // Base URL of Fly.io server for persistent device registry
 const SERVER_BASE = process.env.CALCAI_SERVER_BASE || process.env.FLY_SERVER_BASE || process.env.SERVER_BASE || (process.env.NODE_ENV === 'production' ? 'https://calcai-server.fly.dev' : 'http://localhost:3000');
 const BASE = (SERVER_BASE || '').replace(/\/+$/, '');
-const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN;
+const FORWARD_TOKEN = process.env.SERVICE_TOKEN || process.env.DASHBOARD_SERVICE_TOKEN || process.env.DEVICES_SERVICE_TOKEN;
 
 // Cache last successful Fly device list to avoid UI flicker when proxy hiccups
 let lastFlyDevices = null;
@@ -213,20 +213,24 @@ export function devices() {
     }
   });
 
-  // Delete device
-  router.delete("/delete/:deviceId", (req, res) => {
-    const { deviceId } = req.params;
-
-    const devices = loadDevices();
-
-    if (!devices[deviceId]) {
-      return res.status(404).json({ error: "Device not found" });
+  // Delete device on Fly server (proxy)
+  router.delete("/delete/:deviceId", async (req, res) => {
+    try {
+      const { deviceId } = req.params;
+      const url = `${BASE}/api/devices/delete/${encodeURIComponent(deviceId)}`;
+      const resp = await fetch(url, {
+        method: "DELETE",
+        headers: {
+          ...(FORWARD_TOKEN ? { "X-Service-Token": FORWARD_TOKEN } : {}),
+        },
+      });
+      const status = resp.status;
+      const json = await resp.json().catch(() => ({}));
+      return res.status(status).json(json);
+    } catch (e) {
+      console.error("[dashboard] delete proxy error:", e?.message || e);
+      return res.status(500).json({ ok: false, error: "delete_proxy_failed" });
     }
-
-    delete devices[deviceId];
-    saveDevices(devices);
-
-    res.json({ success: true });
   });
 
   return router;

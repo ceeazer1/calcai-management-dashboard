@@ -11,8 +11,8 @@
   --primary: #1e88e5; /* blue */
   --primary-2: #2d9cdb; /* lighter blue */
   --success: #2ecc71; /* keep green for online status */
-  --warning: #f5c542; /* used subtly, avoid red */
-  --danger: #1a6fc0; /* use blue in place of red */
+  --warning: #f5c542;
+  --danger: #e53935; /* real red for destructive actions */
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
 }
 
