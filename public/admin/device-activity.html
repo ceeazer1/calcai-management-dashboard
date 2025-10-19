@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – Device Activity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="/include.js"></script>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .logs-view { background:#0b0f1a; border:1px solid var(--border-color); border-radius:10px; padding:12px; max-height:60vh; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .log-item { border-bottom:1px dashed rgba(255,255,255,0.08); padding:8px 0; }
+    .log-meta { color:#9fb3c8; font-size:12px; margin-bottom:4px; display:flex; gap:8px; align-items:center; }
+    .chip { display:inline-block; padding:2px 6px; border-radius:999px; background: rgba(30, 136, 229, 0.15); border:1px solid rgba(30, 136, 229, 0.35); color:#bbdefb; font-size:11px; }
+    .type-text { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35); color:#bbf7d0; }
+    .type-image { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.35); color:#c7d2fe; }
+    .prompt { color:#e5e7eb; white-space:pre-wrap; font-size:13px; margin:4px 0; }
+    .response { color:#d1d5db; white-space:pre-wrap; font-size:13px; margin:4px 0; }
+    .thumb { max-width:260px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); display:block; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left"><h1>Device Activity</h1></div>
+      <div class="header-right"><a class="btn" href="/admin">Dashboard</a></div>
+    </div>
+
+    <div class="container">
+      <div class="section">
+        <div class="toolbar">
+          <label for="deviceSelect" style="font-weight:600; color: var(--text-muted)">Device (MAC)</label>
+          <select id="deviceSelect"></select>
+          <button id="refreshBtn" class="btn">Refresh</button>
+          <label style="display:inline-flex; align-items:center; gap:6px; margin-left:12px;">
+            <input type="checkbox" id="liveToggle" /> Live
+          </label>
+          <input id="searchBox" type="search" placeholder="Search in results (optional)" style="min-width:240px; margin-left:auto;" />
+        </div>
+      </div>
+
+      <div class="section">
+        <div id="logsView" class="logs-view"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = (window.CALCAI_API_BASE && String(window.CALCAI_API_BASE)) || "https://calcai-server.fly.dev";
+    let liveTimer = null;
+
+    function macPretty(id){
+      if(!id) return '';
+      const s = String(id).toLowerCase();
+      if(/^[0-9a-f]{12}$/.test(s)) return s.match(/.{1,2}/g).join(':');
+      return s;
+    }
+
+    async function loadDevices(){
+      const r = await fetch(`${API_BASE}/api/logs/device-activity/list`);
+      if(!r.ok) throw new Error('failed to fetch device list');
+      const data = await r.json();
+      const ids = Array.isArray(data.deviceIds) ? data.deviceIds : [];
+      const sel = document.getElementById('deviceSelect');
+      sel.innerHTML = ids.length ? '' : '<option value="">No devices yet</option>';
+      ids.sort().forEach(id=>{
+        const opt = document.createElement('option');
+        opt.value = id; opt.textContent = macPretty(id);
+        sel.appendChild(opt);
+      });
+      // keep current selection if possible
+      const current = sessionStorage.getItem('device.activity.selected');
+      if(current && ids.includes(current)) sel.value = current;
+    }
+
+    async function fetchLogs(deviceId){
+      if(!deviceId) return [];
+      const r = await fetch(`${API_BASE}/api/logs/device-activity/logs/${encodeURIComponent(deviceId)}?limit=300`);
+      if(!r.ok) throw new Error('failed to fetch logs');
+      const data = await r.json();
+      return Array.isArray(data.logs) ? data.logs : [];
+    }
+
+    function renderLogs(list){
+      const q = (document.getElementById('searchBox').value||'').toLowerCase();
+      const el = document.getElementById('logsView');
+      const filtered = q ? list.filter(e => JSON.stringify(e).toLowerCase().includes(q)) : list;
+      if(filtered.length===0){ el.innerHTML = '<div class="log-item"><div class="log-meta">No activity yet.</div></div>'; return; }
+      el.innerHTML = filtered.map(e=>{
+        const t = new Date(e.ts||Date.now()).toLocaleString();
+        const type = (e.type||'text');
+        const chips = `<span class="chip ${type==='image'?'type-image':'type-text'}">${type.toUpperCase()}</span>`;
+        const prompt = e.prompt || e.question || '';
+        const resp = e.response || '';
+        const img = (type==='image' && e.image) ? `<img class="thumb" src="${API_BASE}${e.image}" alt="latest image" />` : '';
+        return `<div class="log-item">
+          <div class="log-meta"><span>${t}</span> ${chips}</div>
+          ${prompt ? `<div class="prompt"><strong>Prompt:</strong> ${prompt}</div>`:''}
+          ${resp ? `<div class="response"><strong>Response:</strong> ${resp}</div>`:''}
+          ${img}
+        </div>`;
+      }).join('');
+      el.scrollTop = 0;
+    }
+
+    async function refresh(){
+      try{
+        const sel = document.getElementById('deviceSelect');
+        const id = sel.value;
+        sessionStorage.setItem('device.activity.selected', id||'');
+        const logs = await fetchLogs(id);
+        renderLogs(logs);
+      }catch(e){ console.error(e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      await loadDevices();
+      document.getElementById('refreshBtn').addEventListener('click', refresh);
+      document.getElementById('deviceSelect').addEventListener('change', refresh);
+      document.getElementById('searchBox').addEventListener('input', refresh);
+      document.getElementById('liveToggle').addEventListener('change', (ev)=>{
+        if(ev.target.checked){
+          if(liveTimer) clearInterval(liveTimer);
+          liveTimer = setInterval(refresh, 3000);
+          refresh();
+        } else {
+          if(liveTimer) clearInterval(liveTimer);
+          liveTimer = null;
+        }
+      });
+      refresh();
+    });
+  </script>
+</body>
+</html>
+
