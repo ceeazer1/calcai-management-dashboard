@@ -27,6 +27,9 @@ let lastFlyAt = 0;
 export function devices() {
   const router = express.Router();
 
+  // Registration features removed for the dashboard API
+  router.use((req, res) => res.status(410).json({ ok: false, error: "registration_removed" }));
+
   // Use shared store helpers so public ingest and admin share the same data (still used by firmware download)
   const loadDevices = storeGetDevices;
   const saveDevices = storeSaveDevices;
