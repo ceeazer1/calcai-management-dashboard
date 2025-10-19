@@ -93,14 +93,14 @@
       el.innerHTML = filtered.map(e=>{
         const t = new Date(e.ts||Date.now()).toLocaleString();
         const type = (e.type||'text');
-        const chips = `<span class="chip ${type==='image'?'type-image':'type-text'}">${type.toUpperCase()}</span>`;
+        const chips = `<span class=\"chip ${type==='image'?'type-image':'type-text'}\">${type.toUpperCase()}</span>`;
         const prompt = e.prompt || e.question || '';
         const resp = e.response || '';
-        const img = (type==='image' && e.image) ? `<img class="thumb" src="${API_BASE}${e.image}" alt="latest image" />` : '';
-        return `<div class="log-item">
-          <div class="log-meta"><span>${t}</span> ${chips}</div>
-          ${prompt ? `<div class="prompt"><strong>Prompt:</strong> ${prompt}</div>`:''}
-          ${resp ? `<div class="response"><strong>Response:</strong> ${resp}</div>`:''}
+        const img = (type==='image' && e.image) ? `<img class=\"thumb\" src=\"${API_BASE}${e.image}\" alt=\"latest image\" />` : '';
+        return `<div class=\"log-item\">
+          <div class=\"log-meta\"><span>${t}</span> ${chips}</div>
+          ${prompt ? `<div class=\"prompt\"><strong>Prompt:</strong> ${prompt}</div>`:''}
+          ${resp ? `<div class=\"response\"><strong>Response:</strong> ${resp}</div>`:''}
           ${img}
         </div>`;
       }).join('');
