@@ -42,6 +42,11 @@
               <label for="compareAt">Compare-at (optional)</label>
               <input id="compareAt" type="number" step="0.01" min="0" placeholder="199.99" />
             </div>
+            <div class="form-group">
+              <label for="stockCount">Stock Count</label>
+              <input id="stockCount" type="number" step="1" min="0" placeholder="12" />
+              <small class="text-muted">Shown on the website as “In stock: N”. Set to 0 for out of stock.</small>
+            </div>
           </div>
           <div>
             <div class="form-group">
@@ -52,9 +57,16 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="stockCount">Stock Count</label>
-              <input id="stockCount" type="number" step="1" min="0" placeholder="12" />
-              <small class="text-muted">Shown on the website as “In stock: N”. Set to 0 for out of stock.</small>
+              <label class="inline" for="preorderEnabled"><input type="checkbox" id="preorderEnabled" /> Enable Preorder Button</label>
+            </div>
+            <div class="form-group">
+              <label for="preorderPrice">Preorder Price (USD)</label>
+              <input id="preorderPrice" type="number" step="0.01" min="0" placeholder="200.00" />
+            </div>
+            <div class="form-group">
+              <label for="preorderShipDate">Preorder Ship Date (optional, shown on site)</label>
+              <input id="preorderShipDate" type="text" placeholder="Oct 27" />
+              <small class="text-muted">Leave empty to hide ship date text on product page and checkout metadata.</small>
             </div>
             <div class="form-group">
               <button id="saveBtn" class="btn">Save Changes</button>
@@ -62,7 +74,7 @@
           </div>
         </div>
         <hr class="hr">
-        <p class="text-muted">These values are stored in the dashboard and can be consumed by calcai.cc to render the product page and configure checkout. (Hook-up to site can be added next.)</p>
+        <p class="text-muted">These values are stored in the dashboard and consumed by calcai.cc to render the product page and configure Stripe Checkout.</p>
       </div>
     </div>
   </div>
@@ -92,6 +104,9 @@
         document.getElementById('compareAt').value = (j.compareAt ?? '')
         document.getElementById('inStock').value = String(!!j.inStock);
         if (typeof j.stockCount === 'number') document.getElementById('stockCount').value = j.stockCount;
+        document.getElementById('preorderEnabled').checked = !!j.preorderEnabled;
+        if (typeof j.preorderPrice === 'number') document.getElementById('preorderPrice').value = j.preorderPrice;
+        document.getElementById('preorderShipDate').value = j.preorderShipDate || '';
         if (j.storage) setStorageNote(j.storage);
       }catch(e){
         showMsg('Could not load current settings.', true);
@@ -104,7 +119,10 @@
         price: Number(document.getElementById('price').value),
         compareAt: document.getElementById('compareAt').value === '' ? null : Number(document.getElementById('compareAt').value),
         inStock: document.getElementById('inStock').value === 'true',
-        stockCount: document.getElementById('stockCount').value === '' ? null : Number(document.getElementById('stockCount').value)
+        stockCount: document.getElementById('stockCount').value === '' ? null : Number(document.getElementById('stockCount').value),
+        preorderEnabled: document.getElementById('preorderEnabled').checked,
+        preorderPrice: document.getElementById('preorderPrice').value === '' ? null : Number(document.getElementById('preorderPrice').value),
+        preorderShipDate: document.getElementById('preorderShipDate').value
       };
       try{
         const r = await fetch('/api/website/settings', {

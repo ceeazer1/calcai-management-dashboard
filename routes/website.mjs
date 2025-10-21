@@ -24,6 +24,10 @@ let settings = {
   compareAt: 199.99,
   inStock: true,
   stockCount: 12,
+  // Preorder controls
+  preorderEnabled: false,
+  preorderPrice: 200.00,
+  preorderShipDate: "", // e.g., "Oct 27"; empty string hides date
   lastUpdated: 0,
 };
 
@@ -101,7 +105,7 @@ export function website() {
 
   // Update settings (admin)
   router.post("/settings", async (req, res) => {
-    const { price, compareAt, inStock, stockCount } = req.body || {};
+    const { price, compareAt, inStock, stockCount, preorderEnabled, preorderPrice, preorderShipDate } = req.body || {};
 
     await loadSettings();
     const next = { ...settings };
@@ -128,6 +132,25 @@ export function website() {
       const s = Number(stockCount);
       if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
       else return res.status(400).json({ error: "Invalid stockCount" });
+    }
+
+    // Preorder controls
+    if (preorderEnabled !== undefined) {
+      if (typeof preorderEnabled === "boolean") next.preorderEnabled = preorderEnabled;
+      else if (typeof preorderEnabled === "string") next.preorderEnabled = preorderEnabled === "true";
+      else return res.status(400).json({ error: "Invalid preorderEnabled" });
+    }
+
+    if (preorderPrice !== undefined && preorderPrice !== null && preorderPrice !== "") {
+      const pp = Number(preorderPrice);
+      if (Number.isFinite(pp) && pp >= 0 && pp <= 999999) next.preorderPrice = Number(pp.toFixed(2));
+      else return res.status(400).json({ error: "Invalid preorderPrice" });
+    }
+
+    if (preorderShipDate !== undefined) {
+      // Accept any short string like "Oct 27"; empty hides it
+      if (typeof preorderShipDate === "string" && preorderShipDate.length <= 40) next.preorderShipDate = preorderShipDate.trim();
+      else return res.status(400).json({ error: "Invalid preorderShipDate" });
     }
 
     next.lastUpdated = Date.now();
