@@ -15,11 +15,13 @@
   </style>
       <style>
         .device-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
-        .device-card { background:#0b0f1a; border:1px solid var(--border-color); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+        .device-card { background:#0b0f1a; border:1px solid var(--border-color); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px; }
         .device-card h3 { margin:0; font-size:14px; color:#e5e7eb; letter-spacing:0.2px; }
         .device-meta { color:#9fb3c8; font-size:12px; display:flex; gap:8px; flex-wrap:wrap; }
         .device-actions { display:flex; gap:8px; }
-        .btn-outline { background:transparent; border:1px solid var(--border-color); color:#d1d5db; }
+        /* Slimmer buttons just for this page */
+        .device-actions .btn { padding:6px 10px; border-radius:8px; font-size:.9rem; box-shadow:0 4px 10px rgba(30,136,229,0.20); }
+        .btn-outline { background:transparent; border:1px solid var(--border-color); color:#d1d5db; padding:6px 10px; border-radius:8px; box-shadow:none; }
         .hidden { display:none; }
       </style>
 
