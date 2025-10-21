@@ -66,17 +66,6 @@
       const data = await r.json();
       const ids = Array.isArray(data.deviceIds) ? data.deviceIds : [];
 
-      // populate hidden select for backward-compat/navigation
-      const sel = document.getElementById('deviceSelect');
-      sel.innerHTML = ids.length ? '' : '<option value="">No devices yet</option>';
-      ids.sort().forEach(id=>{
-        const opt = document.createElement('option');
-        opt.value = id; opt.textContent = macPretty(id);
-        sel.appendChild(opt);
-      });
-      const current = sessionStorage.getItem('device.activity.selected');
-      if(current && ids.includes(current)) sel.value = current;
-
       // render device cards
       const grid = document.getElementById('devicesGrid');
       grid.innerHTML = ids.length ? '' : '<div class="device-meta">No devices yet</div>';
