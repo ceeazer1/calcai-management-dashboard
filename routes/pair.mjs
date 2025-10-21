@@ -21,7 +21,8 @@ export function pairAdmin() {
         return res.status(400).json({ ok: false, error: "bad_deviceId" });
       }
 
-      // Try a hypothetical server endpoint first (if implemented later)
+      let rotated = null;
+      // Try server reset (rotate code + clear web tokens)
       const tryResetUrl = `${SERVER_BASE}/api/pair/reset/${deviceId}`;
       try {
         const resp = await fetch(tryResetUrl, {
@@ -30,17 +31,25 @@ export function pairAdmin() {
             ...(ADMIN_TOKEN ? { "X-Service-Token": ADMIN_TOKEN } : {}),
           },
         });
-        if (resp.ok) {
-          const json = await resp.json().catch(() => ({}));
-          return res.json({ ok: true, mode: "reset", ...json });
-        }
+        if (resp.ok) rotated = await resp.json().catch(() => ({}));
       } catch (_) {}
 
-      // Fallback: generate a brand-new pairing code so user must re-pair
-      // Note: This does not invalidate existing browser tokens on the server.
-      // Those tokens are in-memory and clear on server restart. This fallback
-      // at least provides the admin with a new code to guide users through setup.
-      const mac = deviceId; // server accepts mac without colons
+      // Always clear notes so the calculator shows pairing/setup again
+      try {
+        await fetch(`${SERVER_BASE}/api/notes/${deviceId}`, {
+          method: "DELETE",
+          headers: {
+            ...(ADMIN_TOKEN ? { "X-Service-Token": ADMIN_TOKEN } : {}),
+          },
+        });
+      } catch {}
+
+      if (rotated && rotated.ok) {
+        return res.json({ ok: true, mode: "reset", ...rotated });
+      }
+
+      // Fallback: ensure a code exists to guide re-pair
+      const mac = deviceId;
       const startUrl = `${SERVER_BASE}/api/pair/start?mac=${encodeURIComponent(mac)}`;
       const s = await fetch(startUrl);
       if (!s.ok) {
@@ -51,6 +60,23 @@ export function pairAdmin() {
       return res.json({ ok: true, mode: "fallback_code", code });
     } catch (e) {
       return res.status(500).json({ ok: false, error: "reset_failed" });
+    }
+  });
+
+  // Get current pairing code for a device (persistent)
+  router.get("/code/:deviceId", async (req, res) => {
+    try {
+      const deviceId = normalizeId(req.params.deviceId);
+      if (!deviceId || deviceId.length !== 12) {
+        return res.status(400).json({ ok: false, error: "bad_deviceId" });
+      }
+      const url = `${SERVER_BASE}/api/pair/start?mac=${encodeURIComponent(deviceId)}`;
+      const r = await fetch(url);
+      const text = await r.text().catch(() => "");
+      if (!r.ok) return res.status(502).json({ ok: false, error: "pair_code_failed", detail: text });
+      return res.json({ ok: true, code: text });
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: "code_failed" });
     }
   });
 

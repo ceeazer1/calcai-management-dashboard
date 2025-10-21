@@ -11,15 +11,7 @@
   <link rel="stylesheet" href="styles.css" />
   <style>
     .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .logs-view { background:#0b0f1a; border:1px solid var(--border-color); border-radius:10px; padding:12px; max-height:60vh; overflow:auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .log-item { border-bottom:1px dashed rgba(255,255,255,0.08); padding:8px 0; }
-    .log-meta { color:#9fb3c8; font-size:12px; margin-bottom:4px; display:flex; gap:8px; align-items:center; }
-    .chip { display:inline-block; padding:2px 6px; border-radius:999px; background: rgba(30, 136, 229, 0.15); border:1px solid rgba(30, 136, 229, 0.35); color:#bbdefb; font-size:11px; }
-    .type-text { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.35); color:#bbf7d0; }
-    .type-image { background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.35); color:#c7d2fe; }
-    .prompt { color:#e5e7eb; white-space:pre-wrap; font-size:13px; margin:4px 0; }
-    .response { color:#d1d5db; white-space:pre-wrap; font-size:13px; margin:4px 0; }
-    .thumb { max-width:260px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); display:block; margin-top:6px; }
+
   </style>
       <style>
         .device-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
@@ -42,24 +34,15 @@
 
     <div class="container">
       <div class="section">
-        <div class="toolbar">
-          <label for="deviceSelect" class="hidden" style="font-weight:600; color: var(--text-muted)">Device (MAC)</label>
-      <div class="section">
-        <h2 style="margin:6px 0 12px 0;">Devices</h2>
-        <div id="devicesGrid" class="device-grid"></div>
-      </div>
-
-          <select id="deviceSelect" class="hidden"></select>
-          <button id="refreshBtn" class="btn">Refresh</button>
-          <label style="display:inline-flex; align-items:center; gap:6px; margin-left:12px;">
-            <input type="checkbox" id="liveToggle" /> Live
-          </label>
-          <input id="searchBox" type="search" placeholder="Search in results (optional)" style="min-width:240px; margin-left:auto;" />
+        <div class="toolbar" style="justify-content: space-between;">
+          <div>
+            <h2 style="margin:6px 0 12px 0;">Devices</h2>
+          </div>
+          <div>
+            <button id="refreshBtn" class="btn">Refresh</button>
+          </div>
         </div>
-      </div>
-
-      <div class="section">
-        <div id="logsView" class="logs-view"></div>
+        <div id="devicesGrid" class="device-grid"></div>
       </div>
     </div>
   </div>
@@ -105,90 +88,29 @@
           <h3>${pretty}</h3>
           <div class="device-meta">ID: ${id}</div>
           <div class="device-actions">
-            <button class="btn" data-action="view" data-id="${id}">View Logs</button>
-            <button class="btn btn-outline" data-action="reset" data-id="${id}">Reset Pairing</button>
+            <a class="btn" href="/admin/device.html?id=${id}">More info</a>
+            <button class="btn btn-outline" data-action="unlink" data-id="${id}">Unlink Device</button>
           </div>
         `;
-        card.querySelector('[data-action="view"]').addEventListener('click', ()=>{
-          sel.value = id; sessionStorage.setItem('device.activity.selected', id); refresh();
-          document.getElementById('logsView').scrollIntoView({ behavior:'smooth', block:'start' });
-        });
-        card.querySelector('[data-action="reset"]').addEventListener('click', async ()=>{
-          if(!confirm(`Reset pairing for ${pretty}?`)) return;
+        card.querySelector('[data-action="unlink"]').addEventListener('click', async ()=>{
+          if(!confirm(`Unlink ${pretty}? This rotates code and clears notes.`)) return;
           try{
             const resp = await fetch(`${DASH_BASE}/api/pair/reset/${encodeURIComponent(id)}`, { method:'POST' });
             const json = await resp.json().catch(()=>({}));
             if(resp.ok && json.ok){
-              if(json.mode === 'fallback_code' && json.code){
-                alert(`New pairing code: ${json.code}`);
-              } else {
-                alert('Pairing reset.');
-              }
-            }else{
-              alert('Reset not available on server yet.');
+              alert('Device unlinked.');
+            } else {
+              alert('Failed to unlink.');
             }
-          }catch(e){ alert('Failed to reset pairing'); }
+          }catch(e){ alert('Failed to unlink'); }
         });
         grid.appendChild(card);
       });
     }
 
-    async function fetchLogs(deviceId){
-      if(!deviceId) return [];
-      const r = await fetch(`${API_BASE}/api/logs/device-activity/logs/${encodeURIComponent(deviceId)}?limit=300`);
-      if(!r.ok) throw new Error('failed to fetch logs');
-      const data = await r.json();
-      return Array.isArray(data.logs) ? data.logs : [];
-    }
-
-    function renderLogs(list){
-      const q = (document.getElementById('searchBox').value||'').toLowerCase();
-      const el = document.getElementById('logsView');
-      const filtered = q ? list.filter(e => JSON.stringify(e).toLowerCase().includes(q)) : list;
-      if(filtered.length===0){ el.innerHTML = '<div class="log-item"><div class="log-meta">No activity yet.</div></div>'; return; }
-      el.innerHTML = filtered.map(e=>{
-        const t = new Date(e.ts||Date.now()).toLocaleString();
-        const type = (e.type||'text');
-        const chips = `<span class=\"chip ${type==='image'?'type-image':'type-text'}\">${type.toUpperCase()}</span>`;
-        const prompt = e.prompt || e.question || '';
-        const resp = e.response || '';
-        const img = (type==='image' && e.image) ? `<img class=\"thumb\" src=\"${API_BASE}${e.image}\" alt=\"latest image\" />` : '';
-        return `<div class=\"log-item\">
-          <div class=\"log-meta\"><span>${t}</span> ${chips}</div>
-          ${prompt ? `<div class=\"prompt\"><strong>Prompt:</strong> ${prompt}</div>`:''}
-          ${resp ? `<div class=\"response\"><strong>Response:</strong> ${resp}</div>`:''}
-          ${img}
-        </div>`;
-      }).join('');
-      el.scrollTop = 0;
-    }
-
-    async function refresh(){
-      try{
-        const sel = document.getElementById('deviceSelect');
-        const id = sel.value;
-        sessionStorage.setItem('device.activity.selected', id||'');
-        const logs = await fetchLogs(id);
-        renderLogs(logs);
-      }catch(e){ console.error(e); }
-    }
-
     document.addEventListener('DOMContentLoaded', async ()=>{
       await loadDevices();
-      document.getElementById('refreshBtn').addEventListener('click', refresh);
-      document.getElementById('deviceSelect').addEventListener('change', refresh);
-      document.getElementById('searchBox').addEventListener('input', refresh);
-      document.getElementById('liveToggle').addEventListener('change', (ev)=>{
-        if(ev.target.checked){
-          if(liveTimer) clearInterval(liveTimer);
-          liveTimer = setInterval(refresh, 3000);
-          refresh();
-        } else {
-          if(liveTimer) clearInterval(liveTimer);
-          liveTimer = null;
-        }
-      });
-      refresh();
+      document.getElementById('refreshBtn').addEventListener('click', loadDevices);
     });
   </script>
 </body>
