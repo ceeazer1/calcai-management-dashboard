@@ -80,6 +80,7 @@
           <div class="device-meta">ID: ${id}</div>
           <div class="device-actions">
             <a class="btn" href="/admin/device.html?id=${id}">More info</a>
+            <a class="btn btn-outline" href="${API_BASE}/api/logs/image/latest/${id}.jpg" target="_blank">View image</a>
             <button class="btn btn-outline" data-action="unlink" data-id="${id}">Unlink Device</button>
           </div>
         `;

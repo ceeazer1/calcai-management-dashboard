@@ -50,6 +50,19 @@
       </div>
 
       <div class="section">
+        <h3>Latest Image</h3>
+        <div class="section-card">
+          <div id="latestImageWrap">
+            <img id="latestImage" style="max-width:100%; border-radius:8px; border:1px solid var(--border-color); display:none;" alt="No image yet" />
+          </div>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button id="refreshImageBtn" class="btn btn-outline">Refresh</button>
+            <a id="openImageLink" class="btn" href="#" target="_blank">Open full</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
         <h3>Prompt Logs</h3>
         <div id="logsView" class="section-card logs-view"></div>
       </div>
@@ -99,6 +112,20 @@
       return Array.isArray(j.logs) ? j.logs : [];
     }
 
+    async function loadLatestImage(id){
+      const img = document.getElementById('latestImage');
+      const link = document.getElementById('openImageLink');
+      const base = `${API_BASE}/api/logs/image/latest/${encodeURIComponent(id)}.jpg`;
+      const bust = `ts=${Date.now()}`;
+      if (link) link.href = base;
+      if (img) {
+        img.style.display = 'none';
+        img.onload = ()=>{ img.style.display = 'block'; };
+        img.onerror = ()=>{ img.style.display = 'none'; };
+        img.src = `${base}?${bust}`;
+      }
+    }
+
     function renderLogs(list){
       const el = document.getElementById('logsView');
       if(list.length===0){ el.innerHTML = '<div class="log-item"><div class="log-meta">No activity yet.</div></div>'; return; }
@@ -118,7 +145,8 @@
       await Promise.all([
         loadPairCode(id),
         loadNotes(id),
-        fetchLogs(id).then(renderLogs)
+        fetchLogs(id).then(renderLogs),
+        loadLatestImage(id)
       ]);
     }
 
@@ -140,6 +168,8 @@
     document.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('unlinkBtn').addEventListener('click', unlinkDevice);
       document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+      const rib = document.getElementById('refreshImageBtn');
+      if (rib) rib.addEventListener('click', ()=>{ const id = getId(); if(id) loadLatestImage(id); });
       refreshAll();
     });
   </script>
