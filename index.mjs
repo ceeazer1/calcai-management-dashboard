@@ -17,6 +17,7 @@ import { firmwarePublic } from "./routes/firmware_public.mjs";
 import { website, websitePublic } from "./routes/website.mjs";
 import { pairAdmin } from "./routes/pair.mjs";
 import { notesAdmin } from "./routes/notes_admin.mjs";
+import { ownerAdmin } from "./routes/owner_admin.mjs";
 // Optionally load STRIPE_SECRET_KEY from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
@@ -162,6 +163,8 @@ app.use("/api/devices", requireAuth, devices());
 app.use("/api/pair", requireAuth, pairAdmin());
 // Notes admin proxy (protected)
 app.use("/api/notes-admin", requireAuth, notesAdmin());
+// Owner admin proxy (protected)
+app.use("/api/owner", requireAuth, ownerAdmin());
 // Website (product page controls) - protected
 app.use("/api/website", requireAuth, website());
 // Website public (read-only for calcai.cc)

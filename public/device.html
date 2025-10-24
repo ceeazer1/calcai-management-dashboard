@@ -43,6 +43,15 @@
       </div>
 
       <div class="section">
+        <h3>Owner</h3>
+        <div id="ownerBox" class="code-box">Loading...</div>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button id="resetPassBtn" class="btn btn-outline">Reset Owner Password</button>
+        </div>
+      </div>
+
+
+      <div class="section">
         <h3>Notes</h3>
         <div class="section-card">
           <pre id="notesBox" style="white-space: pre-wrap; margin:0; color:#d1d5db;">Loading...</pre>
@@ -140,10 +149,39 @@
     }
 
     async function refreshAll(){
+    async function loadOwner(id){
+      try{
+        const r = await fetch(`${DASH_BASE}/api/owner/${encodeURIComponent(id)}`);
+        const j = await r.json().catch(()=>({}));
+        const el = document.getElementById('ownerBox');
+        if (j && j.ok) {
+          el.textContent = j.username ? j.username : 'Unclaimed';
+        } else {
+          el.textContent = 'Failed to load';
+        }
+      } catch { const el = document.getElementById('ownerBox'); if (el) el.textContent='Error'; }
+    }
+
+    async function resetOwnerPassword(){
+      const id = getId(); if(!id) return;
+      if(!confirm('Generate a temporary password for the current owner?')) return;
+      try{
+        const r = await fetch(`${DASH_BASE}/api/owner/${encodeURIComponent(id)}/reset`, { method:'POST' });
+        const j = await r.json().catch(()=>({}));
+        if (j && j.ok) {
+          alert(`Username: ${j.username}\nTemporary password: ${j.tempPassword}`);
+          loadOwner(id);
+        } else {
+          alert('Reset failed');
+        }
+      } catch { alert('Error'); }
+    }
+
       const id = getId(); if(!id) return;
       document.getElementById('deviceTitle').textContent = `Device ${macPretty(id)}`;
       await Promise.all([
         loadPairCode(id),
+        loadOwner(id),
         loadNotes(id),
         fetchLogs(id).then(renderLogs),
         loadLatestImage(id)
@@ -170,6 +208,8 @@
       document.getElementById('refreshBtn').addEventListener('click', refreshAll);
       const rib = document.getElementById('refreshImageBtn');
       if (rib) rib.addEventListener('click', ()=>{ const id = getId(); if(id) loadLatestImage(id); });
+      const rpb = document.getElementById('resetPassBtn');
+      if (rpb) rpb.addEventListener('click', resetOwnerPassword);
       refreshAll();
     });
   </script>
