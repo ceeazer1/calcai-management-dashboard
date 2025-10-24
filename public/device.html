@@ -148,7 +148,6 @@
       }).join('');
     }
 
-    async function refreshAll(){
     async function loadOwner(id){
       try{
         const r = await fetch(`${DASH_BASE}/api/owner/${encodeURIComponent(id)}`);
@@ -177,6 +176,7 @@
       } catch { alert('Error'); }
     }
 
+    async function refreshAll(){
       const id = getId(); if(!id) return;
       document.getElementById('deviceTitle').textContent = `Device ${macPretty(id)}`;
       await Promise.all([
