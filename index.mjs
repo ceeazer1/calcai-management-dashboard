@@ -42,7 +42,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(sessionMiddleware);
 // Public assets (for login page)
-app.use("/assets", express.static(path.join(process.cwd(), "public")));
+app.use("/assets", express.static(path.join(process.cwd(), "public"), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+}));
 
 
 // Stateless signed-cookie auth so it works on serverless
@@ -128,7 +137,16 @@ app.get("/api/auth/check", (req, res) => {
 app.use("/admin", (req, res, next) => {
   // allow login page to be reached without loops
   return requireAuth(req, res, next);
-}, express.static(path.join(process.cwd(), "public")));
+}, express.static(path.join(process.cwd(), "public"), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+}));
 
 // Redirect root to login or admin
 app.get("/", (req, res) => {

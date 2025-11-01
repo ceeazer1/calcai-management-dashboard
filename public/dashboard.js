@@ -420,9 +420,10 @@ async function loadDevices() {
 
 async function loadFirmwareVersions() {
     try {
+        const bust = Date.now();
         const [listResp, activeResp] = await Promise.all([
-            fetch(`${API_BASE}/api/ota/firmware/list`, { cache: 'no-store' }),
-            fetch(`${API_BASE}/api/ota/firmware/active`, { cache: 'no-store' })
+            fetch(`${API_BASE}/api/ota/firmware/list?t=${bust}`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/api/ota/firmware/active?t=${bust}`, { cache: 'no-store' })
         ]);
         if (listResp.ok) {
             firmwareVersions = await listResp.json();
