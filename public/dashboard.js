@@ -99,6 +99,7 @@ function showOrdersAlert(msg, type) {
 
 let devices = {};
 let firmwareVersions = [];
+let activeVersion = null;
 let selectedFirmwareFile = null;
 
 
@@ -419,11 +420,22 @@ async function loadDevices() {
 
 async function loadFirmwareVersions() {
     try {
-        const response = await fetch(`${API_BASE}/api/ota/firmware/list`, { cache: 'no-store' });
-        if (response.ok) {
-            firmwareVersions = await response.json();
-            renderFirmwareList();
+        const [listResp, activeResp] = await Promise.all([
+            fetch(`${API_BASE}/api/ota/firmware/list`, { cache: 'no-store' }),
+            fetch(`${API_BASE}/api/ota/firmware/active`, { cache: 'no-store' })
+        ]);
+        if (listResp.ok) {
+            firmwareVersions = await listResp.json();
+        } else {
+            firmwareVersions = [];
         }
+        if (activeResp.ok) {
+            const j = await activeResp.json();
+            activeVersion = j?.version || null;
+        } else {
+            activeVersion = null;
+        }
+        renderFirmwareList();
     } catch (error) {
         console.error('Failed to load firmware versions:', error);
     }
@@ -465,20 +477,11 @@ function renderDevices() {
             <p><strong>MAC:</strong> ${device.mac}</p>
             <p><strong>Firmware (reported):</strong> ${device.firmware}</p>
             ${device.lastDownloaded ? `<p><strong>Downloaded:</strong> ${device.lastDownloaded} <small>at ${formatDate(device.lastDownloadedAt)}</small></p>` : ''}
-            ${device.updateAvailable && device.targetFirmware ? `<p><strong>Target:</strong> ${device.targetFirmware}</p>` : ''}
             <p><strong>Status:</strong> <span class="device-status status-${device.status}">${device.status.toUpperCase()}</span></p>
             <p><strong>Last Seen:</strong> ${formatDate(device.lastSeen)}</p>
-            <p><strong>Update Status:</strong> <span class="device-status ${updClass}">${updStatus}</span>${device.targetFirmware ? ` <small>(target ${device.targetFirmware})</small>` : ''}</p>
-            ${device.updateAvailable ? `<p><strong>Update Available:</strong> ${device.targetFirmware}</p>` : ''}
-
+            <p><strong>Update Status:</strong> <span class="device-status ${updClass}">${updStatus}</span></p>
             <div style="margin-top: 1rem;">
-                <select id="firmware-${deviceId}" style="margin-right: 0.5rem;">
-                    <option value="">Select firmware...</option>
-                    ${firmwareVersions.map(fw => `<option value="${fw.version}">${fw.version}</option>`).join('')}
-                </select>
-                <button class="btn" onclick="pushUpdateToDevice('${deviceId}')">Push Update</button>
-                ${device.updateAvailable ? `<button class=\"btn btn-danger\" onclick=\"cancelUpdate('${deviceId}')\">Cancel Update</button>` : ''}
-                <button class=\"btn\" onclick=\"openDeviceLogs('${device.mac}')\">View Logs</button>
+                <button class="btn" onclick="openDeviceLogs('${device.mac}')">View Logs</button>
             </div>
             ${device.logs ? `<pre style="margin-top:8px; max-height:180px; overflow:auto; background:#0b0f1a; padding:8px; border-radius:6px; border:1px solid var(--border-color)">${device.logs.join('\n')}</pre>` : ''}
         </div>`;
@@ -493,15 +496,17 @@ function renderFirmwareList() {
         return;
     }
 
-    // Show current and past updates
-    const current = firmwareVersions[0];
-    const past = firmwareVersions.slice(1);
+    // Determine active/current
+    const idx = activeVersion ? firmwareVersions.findIndex(f => f.version === activeVersion) : -1;
+    const current = idx >= 0 ? firmwareVersions[idx] : null;
+    const past = firmwareVersions.filter((fw, i) => idx >= 0 ? i !== idx : true);
+
     let html = '';
     if (current) {
         html += `
         <div class="firmware-item" style="border-left:3px solid var(--primary)">
             <div>
-                <div class="chip" style="margin-bottom:6px;">Current Update</div>
+                <div class="chip" style="margin-bottom:6px;">Active Update</div>
                 <strong>${current.version}</strong><br>
                 <small>${formatFileSize(current.size)} • ${formatDate(current.created)}</small>
                 ${current.description ? `<div style='color:var(--text-muted); margin-top:4px;'>${current.description}</div>` : ''}
@@ -511,23 +516,62 @@ function renderFirmwareList() {
                 <button class="btn btn-danger" onclick="deleteFirmware('${current.version}')">Delete</button>
             </div>
         </div>`;
+    } else {
+        html += `<div class="chip" style="margin-bottom:6px;">No Active Firmware Selected</div>`;
     }
+
     if (past.length) {
-        html += `<h3 style="margin-top:12px;">Past Updates</h3>`;
+        html += `<h3 style="margin-top:12px;">${current ? 'Other Versions' : 'Available Versions'}</h3>`;
         html += past.map(firmware => `
             <div class="firmware-item">
                 <div>
                     <strong>${firmware.version}</strong><br>
                     <small>${formatFileSize(firmware.size)} • ${formatDate(firmware.created)}</small>
                     ${firmware.description ? `<div style='color:var(--text-muted); margin-top:4px;'>${firmware.description}</div>` : ''}
+                    ${firmware.ready ? `<div class='chip' style='margin-top:6px;'>Ready on server</div>` : `<div class='chip' style='margin-top:6px; opacity:.8;'>Caching…</div>`}
                 </div>
                 <div>
                     <a class="btn" href="${API_BASE}/api/ota/firmware/${encodeURIComponent(firmware.version)}" target="_blank" rel="noopener">Download</a>
+                    ${firmware.ready ? `<button class="btn" onclick="makeActive('${firmware.version}')">Make Active</button>` : ''}
                     <button class="btn btn-danger" onclick="deleteFirmware('${firmware.version}')">Delete</button>
                 </div>
             </div>
         `).join('');
     }
+
+    // If there is no active and at least one version, show a quick action to activate newest
+    if (!current && firmwareVersions.length > 0) {
+        const newest = firmwareVersions[0];
+        html = `
+            <div class="firmware-item" style="border-left:3px solid var(--primary)">
+                <div>
+                    <div class="chip" style="margin-bottom:6px;">Newest (not active)</div>
+                    <strong>${newest.version}</strong><br>
+                    <small>${formatFileSize(newest.size)} • ${formatDate(newest.created)}</small>
+                    ${newest.ready ? `<div class='chip' style='margin-top:6px;'>Ready on server</div>` : `<div class='chip' style='margin-top:6px; opacity:.8;'>Caching…</div>`}
+                </div>
+                <div>
+                    <a class="btn" href="${API_BASE}/api/ota/firmware/${encodeURIComponent(newest.version)}" target="_blank" rel="noopener">Download</a>
+                    ${newest.ready ? `<button class="btn" onclick="makeActive('${newest.version}')">Make Active</button>` : ''}
+                </div>
+            </div>
+            <h3 style="margin-top:12px;">Other Versions</h3>
+        ` + past.map(firmware => `
+            <div class="firmware-item">
+                <div>
+                    <strong>${firmware.version}</strong><br>
+                    <small>${formatFileSize(firmware.size)} • ${formatDate(firmware.created)}</small>
+                    ${firmware.ready ? `<div class='chip' style='margin-top:6px;'>Ready on server</div>` : `<div class='chip' style='margin-top:6px; opacity:.8;'>Caching…</div>`}
+                </div>
+                <div>
+                    <a class="btn" href="${API_BASE}/api/ota/firmware/${encodeURIComponent(firmware.version)}" target="_blank" rel="noopener">Download</a>
+                    ${firmware.ready ? `<button class="btn" onclick="makeActive('${firmware.version}')">Make Active</button>` : ''}
+                    <button class="btn btn-danger" onclick="deleteFirmware('${firmware.version}')">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
     firmwareList.innerHTML = html || '<p>No firmware versions uploaded yet.</p>';
 }
 
@@ -610,6 +654,26 @@ async function pushUpdateToAll(version) {
         showAlert(`Failed to push update: ${error.message}`, 'error');
     }
 }
+
+async function makeActive(version) {
+    try {
+        const resp = await fetch(`${API_BASE}/api/ota/firmware/activate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ version })
+        });
+        if (resp.ok) {
+            showAlert(`Activated ${version}`, 'success');
+            await loadFirmwareVersions();
+        } else {
+            const j = await resp.json().catch(()=>({}));
+            showAlert(`Failed to activate: ${j.error || resp.status}`, 'error');
+        }
+    } catch (e) {
+        showAlert(`Failed to activate: ${e.message}`, 'error');
+    }
+}
+
 
 async function cancelUpdate(deviceId) {
     try {
