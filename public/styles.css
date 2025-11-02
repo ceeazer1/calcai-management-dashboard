@@ -117,7 +117,7 @@ body {
 .upload-area:hover, .upload-area.dragover { border-color: var(--primary); background: rgba(30,136,229,0.06); color: var(--text-primary); }
 
 /* Buttons */
-.btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform .15s ease, filter .2s; box-shadow: 0 6px 16px rgba(30,136,229,0.25); }
+.btn { background: var(--primary); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; cursor: pointer; font-weight: 600; transition: transform .15s ease, filter .2s; box-shadow: 0 6px 16px rgba(30,136,229,0.25); text-decoration: none; }
 .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
 .btn:active { transform: translateY(0); }
 .btn-danger { background: var(--danger); }

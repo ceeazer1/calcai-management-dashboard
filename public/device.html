@@ -58,18 +58,6 @@
         </div>
       </div>
 
-      <div class="section">
-        <h3>Latest Image</h3>
-        <div class="section-card">
-          <div id="latestImageWrap">
-            <img id="latestImage" style="max-width:100%; border-radius:8px; border:1px solid var(--border-color); display:none;" alt="No image yet" />
-          </div>
-          <div style="margin-top:8px; display:flex; gap:8px;">
-            <button id="refreshImageBtn" class="btn btn-outline">Refresh</button>
-            <a id="openImageLink" class="btn" href="#" target="_blank">Open full</a>
-          </div>
-        </div>
-      </div>
 
       <div class="section">
         <h3>Prompt Logs</h3>
@@ -121,19 +109,6 @@
       return Array.isArray(j.logs) ? j.logs : [];
     }
 
-    async function loadLatestImage(id){
-      const img = document.getElementById('latestImage');
-      const link = document.getElementById('openImageLink');
-      const base = `${API_BASE}/api/logs/image/latest/${encodeURIComponent(id)}.jpg`;
-      const bust = `ts=${Date.now()}`;
-      if (link) link.href = base;
-      if (img) {
-        img.style.display = 'none';
-        img.onload = ()=>{ img.style.display = 'block'; };
-        img.onerror = ()=>{ img.style.display = 'none'; };
-        img.src = `${base}?${bust}`;
-      }
-    }
 
     function renderLogs(list){
       const el = document.getElementById('logsView');
@@ -183,8 +158,7 @@
         loadPairCode(id),
         loadOwner(id),
         loadNotes(id),
-        fetchLogs(id).then(renderLogs),
-        loadLatestImage(id)
+        fetchLogs(id).then(renderLogs)
       ]);
     }
 
@@ -206,8 +180,6 @@
     document.addEventListener('DOMContentLoaded', ()=>{
       document.getElementById('unlinkBtn').addEventListener('click', unlinkDevice);
       document.getElementById('refreshBtn').addEventListener('click', refreshAll);
-      const rib = document.getElementById('refreshImageBtn');
-      if (rib) rib.addEventListener('click', ()=>{ const id = getId(); if(id) loadLatestImage(id); });
       const rpb = document.getElementById('resetPassBtn');
       if (rpb) rpb.addEventListener('click', resetOwnerPassword);
       refreshAll();

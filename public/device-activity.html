@@ -17,6 +17,7 @@
         .device-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
         .device-card { background:#0b0f1a; border:1px solid var(--border-color); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:8px; }
         .device-card h3 { margin:0; font-size:14px; color:#e5e7eb; letter-spacing:0.2px; }
+        .device-owner { color:#9fb3c8; font-size:12px; }
         .device-meta { color:#9fb3c8; font-size:12px; display:flex; gap:8px; flex-wrap:wrap; }
         .device-actions { display:flex; gap:8px; }
         /* Slimmer buttons just for this page */
@@ -40,7 +41,8 @@
           <div>
             <h2 style="margin:6px 0 12px 0;">Devices</h2>
           </div>
-          <div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="searchInput" type="text" placeholder="Search MAC..." style="padding:8px 10px; border-radius:8px; border:1px solid var(--border-color); background:#0b0f1a; color:#e5e7eb;" />
             <button id="refreshBtn" class="btn">Refresh</button>
           </div>
         </div>
@@ -53,6 +55,7 @@
     const API_BASE = (window.CALCAI_API_BASE && String(window.CALCAI_API_BASE)) || "https://calcai-server.fly.dev";
     let liveTimer = null;
     const DASH_BASE = ""; // same-origin dashboard API
+let allIds = [];
 
 
     function macPretty(id){
@@ -66,10 +69,19 @@
       const r = await fetch(`${API_BASE}/api/logs/device-activity/list`);
       if(!r.ok) throw new Error('failed to fetch device list');
       const data = await r.json();
-      const ids = Array.isArray(data.deviceIds) ? data.deviceIds : [];
+      allIds = Array.isArray(data.deviceIds) ? data.deviceIds : [];
+      renderGrid();
+    }
 
-      // render device cards
+    function renderGrid(){
       const grid = document.getElementById('devicesGrid');
+      const q = (document.getElementById('searchInput')?.value || '').trim().toLowerCase();
+      const filterRaw = q.replace(/[^0-9a-f]/g, '');
+      const ids = (allIds || []).filter(id=>{
+        const pretty = macPretty(id);
+        return !filterRaw || id.includes(filterRaw) || pretty.includes(q);
+      });
+
       grid.innerHTML = ids.length ? '' : '<div class="device-meta">No devices yet</div>';
       ids.forEach(id=>{
         const pretty = macPretty(id);
@@ -77,32 +89,38 @@
         card.className = 'device-card';
         card.innerHTML = `
           <h3>${pretty}</h3>
+          <div class="device-owner hidden" data-owner></div>
           <div class="device-meta">ID: ${id}</div>
           <div class="device-actions">
             <a class="btn" href="/admin/device.html?id=${id}">More info</a>
-            <a class="btn btn-outline" href="${API_BASE}/api/logs/image/latest/${id}.jpg" target="_blank">View image</a>
-            <button class="btn btn-outline" data-action="unlink" data-id="${id}">Unlink Device</button>
           </div>
         `;
-        card.querySelector('[data-action="unlink"]').addEventListener('click', async ()=>{
-          if(!confirm(`Unlink ${pretty}? This rotates code and clears notes.`)) return;
-          try{
-            const resp = await fetch(`${DASH_BASE}/api/pair/reset/${encodeURIComponent(id)}`, { method:'POST' });
-            const json = await resp.json().catch(()=>({}));
-            if(resp.ok && json.ok){
-              alert('Device unlinked.');
-            } else {
-              alert('Failed to unlink.');
-            }
-          }catch(e){ alert('Failed to unlink'); }
-        });
         grid.appendChild(card);
+        const ownerEl = card.querySelector('[data-owner]');
+        fetchOwnerUsername(id, ownerEl);
       });
+    }
+
+    async function fetchOwnerUsername(id, targetEl){
+      try{
+        const resp = await fetch(`${DASH_BASE}/api/owner/${encodeURIComponent(id)}`);
+        const json = await resp.json().catch(()=>({}));
+        if(resp.ok && json && json.ok && json.username){
+          targetEl.textContent = json.username;
+          targetEl.classList.remove('hidden');
+        } else {
+          targetEl.remove();
+        }
+      } catch {
+        try { targetEl.remove(); } catch {}
+      }
     }
 
     document.addEventListener('DOMContentLoaded', async ()=>{
       await loadDevices();
       document.getElementById('refreshBtn').addEventListener('click', loadDevices);
+      const si = document.getElementById('searchInput');
+      if (si) si.addEventListener('input', renderGrid);
     });
   </script>
 </body>
