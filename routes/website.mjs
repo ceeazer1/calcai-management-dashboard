@@ -167,7 +167,7 @@ export function websitePublic() {
   const router = express.Router();
   router.get("/settings", async (req, res) => {
     await loadSettings();
-    res.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    // Restore normal behavior: do not force no-store; let default caching/ETag apply
     res.json(settings);
   });
   return router;
