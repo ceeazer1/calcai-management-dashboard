@@ -143,7 +143,7 @@
     // Populate selector
     COUNTRIES.forEach(c => {
       const opt = document.createElement('option');
-      opt.value = c.code; opt.textContent = `${c.flag} +${c.dial}`;
+      opt.value = c.code; opt.textContent = `${c.code} +${c.dial}`;
       testCountry.appendChild(opt);
     });
     testCountry.value = currentCountry.code;
