@@ -17,6 +17,10 @@
     .inline { display:flex; gap:8px; align-items:center; }
     .right { margin-left:auto; }
     .muted { color:#6b7280; font-size:12px; }
+    .input-join { display:flex; flex:1; align-items:center; }
+    .input-join input { flex:1; }
+    .prefix { padding:8px 10px; background:#111827; border:1px solid #374151; border-right:0; border-radius:6px 0 0 6px; color:#d1d5db; }
+
   </style>
 </head>
 <body>
@@ -49,7 +53,14 @@
           <div>
             <div class="form-group">
               <label>Test number</label>
-              <input id="testTo" placeholder="+15551234567" />
+              <div class="inline" style="gap:8px; align-items:center;">
+                <select id="testCountry"></select>
+                <div class="input-join">
+                  <span id="dialPrefix" class="prefix">+1</span>
+                  <input id="testNational" placeholder="(555) 123-4567" />
+                  <input id="testTo" type="hidden" />
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label>Message</label>
@@ -88,6 +99,75 @@
       const st = document.getElementById('status').value; if (st) p.set('status', st);
       window.open(`/api/sms-admin/subscribers?${p.toString()}&format=csv`, '_blank');
     });
+    // Country-aware phone input for test sender
+    const COUNTRIES = [
+      { code:'US', name:'United States', dial:'1', flag:'🇺🇸', nsn:[10], pattern:[3,3,4], placeholder:'(555) 123-4567' },
+      { code:'CA', name:'Canada', dial:'1', flag:'🇨🇦', nsn:[10], pattern:[3,3,4], placeholder:'(555) 123-4567' },
+      { code:'GB', name:'United Kingdom', dial:'44', flag:'🇬🇧', nsn:[9,10], pattern:[4,3,3], placeholder:'7123 456 789' },
+      { code:'AU', name:'Australia', dial:'61', flag:'🇦🇺', nsn:[9], pattern:[4,3,2], placeholder:'4123 456 78' },
+      { code:'IN', name:'India', dial:'91', flag:'🇮🇳', nsn:[10], pattern:[5,5], placeholder:'98765 43210' },
+      { code:'DE', name:'Germany', dial:'49', flag:'🇩🇪', nsn:[10,11], pattern:[3,3,4], placeholder:'151 234 5678' },
+      { code:'FR', name:'France', dial:'33', flag:'🇫🇷', nsn:[9], pattern:[2,2,2,3], placeholder:'6 12 34 567' }
+    ];
+    const onlyDigits = (s) => String(s||'').replace(/\D/g, '');
+    const nsnMax = (c) => Math.max(...c.nsn);
+    function formatNational(c, digits){
+      const d = onlyDigits(digits).slice(0, nsnMax(c));
+      if ((c.code==='US' || c.code==='CA')){
+        const a = d.slice(0,3), b = d.slice(3,6), x = d.slice(6,10);
+        if (d.length <= 3) return a;
+        if (d.length <= 6) return `(${a}) ${b}`;
+        return `(${a}) ${b}-${x}`;
+      }
+      const p = c.pattern || [];
+      if (!p.length) return d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+      let res = '', i = 0;
+      for (const g of p){
+        if (i >= d.length) break;
+        const nxt = d.slice(i, i+g);
+        if (!nxt) break;
+        res += (res ? ' ' : '') + nxt;
+        i += g;
+      }
+      if (i < d.length) res += ' ' + d.slice(i);
+      return res;
+    }
+
+    // Hook up UI elements
+    const testCountry = document.getElementById('testCountry');
+    const testNational = document.getElementById('testNational');
+    const testTo = document.getElementById('testTo');
+    const dialPrefix = document.getElementById('dialPrefix');
+    let currentCountry = COUNTRIES[0];
+
+    // Populate selector
+    COUNTRIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.code; opt.textContent = `${c.flag} +${c.dial}`;
+      testCountry.appendChild(opt);
+    });
+    testCountry.value = currentCountry.code;
+    dialPrefix.textContent = `+${currentCountry.dial}`;
+    testNational.placeholder = currentCountry.placeholder;
+
+    testCountry.addEventListener('change', (e)=>{
+      const c = COUNTRIES.find(x=>x.code===e.target.value) || COUNTRIES[0];
+      currentCountry = c;
+      dialPrefix.textContent = `+${c.dial}`;
+      const d = onlyDigits(testNational.value);
+      const capped = d.slice(0, nsnMax(c));
+      testNational.value = formatNational(c, capped);
+      testNational.placeholder = c.placeholder;
+      testTo.value = capped ? `+${c.dial}${capped}` : '';
+    });
+
+    testNational.addEventListener('input', (e)=>{
+      const d = onlyDigits(e.target.value);
+      const capped = d.slice(0, nsnMax(currentCountry));
+      e.target.value = formatNational(currentCountry, capped);
+      testTo.value = capped ? `+${currentCountry.dial}${capped}` : '';
+    });
+
     document.getElementById('sendTestBtn').addEventListener('click', async ()=>{
       const to = document.getElementById('testTo').value.trim();
       const body = document.getElementById('testBody').value.trim();
