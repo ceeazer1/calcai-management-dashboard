@@ -18,6 +18,7 @@ import { website, websitePublic } from "./routes/website.mjs";
 import { pairAdmin } from "./routes/pair.mjs";
 import { notesAdmin } from "./routes/notes_admin.mjs";
 import { ownerAdmin } from "./routes/owner_admin.mjs";
+import { smsAdmin } from "./routes/sms_admin.mjs";
 // Optionally load STRIPE_SECRET_KEY from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
@@ -169,6 +170,9 @@ app.use("/api/owner", requireAuth, ownerAdmin());
 // Website (product page controls) - protected
 app.use("/api/website", requireAuth, website());
 // Website public (read-only for calcai.cc)
+// SMS admin (protected)
+app.use("/api/sms-admin", requireAuth, smsAdmin());
+
 app.use("/api/website-public", websitePublic());
 
 app.use("/api/ota", requireAuth, ota());

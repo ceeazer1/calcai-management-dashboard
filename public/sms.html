@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – SMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="include.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .grid { display:grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    .table { width:100%; border-collapse: collapse; }
+    .table th, .table td { padding: 8px 10px; border-bottom: 1px solid #eee; text-align:left; }
+    .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+    .inline { display:flex; gap:8px; align-items:center; }
+    .right { margin-left:auto; }
+    .muted { color:#6b7280; font-size:12px; }
+  </style>
+</head>
+<body>
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left"><h1>SMS Subscribers</h1></div>
+      <div class="header-right"><a class="btn" href="/admin">Dashboard</a></div>
+    </div>
+    <div class="container">
+      <div class="section">
+        <div class="toolbar">
+          <input id="search" placeholder="Search phone…" />
+          <select id="status">
+            <option value="">All</option>
+            <option value="subscribed">Subscribed</option>
+            <option value="opted_out">Opted out</option>
+          </select>
+          <button class="btn" id="reloadBtn">Reload</button>
+          <a class="btn" id="exportBtn" href="#">Export CSV</a>
+          <span class="right muted" id="count"></span>
+        </div>
+        <div class="grid">
+          <div>
+            <table class="table">
+              <thead><tr><th>Phone</th><th>Status</th><th>Source</th><th>Consent</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>Test number</label>
+              <input id="testTo" placeholder="+15551234567" />
+            </div>
+            <div class="form-group">
+              <label>Message</label>
+              <textarea id="testBody" rows="4" placeholder="Type a test message…"></textarea>
+              <small class="muted">Include brand and STOP/HELP if this is a marketing message.</small>
+            </div>
+            <button class="btn" id="sendTestBtn">Send Test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    async function loadSubs(){
+      const p = new URLSearchParams();
+      const s = document.getElementById('search').value.trim(); if (s) p.set('search', s);
+      const st = document.getElementById('status').value; if (st) p.set('status', st);
+      const r = await fetch(`/api/sms-admin/subscribers?${p.toString()}`, { credentials:'include' });
+      const j = await r.json();
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = '';
+      (j.rows||[]).forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.phone}</td><td>${row.status||''}</td><td>${row.source||''}</td><td>${row.consent_ts||''}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('count').textContent = `${j.total||0} total`;
+    }
+    document.getElementById('reloadBtn').addEventListener('click', loadSubs);
+    document.getElementById('search').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadSubs(); });
+    document.getElementById('status').addEventListener('change', loadSubs);
+    document.getElementById('exportBtn').addEventListener('click', (e)=>{
+      e.preventDefault();
+      const p = new URLSearchParams();
+      const s = document.getElementById('search').value.trim(); if (s) p.set('search', s);
+      const st = document.getElementById('status').value; if (st) p.set('status', st);
+      window.open(`/api/sms-admin/subscribers?${p.toString()}&format=csv`, '_blank');
+    });
+    document.getElementById('sendTestBtn').addEventListener('click', async ()=>{
+      const to = document.getElementById('testTo').value.trim();
+      const body = document.getElementById('testBody').value.trim();
+      if (!to || !body) { alert('Enter number and message'); return; }
+      const btn = document.getElementById('sendTestBtn'); const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
+      try{
+        const r = await fetch('/api/sms-admin/send-test', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ to, body }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error||'Send failed');
+        alert('Sent');
+      }catch(e){ alert(e.message||'Send failed'); }
+      finally{ btn.disabled=false; btn.textContent = prev; }
+    });
+    loadSubs();
+  </script>
+</body>
+</html>
+
