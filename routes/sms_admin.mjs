@@ -4,6 +4,12 @@ export function smsAdmin(){
   const router = express.Router();
   router.use(express.json({ limit:'64kb' }));
 
+  // Use global fetch when available; fall back to undici on older runtimes
+  async function doFetch(url, options){
+    const f = (typeof fetch !== 'undefined') ? fetch : (await import('undici')).fetch;
+    return f(url, options);
+  }
+
   const WEBSITE_BASE = (process.env.WEBSITE_URL || process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://calcai.cc').replace(/\/+$/, '');
   const ADMIN_API_TOKEN = (process.env.ADMIN_API_TOKEN || '').toString();
 
@@ -19,12 +25,12 @@ export function smsAdmin(){
       p.set('limit', String(pageSize));
       p.set('offset', String((pageNum-1)*pageSize));
 
-      const r = await fetch(`${WEBSITE_BASE}/api/admin/sms/subscribers?${p.toString()}`, {
+      const r = await doFetch(`${WEBSITE_BASE}/api/admin/sms/subscribers?${p.toString()}`, {
         headers: ADMIN_API_TOKEN ? { 'x-admin-token': ADMIN_API_TOKEN } : undefined,
       });
       if (!r.ok){
         const txt = await r.text();
-        return res.status(502).json({ ok:false, error:'fetch_failed', body: txt });
+        return res.status(r.status || 502).json({ ok:false, error:'fetch_failed', body: txt });
       }
       const j = await r.json();
       if (format === 'csv'){
@@ -45,14 +51,14 @@ export function smsAdmin(){
     try{
       const { to, body } = req.body || {};
       if (!to || !body) return res.status(400).json({ ok:false, error:'missing_params' });
-      const r = await fetch(`${WEBSITE_BASE}/api/admin/sms/send`, {
+      const r = await doFetch(`${WEBSITE_BASE}/api/admin/sms/send`, {
         method:'POST', headers: {
           'Content-Type':'application/json',
           ...(ADMIN_API_TOKEN ? { 'x-admin-token': ADMIN_API_TOKEN } : {})
         }, body: JSON.stringify({ to, body })
       });
       const txt = await r.text();
-      if (!r.ok) return res.status(502).json({ ok:false, error:'send_failed', body: txt });
+      if (!r.ok) return res.status(r.status || 502).json({ ok:false, error:'send_failed', body: txt });
       const j = JSON.parse(txt);
       res.json(j);
     }catch(e){
