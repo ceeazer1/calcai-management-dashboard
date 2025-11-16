@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalcAI – SMS Broadcast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="include.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .broadcast-panel { max-width: 600px; }
+    .muted { color:#6b7280; font-size:12px; }
+    .input-join { display:flex; align-items:stretch; }
+    .input-join input { flex:1; border-radius: 0 6px 6px 0; }
+    .prefix { padding:10px 12px; background:#111827; border:1px solid #374151; border-right:0; border-radius:6px 0 0 6px; color:#d1d5db; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div data-include="/admin/_sidebar.html"></div>
+  <div class="content" style="margin-left:240px; min-height:100vh;">
+    <div class="header">
+      <div class="header-left"><h1>SMS Broadcast</h1></div>
+      <div class="header-right">
+        <a class="btn" href="/admin/sms.html">Subscribers</a>
+        <a class="btn" href="/admin">Dashboard</a>
+      </div>
+    </div>
+    <div class="container">
+      <div class="section">
+        <div class="broadcast-panel">
+          <h2 style="margin-top:0;">Broadcast to All Subscribers</h2>
+          <div class="form-group">
+            <label>Message Preset</label>
+            <select id="presetSelect">
+              <option value="">Custom message</option>
+              <option value="restock">Restock Alert</option>
+              <option value="preorder">Preorder Available</option>
+              <option value="shipping">Shipping Update</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea id="broadcastBody" rows="6" placeholder="Type your message…"></textarea>
+            <small class="muted">Will be sent to all subscribed numbers. Include STOP/HELP for compliance.</small>
+          </div>
+          <button class="btn" id="broadcastBtn" style="background:#dc2626; font-size:16px; padding:12px 24px;">Broadcast to All</button>
+        </div>
+
+        <hr style="margin:40px 0; border:0; border-top:1px solid #374151;" />
+
+        <div class="broadcast-panel">
+          <h2>Send Test Message</h2>
+          <div class="form-group">
+            <label>Country</label>
+            <select id="testCountry"></select>
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <div class="input-join">
+              <span id="dialPrefix" class="prefix">+1</span>
+              <input id="testNational" placeholder="(555) 123-4567" />
+              <input id="testTo" type="hidden" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea id="testBody" rows="4" placeholder="Type a test message…"></textarea>
+            <small class="muted">Include brand and STOP/HELP if this is a marketing message.</small>
+          </div>
+          <button class="btn" id="sendTestBtn">Send Test</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Message presets
+    const PRESETS = {
+      restock: 'CalcAI is back in stock! Get yours now at https://calcai.cc/product before they sell out. Reply STOP to opt out.',
+      preorder: 'CalcAI preorders are now open! Reserve yours at https://calcai.cc/product. Reply STOP to opt out.',
+      shipping: 'Your CalcAI order has shipped! Track your package at https://calcai.cc/track. Reply STOP to opt out.'
+    };
+
+    document.getElementById('presetSelect').addEventListener('change', (e)=>{
+      const preset = e.target.value;
+      if (preset && PRESETS[preset]) {
+        document.getElementById('broadcastBody').value = PRESETS[preset];
+      }
+    });
+
+    document.getElementById('broadcastBtn').addEventListener('click', async ()=>{
+      const body = document.getElementById('broadcastBody').value.trim();
+      if (!body) { alert('Enter a message'); return; }
+      
+      const confirmation = prompt('⚠️ This will send to ALL subscribed numbers.\n\nType SEND to confirm:');
+      if (confirmation !== 'SEND') { alert('Cancelled'); return; }
+
+      const btn = document.getElementById('broadcastBtn'); 
+      const prev = btn.textContent; 
+      btn.disabled = true; 
+      btn.textContent = 'Broadcasting…';
+      
+      try{
+        const r = await fetch('/api/sms-admin/broadcast', { 
+          method:'POST', 
+          headers:{ 'Content-Type':'application/json' }, 
+          body: JSON.stringify({ body }) 
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error||'Broadcast failed');
+        alert(`Broadcast sent to ${j.sent||0} subscribers`);
+        document.getElementById('broadcastBody').value = '';
+        document.getElementById('presetSelect').value = '';
+      }catch(e){ 
+        alert(e.message||'Broadcast failed'); 
+      }
+      finally{ 
+        btn.disabled=false; 
+        btn.textContent = prev; 
+      }
+    });
+
+    // Country-aware phone input for test sender
+    const COUNTRIES = [
+      { code:'US', name:'United States', dial:'1', flag:'🇺🇸', nsn:[10], pattern:[3,3,4], placeholder:'(555) 123-4567' },
+      { code:'CA', name:'Canada', dial:'1', flag:'🇨🇦', nsn:[10], pattern:[3,3,4], placeholder:'(555) 123-4567' },
+      { code:'GB', name:'United Kingdom', dial:'44', flag:'🇬🇧', nsn:[9,10], pattern:[4,3,3], placeholder:'7123 456 789' },
+      { code:'AU', name:'Australia', dial:'61', flag:'🇦🇺', nsn:[9], pattern:[4,3,2], placeholder:'4123 456 78' },
+      { code:'IN', name:'India', dial:'91', flag:'🇮🇳', nsn:[10], pattern:[5,5], placeholder:'98765 43210' },
+      { code:'DE', name:'Germany', dial:'49', flag:'🇩🇪', nsn:[10,11], pattern:[3,3,4], placeholder:'151 234 5678' },
+      { code:'FR', name:'France', dial:'33', flag:'🇫🇷', nsn:[9], pattern:[2,2,2,3], placeholder:'6 12 34 567' }
+    ];
+    const onlyDigits = (s) => String(s||'').replace(/\D/g, '');
+    const nsnMax = (c) => Math.max(...c.nsn);
+    function formatNational(c, digits){
+      const d = onlyDigits(digits).slice(0, nsnMax(c));
+      if ((c.code==='US' || c.code==='CA')){
+        const a = d.slice(0,3), b = d.slice(3,6), x = d.slice(6,10);
+        if (d.length <= 3) return a;
+        if (d.length <= 6) return `(${a}) ${b}`;
+        return `(${a}) ${b}-${x}`;
+      }
+      const p = c.pattern || [];
+      if (!p.length) return d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+      let res = '', i = 0;
+      for (const g of p){
+        if (i >= d.length) break;
+        const nxt = d.slice(i, i+g);
+        if (!nxt) break;
+        res += (res ? ' ' : '') + nxt;
+        i += g;
+      }
+      if (i < d.length) res += ' ' + d.slice(i);
+      return res;
+    }
+
+    // Hook up UI elements
+    const testCountry = document.getElementById('testCountry');
+    const testNational = document.getElementById('testNational');
+    const testTo = document.getElementById('testTo');
+    const dialPrefix = document.getElementById('dialPrefix');
+    let currentCountry = COUNTRIES[0];
+
+    // Populate selector
+    COUNTRIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.code; opt.textContent = `${c.code} +${c.dial}`;
+      testCountry.appendChild(opt);
+    });
+    testCountry.value = currentCountry.code;
+    dialPrefix.textContent = `+${currentCountry.dial}`;
+    testNational.placeholder = currentCountry.placeholder;
+
+    testCountry.addEventListener('change', (e)=>{
+      const c = COUNTRIES.find(x=>x.code===e.target.value) || COUNTRIES[0];
+      currentCountry = c;
+      dialPrefix.textContent = `+${c.dial}`;
+      const d = onlyDigits(testNational.value);
+      const capped = d.slice(0, nsnMax(c));
+      testNational.value = formatNational(c, capped);
+      testNational.placeholder = c.placeholder;
+      testTo.value = capped ? `+${c.dial}${capped}` : '';
+    });
+
+    testNational.addEventListener('input', (e)=>{
+      const d = onlyDigits(e.target.value);
+      const capped = d.slice(0, nsnMax(currentCountry));
+      e.target.value = formatNational(currentCountry, capped);
+      testTo.value = capped ? `+${currentCountry.dial}${capped}` : '';
+    });
+
+    document.getElementById('sendTestBtn').addEventListener('click', async ()=>{
+      const to = document.getElementById('testTo').value.trim();
+      const body = document.getElementById('testBody').value.trim();
+      if (!to || !body) { alert('Enter number and message'); return; }
+      const btn = document.getElementById('sendTestBtn'); const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Sending…';
+      try{
+        const r = await fetch('/api/sms-admin/send-test', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ to, body }) });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error||'Send failed');
+        alert('Sent');
+      }catch(e){ alert(e.message||'Send failed'); }
+      finally{ btn.disabled=false; btn.textContent = prev; }
+    });
+  </script>
+</body>
+</html>
+
