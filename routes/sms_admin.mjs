@@ -25,12 +25,19 @@ export function smsAdmin(){
       p.set('limit', String(pageSize));
       p.set('offset', String((pageNum-1)*pageSize));
 
+      console.log('[sms_admin] Fetching subscribers from:', `${WEBSITE_BASE}/api/admin/sms/subscribers?${p.toString()}`);
+      console.log('[sms_admin] ADMIN_API_TOKEN set:', !!ADMIN_API_TOKEN);
+
       const r = await doFetch(`${WEBSITE_BASE}/api/admin/sms/subscribers?${p.toString()}`, {
         headers: ADMIN_API_TOKEN ? { 'x-admin-token': ADMIN_API_TOKEN } : undefined,
       });
+
+      console.log('[sms_admin] Response status:', r.status);
+
       if (!r.ok){
         const txt = await r.text();
-        return res.status(r.status || 502).json({ ok:false, error:'fetch_failed', body: txt });
+        console.error('[sms_admin] Fetch failed:', r.status, txt);
+        return res.status(r.status || 502).json({ ok:false, error:'fetch_failed', status: r.status, body: txt });
       }
       const j = await r.json();
       if (format === 'csv'){
@@ -42,7 +49,8 @@ export function smsAdmin(){
       }
       res.json(j);
     }catch(e){
-      res.status(500).json({ ok:false, error:'server_error' });
+      console.error('[sms_admin] Exception in /subscribers:', e);
+      res.status(500).json({ ok:false, error:'server_error', message: e.message });
     }
   });
 
