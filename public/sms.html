@@ -51,6 +51,24 @@
             </table>
           </div>
           <div>
+            <h3 style="margin-top:0;">Broadcast to All</h3>
+            <div class="form-group">
+              <label>Message Preset</label>
+              <select id="presetSelect">
+                <option value="">Custom message</option>
+                <option value="restock">Restock Alert</option>
+                <option value="preorder">Preorder Available</option>
+                <option value="shipping">Shipping Update</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Message</label>
+              <textarea id="broadcastBody" rows="4" placeholder="Type your message…"></textarea>
+              <small class="muted">Will be sent to all subscribed numbers. Include STOP/HELP.</small>
+            </div>
+            <button class="btn" id="broadcastBtn" style="background:#dc2626;">Broadcast to All</button>
+            <hr style="margin:20px 0; border:0; border-top:1px solid #374151;" />
+            <h3>Test Single Number</h3>
             <div class="form-group">
               <label>Test number</label>
               <div class="inline" style="gap:8px; align-items:center;">
@@ -166,6 +184,52 @@
       const capped = d.slice(0, nsnMax(currentCountry));
       e.target.value = formatNational(currentCountry, capped);
       testTo.value = capped ? `+${currentCountry.dial}${capped}` : '';
+    });
+
+    // Message presets
+    const PRESETS = {
+      restock: 'CalcAI is back in stock! Get yours now at https://calcai.cc/product before they sell out. Reply STOP to opt out.',
+      preorder: 'CalcAI preorders are now open! Reserve yours at https://calcai.cc/product. Reply STOP to opt out.',
+      shipping: 'Your CalcAI order has shipped! Track your package at https://calcai.cc/track. Reply STOP to opt out.'
+    };
+
+    document.getElementById('presetSelect').addEventListener('change', (e)=>{
+      const preset = e.target.value;
+      if (preset && PRESETS[preset]) {
+        document.getElementById('broadcastBody').value = PRESETS[preset];
+      }
+    });
+
+    document.getElementById('broadcastBtn').addEventListener('click', async ()=>{
+      const body = document.getElementById('broadcastBody').value.trim();
+      if (!body) { alert('Enter a message'); return; }
+
+      const confirmation = prompt('⚠️ This will send to ALL subscribed numbers.\\n\\nType SEND to confirm:');
+      if (confirmation !== 'SEND') { alert('Cancelled'); return; }
+
+      const btn = document.getElementById('broadcastBtn');
+      const prev = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Broadcasting…';
+
+      try{
+        const r = await fetch('/api/sms-admin/broadcast', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ body })
+        });
+        const j = await r.json();
+        if (!j.ok) throw new Error(j.error||'Broadcast failed');
+        alert(`Broadcast sent to ${j.sent||0} subscribers`);
+        document.getElementById('broadcastBody').value = '';
+        document.getElementById('presetSelect').value = '';
+      }catch(e){
+        alert(e.message||'Broadcast failed');
+      }
+      finally{
+        btn.disabled=false;
+        btn.textContent = prev;
+      }
     });
 
     document.getElementById('sendTestBtn').addEventListener('click', async ()=>{

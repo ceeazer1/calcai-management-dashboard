@@ -78,6 +78,34 @@ export function smsAdmin(){
     }
   });
 
+  // POST /api/sms-admin/broadcast { body }
+  router.post('/broadcast', async (req, res) => {
+    try{
+      const { body } = req.body || {};
+      if (!body) return res.status(400).json({ ok:false, error:'missing_body' });
+
+      console.log('[sms_admin] Broadcasting to all subscribers');
+
+      const r = await doFetch(`${WEBSITE_BASE}/api/admin/sms/broadcast`, {
+        method:'POST', headers: {
+          'Content-Type':'application/json',
+          ...(ADMIN_API_TOKEN ? { 'x-admin-token': ADMIN_API_TOKEN } : {})
+        }, body: JSON.stringify({ body })
+      });
+
+      const txt = await r.text();
+      if (!r.ok){
+        console.error('[sms_admin] Broadcast failed:', r.status, txt);
+        return res.status(r.status || 502).json({ ok:false, error:'broadcast_failed', body: txt });
+      }
+      const j = JSON.parse(txt);
+      res.json(j);
+    }catch(e){
+      console.error('[sms_admin] Exception in /broadcast:', e);
+      res.status(500).json({ ok:false, error:'server_error', message: e.message });
+    }
+  });
+
   return router;
 }
 
