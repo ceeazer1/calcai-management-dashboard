@@ -10,7 +10,11 @@ export function smsAdmin(){
     return f(url, options);
   }
 
-  const WEBSITE_BASE = (process.env.WEBSITE_URL || process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://calcai.cc').replace(/\/+$/, '');
+  let WEBSITE_BASE = (process.env.WEBSITE_URL || process.env.NEXT_PUBLIC_WEBSITE_URL || 'https://calcai.cc').replace(/\/+$/, '');
+  // Ensure protocol is present
+  if (!/^https?:\/\//i.test(WEBSITE_BASE)) {
+    WEBSITE_BASE = 'https://' + WEBSITE_BASE;
+  }
   const ADMIN_API_TOKEN = (process.env.ADMIN_API_TOKEN || '').toString();
 
   // GET /api/sms-admin/subscribers?status=&search=&page=&limit=&format=csv|json
