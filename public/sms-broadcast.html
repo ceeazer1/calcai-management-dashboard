@@ -75,11 +75,11 @@
     </div>
   </div>
   <script>
-    // Message presets
+    // Message presets (softened for Twilio compliance until templates are approved)
     const PRESETS = {
-      restock: 'CalcAI is back in stock! Get yours now at https://calcai.cc/product before they sell out. Reply STOP to opt out.',
-      preorder: 'CalcAI preorders are now open! Reserve yours at https://calcai.cc/product. Reply STOP to opt out.',
-      shipping: 'Your CalcAI order has shipped! Track your package at https://calcai.cc/track. Reply STOP to opt out.'
+      restock: 'CalcAI: New units available at calcai.cc/product. Reply STOP to unsubscribe.',
+      preorder: 'CalcAI: Preorders open at calcai.cc/product. Reply STOP to unsubscribe.',
+      shipping: 'CalcAI: Your order has shipped. Track at calcai.cc/track. Reply STOP to unsubscribe.'
     };
 
     document.getElementById('presetSelect').addEventListener('change', (e)=>{
