@@ -35,9 +35,9 @@
             <label class="inline" for="maintenanceEnabled"><input type="checkbox" id="maintenanceEnabled" /> Enable Maintenance (lock site)</label>
           </div>
           <div class="form-group">
-            <label for="maintenanceUntil">Countdown Until (ISO datetime)</label>
-            <input id="maintenanceUntil" type="text" placeholder="2025-12-31T00:00:00Z" />
-            <small class="text-muted">Shown on calcai.cc as “We will be back” + countdown.</small>
+            <label for="maintenanceUntil">Countdown Until</label>
+            <input id="maintenanceUntil" type="datetime-local" />
+            <small class="text-muted">Pick date/time; we handle timezones and convert to ISO automatically.</small>
           </div>
           <div class="form-group">
             <label for="maintenanceDiscordUrl">Discord URL (optional)</label>
@@ -94,6 +94,7 @@
         <hr class="hr">
         <p class="text-muted">These values are stored in the dashboard and consumed by calcai.cc to render the product page and configure checkout (Poof).</p>
       </div>
+
     </div>
   </div>
 
@@ -127,13 +128,36 @@
         document.getElementById('preorderShipDate').value = j.preorderShipDate || '';
         const m = j.maintenance || {};
         document.getElementById('maintenanceEnabled').checked = !!m.enabled;
-        document.getElementById('maintenanceUntil').value = m.until || '';
+        document.getElementById('maintenanceUntil').value = isoToLocalInput(m.until || '');
         document.getElementById('maintenanceDiscordUrl').value = m.discordUrl || '';
         if (j.storage) setStorageNote(j.storage);
       }catch(e){
         showMsg('Could not load current settings.', true);
       }
     }
+    function isoToLocalInput(iso){
+      try{
+        if(!iso) return '';
+        const d = new Date(iso);
+        if (isNaN(d)) return '';
+        const pad = (n)=>String(n).padStart(2,'0');
+        const yyyy = d.getFullYear();
+        const mm = pad(d.getMonth()+1);
+        const dd = pad(d.getDate());
+        const hh = pad(d.getHours());
+        const mi = pad(d.getMinutes());
+        return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+      }catch{ return '' }
+    }
+    function localInputToISO(local){
+      try{
+        if(!local) return '';
+        const d = new Date(local);
+        if (isNaN(d)) return '';
+        return d.toISOString();
+      }catch{ return '' }
+    }
+
     async function saveSettings(){
       const btn = document.getElementById('saveBtn');
       btn.disabled = true; btn.textContent = 'Saving...';
@@ -147,7 +171,7 @@
         preorderShipDate: document.getElementById('preorderShipDate').value,
         maintenance: {
           enabled: document.getElementById('maintenanceEnabled').checked,
-          until: document.getElementById('maintenanceUntil').value,
+          until: localInputToISO(document.getElementById('maintenanceUntil').value),
           discordUrl: document.getElementById('maintenanceDiscordUrl').value
         }
       };
