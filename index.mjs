@@ -19,7 +19,7 @@ import { pairAdmin } from "./routes/pair.mjs";
 import { notesAdmin } from "./routes/notes_admin.mjs";
 import { ownerAdmin } from "./routes/owner_admin.mjs";
 import { smsAdmin } from "./routes/sms_admin.mjs";
-// Optionally load STRIPE_SECRET_KEY from website/.env.local if present
+// Optionally load env keys from website/.env.local if present
 try {
   const envLocal = path.join(process.cwd(), "..", "website", ".env.local");
   if (fs.existsSync(envLocal)) {

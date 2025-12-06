@@ -28,6 +28,12 @@ let settings = {
   preorderEnabled: false,
   preorderPrice: 200.00,
   preorderShipDate: "", // e.g., "Oct 27"; empty string hides date
+  // Maintenance controls used by calcai.cc to lock the site and show countdown
+  maintenance: {
+    enabled: false,
+    until: "", // ISO8601 or any parseable date string; empty hides countdown
+    discordUrl: "", // optional: link to show on maintenance page
+  },
   lastUpdated: 0,
 };
 
@@ -151,6 +157,46 @@ export function website() {
       // Accept any short string like "Oct 27"; empty hides it
       if (typeof preorderShipDate === "string" && preorderShipDate.length <= 40) next.preorderShipDate = preorderShipDate.trim();
       else return res.status(400).json({ error: "Invalid preorderShipDate" });
+    }
+
+    // Maintenance controls (accept nested or flat)
+    if (req.body && typeof req.body === 'object') {
+      const mb = req.body.maintenance;
+      if (mb !== undefined) {
+        const nextMaint = { ...(next.maintenance || {}) };
+        if (mb.enabled !== undefined) {
+          if (typeof mb.enabled === "boolean") nextMaint.enabled = mb.enabled;
+          else if (typeof mb.enabled === "string") nextMaint.enabled = mb.enabled === "true";
+          else return res.status(400).json({ error: "Invalid maintenance.enabled" });
+        }
+        if (mb.until !== undefined) {
+          if (typeof mb.until === "string" && mb.until.length <= 80) nextMaint.until = mb.until.trim();
+          else return res.status(400).json({ error: "Invalid maintenance.until" });
+        }
+        if (mb.discordUrl !== undefined) {
+          if (typeof mb.discordUrl === "string" && mb.discordUrl.length <= 200) nextMaint.discordUrl = mb.discordUrl.trim();
+          else return res.status(400).json({ error: "Invalid maintenance.discordUrl" });
+        }
+        next.maintenance = nextMaint;
+      } else {
+        const { maintenanceEnabled, maintenanceUntil, maintenanceDiscordUrl } = req.body;
+        if (maintenanceEnabled !== undefined) {
+          const v = (typeof maintenanceEnabled === "boolean") ? maintenanceEnabled :
+                    (typeof maintenanceEnabled === "string" ? maintenanceEnabled === "true" : null);
+          if (v === null) return res.status(400).json({ error: "Invalid maintenanceEnabled" });
+          next.maintenance = { ...(next.maintenance || {}), enabled: v };
+        }
+        if (maintenanceUntil !== undefined) {
+          if (typeof maintenanceUntil === "string" && maintenanceUntil.length <= 80) {
+            next.maintenance = { ...(next.maintenance || {}), until: maintenanceUntil.trim() };
+          } else return res.status(400).json({ error: "Invalid maintenanceUntil" });
+        }
+        if (maintenanceDiscordUrl !== undefined) {
+          if (typeof maintenanceDiscordUrl === "string" && maintenanceDiscordUrl.length <= 200) {
+            next.maintenance = { ...(next.maintenance || {}), discordUrl: maintenanceDiscordUrl.trim() };
+          } else return res.status(400).json({ error: "Invalid maintenanceDiscordUrl" });
+        }
+      }
     }
 
     next.lastUpdated = Date.now();
