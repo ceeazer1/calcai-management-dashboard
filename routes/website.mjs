@@ -213,7 +213,8 @@ export function websitePublic() {
   const router = express.Router();
   router.get("/settings", async (req, res) => {
     await loadSettings();
-    // Restore normal behavior: do not force no-store; let default caching/ETag apply
+    // Force no-store so the website and middleware never see stale cached values
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.json(settings);
   });
   return router;

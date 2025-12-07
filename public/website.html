@@ -45,6 +45,14 @@
           </div>
         </div>
       </div>
+        <div class="form-group">
+          <div class="inline" style="gap:12px; align-items:center;">
+            <strong>Live public status:</strong>
+            <span id="liveMaint" class="text-muted">loading…</span>
+            <button id="refreshLiveBtn" class="btn" type="button" style="margin-left:auto">Refresh</button>
+          </div>
+          <small class="text-muted">This reads /api/website-public/settings (exactly what calcai.cc sees).</small>
+        </div>
 
       <div class="section">
         <h2>Pricing & Stock</h2>
@@ -131,6 +139,8 @@
         document.getElementById('maintenanceUntil').value = isoToLocalInput(m.until || '');
         document.getElementById('maintenanceDiscordUrl').value = m.discordUrl || '';
         if (j.storage) setStorageNote(j.storage);
+        // Also refresh the public status preview so you can verify what calcai.cc sees
+        refreshLive();
       }catch(e){
         showMsg('Could not load current settings.', true);
       }
@@ -184,6 +194,8 @@
         if(!r.ok) throw new Error(j.error||'Save failed');
         showMsg('Saved successfully.', false);
         if (j.storage) setStorageNote(j.storage);
+        // Update the live public status preview after save
+        refreshLive();
       }catch(e){
         showMsg(e.message || 'Save failed.', true);
       }finally{
@@ -197,9 +209,28 @@
       el.classList.remove('hidden');
       setTimeout(()=>{ el.classList.add('hidden'); }, 3000);
     }
+    async function refreshLive(){
+      try{
+        const el = document.getElementById('liveMaint');
+        el.textContent = 'loading…'; el.style.color = '';
+        const r = await fetch('/api/website-public/settings', { cache: 'no-store' });
+        const j = r.ok ? await r.json() : null;
+        const m = (j?.maintenance ?? j) || {};
+        const enabled = !!m.enabled;
+        el.textContent = `${enabled ? 'ENABLED' : 'DISABLED'}${m.until ? ` • until ${m.until}` : ''}`;
+        el.style.color = enabled ? '#ef4444' : '#10b981';
+      }catch(e){
+        const el = document.getElementById('liveMaint');
+        el.textContent = 'error'; el.style.color = '#f43f5e';
+      }
+    }
     document.addEventListener('DOMContentLoaded', ()=>{
       loadSettings();
-      document.getElementById('saveBtn').addEventListener('click', saveSettings);
+      const save = document.getElementById('saveBtn');
+      if (save) save.addEventListener('click', saveSettings);
+      const btn = document.getElementById('refreshLiveBtn');
+      if (btn) btn.addEventListener('click', refreshLive);
+      refreshLive();
     });
   </script>
 </body>
