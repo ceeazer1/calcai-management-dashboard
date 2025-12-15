@@ -173,7 +173,7 @@ export default function FirmwarePage() {
   };
 
   return (
-    <div className="max-w-5xl">
+    <div>
       <h1 className="text-2xl font-bold text-white mb-6">Firmware Management</h1>
 
       {alert && (
