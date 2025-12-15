@@ -55,7 +55,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className={cn("flex flex-col md:flex-row bg-neutral-950 w-full min-h-screen")}>
+    <div className={cn("flex flex-col md:flex-row bg-neutral-950 w-full h-screen")}>
       <Sidebar open={open} setOpen={setOpen}>
         <SidebarBody className="justify-between gap-10">
           <div className="flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
@@ -81,7 +81,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </SidebarBody>
       </Sidebar>
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto p-6">{children}</main>
     </div>
   );
 }
