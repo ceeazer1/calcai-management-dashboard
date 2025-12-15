@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const WEBSITE_BASE = (process.env.WEBSITE_URL || 'https://www.calcai.cc').replace(/\/+$/, '');
+// Ensure WEBSITE_URL has https:// prefix
+const rawUrl = (process.env.WEBSITE_URL || 'https://www.calcai.cc').replace(/\/+$/, '');
+const WEBSITE_BASE = rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`;
 // Website expects ADMIN_API_TOKEN header, dashboard may have ADMIN_TOKEN
 const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || process.env.ADMIN_TOKEN || '';
 
