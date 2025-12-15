@@ -58,9 +58,17 @@ export default function SmsPage() {
       if (statusFilter) params.set("status", statusFilter);
       const r = await fetch(`/api/sms/subscribers?${params.toString()}`);
       const j = await r.json();
+      if (!r.ok || j.ok === false) {
+        const errMsg = j.error || j.body || `HTTP ${r.status}`;
+        showAlert(`Failed to load: ${errMsg}`, "error");
+        setSubscribers([]);
+        setTotal(0);
+        return;
+      }
       setSubscribers(j.rows || []);
       setTotal(j.total || 0);
-    } catch {
+    } catch (e) {
+      console.error("loadSubscribers error:", e);
       showAlert("Failed to load subscribers", "error");
     } finally {
       setLoading(false);
