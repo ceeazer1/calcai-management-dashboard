@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   Settings,
-  LogOut,
   Globe,
   MessageSquare,
   Cpu,
@@ -70,15 +69,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               ))}
             </div>
           </div>
-          <div>
-            <SidebarLink
-              link={{
-                label: "Logout",
-                href: "/api/auth/logout",
-                icon: <LogOut className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
-              }}
-            />
-          </div>
+          {/* Logout removed - no auth in this dashboard */}
         </SidebarBody>
       </Sidebar>
       <main className="flex-1 overflow-auto p-6">{children}</main>
