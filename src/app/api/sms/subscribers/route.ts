@@ -56,9 +56,16 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json(j);
-  } catch (e) {
-    console.error('[sms/subscribers] Error:', e);
-    return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 });
+  } catch (e: unknown) {
+    const errMsg = e instanceof Error ? e.message : String(e);
+    console.error('[sms/subscribers] Error:', errMsg);
+    return NextResponse.json({
+      ok: false,
+      error: 'server_error',
+      message: errMsg,
+      tokenSet: !!ADMIN_API_TOKEN,
+      websiteBase: WEBSITE_BASE
+    }, { status: 500 });
   }
 }
 
