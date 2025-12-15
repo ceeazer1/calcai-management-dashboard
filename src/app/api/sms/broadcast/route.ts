@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const WEBSITE_BASE = (process.env.WEBSITE_URL || 'https://calcai.cc').replace(/\/+$/, '');
+const WEBSITE_BASE = (process.env.WEBSITE_URL || 'https://www.calcai.cc').replace(/\/+$/, '');
 const ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || process.env.ADMIN_TOKEN || '';
 
 export async function POST(req: NextRequest) {
