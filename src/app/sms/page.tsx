@@ -34,6 +34,8 @@ export default function SmsPage() {
   const [loading, setLoading] = useState(false);
   const [showSubscribers, setShowSubscribers] = useState(false);
   const [subscribersLoaded, setSubscribersLoaded] = useState(false);
+  const [subscribedCount, setSubscribedCount] = useState<number | null>(null);
+  const [countLoading, setCountLoading] = useState(false);
 
   // Broadcast state
   const [broadcastBody, setBroadcastBody] = useState("");
@@ -83,6 +85,24 @@ export default function SmsPage() {
     if (showSubscribers && !subscribersLoaded) loadSubscribers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSubscribers]);
+
+  useEffect(() => {
+    async function loadCount() {
+      setCountLoading(true);
+      try {
+        const r = await fetch("/api/sms/subscriber-count?status=subscribed", { cache: "no-store" });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || j.ok === false) throw new Error(j?.error || "count_failed");
+        const n = Number(j?.total);
+        setSubscribedCount(Number.isFinite(n) ? n : 0);
+      } catch {
+        setSubscribedCount(null);
+      } finally {
+        setCountLoading(false);
+      }
+    }
+    loadCount();
+  }, []);
 
   const handleBroadcast = async () => {
     if (!broadcastBody.trim()) {
@@ -170,7 +190,9 @@ export default function SmsPage() {
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-white">Broadcast to All Subscribers</h2>
-            <span className="text-xs text-neutral-500">High impact • confirm required</span>
+            <span className="text-xs text-neutral-500">
+              {countLoading ? "Counting…" : subscribedCount !== null ? `${subscribedCount} subscribed` : "Count unavailable"} • confirm required
+            </span>
           </div>
           <div className="max-w-xl">
             <div className="mb-4">

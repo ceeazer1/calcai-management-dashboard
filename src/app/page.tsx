@@ -1,33 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, Cpu, Activity, TrendingUp } from "lucide-react";
+import { Users, Cpu, Activity, MessageSquare } from "lucide-react";
 
 interface Stats {
   totalUsers: number;
   totalDevices: number;
+  totalSmsSubscribers: number;
   loading: boolean;
 }
 
 export default function Home() {
-  const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalDevices: 0, loading: true });
+  const [stats, setStats] = useState<Stats>({ totalUsers: 0, totalDevices: 0, totalSmsSubscribers: 0, loading: true });
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [usersRes, devicesRes] = await Promise.all([
+        const [usersRes, devicesRes, smsRes] = await Promise.all([
           fetch("/api/users-admin/list"),
           fetch("/api/users-admin/devices"),
+          fetch("/api/sms/subscriber-count?status=subscribed"),
         ]);
         const usersJson = await usersRes.json().catch(() => ({ users: [] }));
         const devicesJson = await devicesRes.json().catch(() => ({ devices: [] }));
+        const smsJson = await smsRes.json().catch(() => ({ total: 0 }));
         setStats({
           totalUsers: usersJson.users?.length || 0,
           totalDevices: devicesJson.devices?.length || 0,
+          totalSmsSubscribers: Number(smsJson?.total || 0) || 0,
           loading: false,
         });
       } catch {
-        setStats({ totalUsers: 0, totalDevices: 0, loading: false });
+        setStats({ totalUsers: 0, totalDevices: 0, totalSmsSubscribers: 0, loading: false });
       }
     }
     fetchStats();
@@ -41,7 +45,7 @@ export default function Home() {
         <StatCard title="Total Users" value={stats.loading ? "..." : stats.totalUsers} icon={<Users className="h-6 w-6" />} color="blue" />
         <StatCard title="Paired Devices" value={stats.loading ? "..." : stats.totalDevices} icon={<Cpu className="h-6 w-6" />} color="green" />
         <StatCard title="Active Today" value="-" icon={<Activity className="h-6 w-6" />} color="purple" />
-        <StatCard title="Growth" value="-" icon={<TrendingUp className="h-6 w-6" />} color="orange" />
+        <StatCard title="SMS Subscribers" value={stats.loading ? "..." : stats.totalSmsSubscribers} icon={<MessageSquare className="h-6 w-6" />} color="orange" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
