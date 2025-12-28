@@ -51,9 +51,11 @@ export default function WebsitePage() {
   const [inStock, setInStock] = useState(true);
   const [stockCount, setStockCount] = useState("");
   const [preorderEnabled, setPreorderEnabled] = useState(false);
+  const [preorderExpanded, setPreorderExpanded] = useState(false);
   const [preorderPrice, setPreorderPrice] = useState("");
   const [preorderShipDate, setPreorderShipDate] = useState("");
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceExpanded, setMaintenanceExpanded] = useState(false);
   const [maintenanceUntil, setMaintenanceUntil] = useState("");
   const [maintenanceDiscordUrl, setMaintenanceDiscordUrl] = useState("");
   const [storage, setStorage] = useState("");
@@ -77,9 +79,11 @@ export default function WebsitePage() {
       setInStock(!!j.inStock);
       setStockCount(j.stockCount?.toString() ?? "");
       setPreorderEnabled(!!j.preorderEnabled);
+      setPreorderExpanded(false);
       setPreorderPrice(j.preorderPrice?.toString() ?? "");
       setPreorderShipDate(j.preorderShipDate || "");
       setMaintenanceEnabled(!!j.maintenance?.enabled);
+      setMaintenanceExpanded(false);
       setMaintenanceUntil(isoToLocalInput(j.maintenance?.until || ""));
       setMaintenanceDiscordUrl(j.maintenance?.discordUrl || "");
       setStorage(j.storage || "");
@@ -154,6 +158,22 @@ export default function WebsitePage() {
   const lastUpdatedLabel =
     lastUpdated && Number.isFinite(lastUpdated) ? new Date(lastUpdated).toLocaleString() : "—";
 
+  const togglePreorder = () => {
+    setPreorderEnabled((prev) => {
+      const next = !prev;
+      if (!next) setPreorderExpanded(false);
+      return next;
+    });
+  };
+
+  const toggleMaintenance = () => {
+    setMaintenanceEnabled((prev) => {
+      const next = !prev;
+      if (!next) setMaintenanceExpanded(false);
+      return next;
+    });
+  };
+
   return (
     <div className="p-6 md:p-10">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
@@ -174,16 +194,14 @@ export default function WebsitePage() {
                 Storage: {storageLabel}
               </span>
             ) : null}
-            <span
-              className={`px-3 py-1 rounded-full text-xs border ${
-                liveEnabled
-                  ? "bg-red-900/30 text-red-300 border-red-700/30"
-                  : "bg-green-900/30 text-green-300 border-green-700/30"
-              }`}
-              title="Public maintenance status"
-            >
-              Maintenance: {liveEnabled ? "ENABLED" : "DISABLED"}
-            </span>
+            {liveEnabled ? (
+              <span
+                className="px-3 py-1 rounded-full text-xs border bg-red-900/30 text-red-300 border-red-700/30"
+                title="Public maintenance is enabled"
+              >
+                Maintenance enabled
+              </span>
+            ) : null}
             <span className="px-3 py-1 rounded-full text-xs border bg-neutral-900 text-neutral-300 border-neutral-800">
               Last updated: {lastUpdatedLabel}
             </span>
@@ -298,25 +316,37 @@ export default function WebsitePage() {
                 <div className="text-sm font-semibold text-white">Preorder</div>
                 <div className="text-xs text-neutral-500">Toggle preorder on/off. Configure details only when enabled.</div>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={preorderEnabled}
-                onClick={() => setPreorderEnabled((v) => !v)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                  preorderEnabled ? "bg-blue-600 border-blue-500/40" : "bg-neutral-800 border-neutral-700"
-                }`}
-                title={preorderEnabled ? "Disable preorder" : "Enable preorder"}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                    preorderEnabled ? "translate-x-5" : "translate-x-1"
+              <div className="flex items-center gap-2">
+                {preorderEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreorderExpanded((v) => !v)}
+                    className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
+                    title={preorderExpanded ? "Hide preorder details" : "Edit preorder details"}
+                  >
+                    {preorderExpanded ? "Hide details" : "Edit details"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={preorderEnabled}
+                  onClick={togglePreorder}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                    preorderEnabled ? "bg-blue-600 border-blue-500/40" : "bg-neutral-800 border-neutral-700"
                   }`}
-                />
-              </button>
+                  title={preorderEnabled ? "Disable preorder" : "Enable preorder"}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                      preorderEnabled ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
-            {preorderEnabled && (
+            {preorderEnabled && preorderExpanded && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
@@ -357,25 +387,37 @@ export default function WebsitePage() {
                   Lock the public website behind a maintenance screen. <span className="text-neutral-600">Live: {liveStatus}</span>
                 </div>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={maintenanceEnabled}
-                onClick={() => setMaintenanceEnabled((v) => !v)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                  maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
-                }`}
-                title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
-              >
-                <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                    maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+              <div className="flex items-center gap-2">
+                {maintenanceEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setMaintenanceExpanded((v) => !v)}
+                    className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
+                    title={maintenanceExpanded ? "Hide maintenance details" : "Edit maintenance details"}
+                  >
+                    {maintenanceExpanded ? "Hide details" : "Edit details"}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={maintenanceEnabled}
+                  onClick={toggleMaintenance}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                    maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
                   }`}
-                />
-              </button>
+                  title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                      maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
-            {maintenanceEnabled && (
+            {maintenanceEnabled && maintenanceExpanded && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
