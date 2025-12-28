@@ -41,7 +41,8 @@ This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
 
 - Searching listings (`item_summary/search`)
 - Fetching full item details (`getItem`) including images + description
-- Watchlist + saved searches + price snapshots (stored in **Vercel KV** when configured)
+- Watchlist + price snapshots (stored in **Vercel KV** when configured)
+- Buying actions (Best Offer / Bid / Checkout) via eBay APIs (requires user OAuth)
 
 ### Required env vars
 
@@ -53,13 +54,27 @@ This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
 - `EBAY_ENV`: `production` (default) or `sandbox`
 - `EBAY_API_BASE_URL`: override base URL (advanced)
 - `EBAY_OAUTH_SCOPE`: override OAuth scope (default is Browse-ready app scope)
+- `EBAY_OAUTH_RU_NAME` (or `EBAY_RU_NAME`): eBay OAuth “redirect URI name” (RuName) for user login (required for Best Offer / Bid / Checkout)
+- `EBAY_USER_OAUTH_SCOPES`: OAuth scopes for user login (defaults to `api_scope`, `buy.offer.auction`, `buy.order`)
 - `KV_REST_API_URL`, `KV_REST_API_TOKEN`: enables persistence via Vercel KV (otherwise uses an in-memory dev fallback)
 - `EBAY_CRON_TOKEN`: if set, enables the protected cron endpoint `GET /api/ebay/cron-refresh?token=...` to refresh watched items for all known users
+- `EBAY_ORDER_API_ENABLED`: set to `1` to enable the **Order API** checkout endpoints in the dashboard (gated / limited release)
 - `EBAY_ACCOUNT_DELETION_VERIFICATION_TOKEN`: required only if you configure eBay “Marketplace account deletion notification endpoint” verification (see below)
 
 ### Notes
 
-- Buying actions (Best Offer / Bidding / Checkout) are intentionally stubbed and should be implemented behind feature flags once the required eBay API access + user OAuth flows are available.
+- Best Offer + Bid use a **user OAuth** token (stored server-side in KV when configured). If KV is not configured, tokens will be ephemeral in dev.
+- Checkout uses the **Buy Order API** endpoints and is gated behind `EBAY_ORDER_API_ENABLED` (and eBay API access).
+
+### Buying actions setup (Best Offer / Bid / Checkout)
+
+1. In the eBay Developer Portal, configure your app’s OAuth redirect and note the **RuName**.
+2. Set your redirect URL to:
+   - `https://<your-dashboard-domain>/api/ebay/oauth/callback`
+3. In Vercel env vars, set:
+   - `EBAY_OAUTH_RU_NAME=<your RuName>`
+   - (optional) `EBAY_USER_OAUTH_SCOPES=...`
+4. Open `/ebay` and click **Connect eBay** in an item’s “Buying actions” panel.
 
 ### Marketplace account deletion notifications (eBay compliance)
 

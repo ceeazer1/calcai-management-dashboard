@@ -168,6 +168,31 @@ export default function EbayPage() {
   const [history, setHistory] = useState<PriceSnapshot[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const [oauthConnected, setOauthConnected] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(true);
+  const [oauthError, setOauthError] = useState<string>("");
+
+  const [offerAmount, setOfferAmount] = useState<string>("");
+  const [bidAmount, setBidAmount] = useState<string>("");
+  const [checkoutSessionId, setCheckoutSessionId] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState<null | "best_offer" | "bid" | "checkout">(null);
+  const [actionOk, setActionOk] = useState<string>("");
+  const [actionErr, setActionErr] = useState<string>("");
+
+  async function loadOauthStatus() {
+    setOauthLoading(true);
+    setOauthError("");
+    try {
+      const r = await fetch("/api/ebay/oauth/status", { cache: "no-store" });
+      const j = await r.json().catch(() => ({}));
+      setOauthConnected(!!j?.connected);
+    } catch (e: any) {
+      setOauthConnected(false);
+      setOauthError(String(e?.message || "Failed to load OAuth status"));
+    }
+    setOauthLoading(false);
+  }
+
   async function loadWatchlist() {
     setWatchLoading(true);
     try {
@@ -182,6 +207,7 @@ export default function EbayPage() {
 
   useEffect(() => {
     loadWatchlist();
+    loadOauthStatus();
     // Auto-run preset search on first load
     void runSearchFor(PRESET_KEYWORD);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,6 +262,11 @@ export default function EbayPage() {
     setDetail(null);
     setDetailImg("");
     setDetailMarketplace(mp);
+    setActionOk("");
+    setActionErr("");
+    setOfferAmount("");
+    setBidAmount("");
+    setCheckoutSessionId("");
 
     try {
       const r = await fetch(`/api/ebay/item/${encodeURIComponent(itemId)}?marketplaceId=${encodeURIComponent(mp)}`, {
@@ -246,6 +277,11 @@ export default function EbayPage() {
       const it: ItemDetail = j.item;
       setDetail(it);
       setDetailImg(it.imageUrls?.[0] || "");
+      const pv = Number(it?.price?.value);
+      if (Number.isFinite(pv) && pv > 0) {
+        setBidAmount(String(pv.toFixed(2)));
+        setOfferAmount(String((pv * 0.9).toFixed(2)));
+      }
     } catch (e: any) {
       setDetail(null);
     }
@@ -278,6 +314,129 @@ export default function EbayPage() {
     } catch {
       // ignore
     }
+  }
+
+  async function disconnectEbay() {
+    try {
+      await fetch("/api/ebay/oauth/disconnect", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    await loadOauthStatus();
+  }
+
+  function connectEbay() {
+    window.location.href = "/api/ebay/oauth/start?return=/ebay";
+  }
+
+  async function submitTradingAction(kind: "best_offer" | "bid", amountStr: string) {
+    if (!detail) return;
+    setActionOk("");
+    setActionErr("");
+
+    if (!oauthConnected) {
+      setActionErr("Connect your eBay account first.");
+      return;
+    }
+
+    const amount = Number(amountStr);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setActionErr("Enter a valid amount.");
+      return;
+    }
+
+    setActionLoading(kind);
+    try {
+      const r = await fetch("/api/ebay/trading/place-offer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: detail.itemId,
+          marketplaceId: detailMarketplace,
+          action: kind,
+          amount,
+          confirm: true,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) {
+        const msg = (Array.isArray(j?.errors) && j.errors[0]) || j?.message || j?.error || "Action failed";
+        throw new Error(String(msg));
+      }
+      const ack = String(j?.ack || "Success");
+      setActionOk(`${kind === "bid" ? "Bid placed" : "Offer sent"} (${ack})`);
+    } catch (e: any) {
+      setActionErr(String(e?.message || "Action failed"));
+    }
+    setActionLoading(null);
+  }
+
+  async function initiateCheckout() {
+    if (!detail) return;
+    setActionOk("");
+    setActionErr("");
+
+    if (!oauthConnected) {
+      setActionErr("Connect your eBay account first.");
+      return;
+    }
+
+    if (!window.confirm("Initiate an eBay checkout session for this item?")) return;
+
+    setActionLoading("checkout");
+    try {
+      const r = await fetch("/api/ebay/order/checkout-session/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: detail.itemId,
+          marketplaceId: detailMarketplace,
+          quantity: 1,
+          confirm: true,
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) {
+        const msg = j?.message || j?.error || "Checkout initiate failed";
+        throw new Error(String(msg));
+      }
+      setCheckoutSessionId(String(j?.checkoutSessionId || ""));
+      setActionOk("Checkout session created.");
+    } catch (e: any) {
+      setActionErr(String(e?.message || "Checkout initiate failed"));
+    }
+    setActionLoading(null);
+  }
+
+  async function placeOrder() {
+    if (!checkoutSessionId) return;
+    setActionOk("");
+    setActionErr("");
+
+    if (!oauthConnected) {
+      setActionErr("Connect your eBay account first.");
+      return;
+    }
+
+    if (!window.confirm("This will attempt to PLACE A REAL ORDER on eBay. Continue?")) return;
+
+    setActionLoading("checkout");
+    try {
+      const r = await fetch(`/api/ebay/order/checkout-session/${encodeURIComponent(checkoutSessionId)}/place-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) {
+        const msg = j?.message || j?.error || "Place order failed";
+        throw new Error(String(msg));
+      }
+      setActionOk("Order placed.");
+    } catch (e: any) {
+      setActionErr(String(e?.message || "Place order failed"));
+    }
+    setActionLoading(null);
   }
 
   async function refreshWatchlist() {
@@ -776,30 +935,115 @@ export default function EbayPage() {
                   </div>
 
                   <div className="bg-neutral-950 border border-neutral-800 rounded-xl p-4">
-                    <div className="text-sm font-semibold text-white mb-2">Buying actions</div>
-                    <div className="text-xs text-neutral-500 mb-3">
-                      Best Offer / Bidding / Checkout require additional eBay API access. (Coming next)
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="text-sm font-semibold text-white">Buying actions</div>
+                      <div className="text-[11px] text-neutral-500">
+                        {oauthLoading ? "Checking…" : oauthConnected ? "Connected" : "Not connected"}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-2">
-                      <button
-                        disabled
-                        className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-500 text-sm text-left"
-                      >
-                        Send Best Offer (Trading API)
-                      </button>
-                      <button
-                        disabled
-                        className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-500 text-sm text-left"
-                      >
-                        Place bid (Trading API)
-                      </button>
-                      <button
-                        disabled
-                        className="px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-500 text-sm text-left"
-                      >
-                        Checkout / place order (Order API – gated)
-                      </button>
-                    </div>
+
+                    {!oauthConnected ? (
+                      <div className="space-y-3">
+                        <div className="text-xs text-neutral-500">
+                          Connect your eBay account to send Best Offers, place bids, and run checkout.
+                        </div>
+                        <button
+                          onClick={connectEbay}
+                          className="inline-flex items-center justify-center gap-2 w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium text-white transition-colors"
+                        >
+                          Connect eBay
+                        </button>
+                        {oauthError ? <div className="text-xs text-red-400">{oauthError}</div> : null}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-xs text-neutral-500">Connected</div>
+                          <button
+                            onClick={disconnectEbay}
+                            className="px-2 py-1 text-[11px] bg-neutral-900 border border-neutral-800 rounded hover:bg-neutral-800 text-neutral-200 transition-colors"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+
+                        {(detail.buyingOptions || []).includes("BEST_OFFER") ? (
+                          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-3">
+                            <div className="text-xs text-neutral-300 mb-2">Best Offer</div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={offerAmount}
+                                onChange={(e) => setOfferAmount(e.target.value)}
+                                inputMode="decimal"
+                                placeholder="Offer amount"
+                                className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200 focus:outline-none focus:border-blue-500"
+                              />
+                              <button
+                                onClick={() => submitTradingAction("best_offer", offerAmount)}
+                                disabled={actionLoading === "best_offer"}
+                                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                              >
+                                {actionLoading === "best_offer" ? "Sending…" : "Send"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {(detail.buyingOptions || []).includes("AUCTION") ? (
+                          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-3">
+                            <div className="text-xs text-neutral-300 mb-2">Bid (proxy max)</div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={bidAmount}
+                                onChange={(e) => setBidAmount(e.target.value)}
+                                inputMode="decimal"
+                                placeholder="Max bid"
+                                className="flex-1 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200 focus:outline-none focus:border-blue-500"
+                              />
+                              <button
+                                onClick={() => submitTradingAction("bid", bidAmount)}
+                                disabled={actionLoading === "bid"}
+                                className="px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                              >
+                                {actionLoading === "bid" ? "Placing…" : "Place"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {(detail.buyingOptions || []).includes("FIXED_PRICE") ? (
+                          <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-3">
+                            <div className="text-xs text-neutral-300 mb-2">Checkout</div>
+                            {!checkoutSessionId ? (
+                              <button
+                                onClick={initiateCheckout}
+                                disabled={actionLoading === "checkout"}
+                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                              >
+                                {actionLoading === "checkout" ? "Starting…" : "Initiate checkout"}
+                              </button>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="text-[11px] text-neutral-500 break-all">Session: {checkoutSessionId}</div>
+                                <button
+                                  onClick={placeOrder}
+                                  disabled={actionLoading === "checkout"}
+                                  className="w-full px-3 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                                >
+                                  {actionLoading === "checkout" ? "Placing…" : "Place order"}
+                                </button>
+                              </div>
+                            )}
+                            <div className="text-[11px] text-neutral-500 mt-2">
+                              Requires `EBAY_ORDER_API_ENABLED=1` and Buy Order API access (limited release).
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {actionOk ? <div className="text-xs text-green-400">{actionOk}</div> : null}
+                        {actionErr ? <div className="text-xs text-red-400">{actionErr}</div> : null}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
