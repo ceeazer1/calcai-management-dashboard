@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { RefreshCw, RotateCcw, Save } from "lucide-react";
 
 interface MaintenanceSettings {
   enabled: boolean;
@@ -17,6 +18,7 @@ interface WebsiteSettings {
   preorderPrice: number | null;
   preorderShipDate: string;
   maintenance: MaintenanceSettings;
+  lastUpdated?: number;
   storage?: string;
 }
 
@@ -55,6 +57,7 @@ export default function WebsitePage() {
   const [maintenanceUntil, setMaintenanceUntil] = useState("");
   const [maintenanceDiscordUrl, setMaintenanceDiscordUrl] = useState("");
   const [storage, setStorage] = useState("");
+  const [lastUpdated, setLastUpdated] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [liveStatus, setLiveStatus] = useState<string>("loading…");
   const [alert, setAlert] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -80,6 +83,7 @@ export default function WebsitePage() {
       setMaintenanceUntil(isoToLocalInput(j.maintenance?.until || ""));
       setMaintenanceDiscordUrl(j.maintenance?.discordUrl || "");
       setStorage(j.storage || "");
+      setLastUpdated(Number(j.lastUpdated || 0) || 0);
       refreshLive();
     } catch {
       showAlert("Failed to load settings", "error");
@@ -125,6 +129,7 @@ export default function WebsitePage() {
       if (!r.ok) throw new Error(j.error || "Save failed");
       showAlert("Saved successfully!", "success");
       if (j.storage) setStorage(j.storage);
+      if (j.settings?.lastUpdated) setLastUpdated(Number(j.settings.lastUpdated) || 0);
       refreshLive();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Save failed";
@@ -138,9 +143,75 @@ export default function WebsitePage() {
     loadSettings();
   }, []);
 
+  const storageLabel =
+    storage === "kv"
+      ? "Vercel KV (durable)"
+      : storage
+        ? "Ephemeral file (set KV_REST_API_URL + KV_REST_API_TOKEN)"
+        : "";
+
+  const liveEnabled = liveStatus.toUpperCase().includes("ENABLED");
+  const lastUpdatedLabel =
+    lastUpdated && Number.isFinite(lastUpdated) ? new Date(lastUpdated).toLocaleString() : "—";
+
   return (
-    <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold text-white mb-6">Website Settings</h1>
+    <div className="p-6 md:p-10">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Website</h1>
+          <p className="text-sm text-neutral-400 mt-1">Manage storefront pricing, preorder, and maintenance mode.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {storageLabel ? (
+            <span
+              className={`px-3 py-1 rounded-full text-xs border ${
+                storage === "kv"
+                  ? "bg-green-900/30 text-green-300 border-green-700/30"
+                  : "bg-yellow-900/30 text-yellow-300 border-yellow-700/30"
+              }`}
+              title="Storage backend for website settings"
+            >
+              Storage: {storageLabel}
+            </span>
+          ) : null}
+          <span
+            className={`px-3 py-1 rounded-full text-xs border ${
+              liveEnabled ? "bg-red-900/30 text-red-300 border-red-700/30" : "bg-green-900/30 text-green-300 border-green-700/30"
+            }`}
+            title="Public maintenance status"
+          >
+            Maintenance: {liveEnabled ? "ENABLED" : "DISABLED"}
+          </span>
+          <span className="px-3 py-1 rounded-full text-xs border bg-neutral-900 text-neutral-300 border-neutral-800">
+            Last updated: {lastUpdatedLabel}
+          </span>
+
+          <button
+            onClick={refreshLive}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+            title="Refresh public status"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <button
+            onClick={loadSettings}
+            className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+            title="Reload settings (discard unsaved changes)"
+          >
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </button>
+          <button
+            onClick={saveSettings}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </div>
 
       {alert && (
         <div className={`mb-4 p-3 rounded-lg ${alert.type === "error" ? "bg-red-900/50 text-red-300" : "bg-green-900/50 text-green-300"}`}>
@@ -148,92 +219,177 @@ export default function WebsitePage() {
         </div>
       )}
 
-      {storage && (
-        <div className={`mb-4 p-2 rounded text-sm ${storage === "kv" ? "bg-green-900/30 text-green-400" : "bg-yellow-900/30 text-yellow-400"}`}>
-          Storage: {storage === "kv" ? "Vercel KV (durable)" : "Ephemeral file (set KV_REST_API_URL and KV_REST_API_TOKEN)"}
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Storefront */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+          <div className="mb-1 text-xs text-neutral-500">Storefront</div>
+          <h2 className="text-xl font-semibold text-white mb-1">Pricing & Inventory</h2>
+          <p className="text-sm text-neutral-400 mb-5">
+            Controls what customers see on the product page.
+          </p>
 
-      {/* Maintenance Mode */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Maintenance Mode</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="flex items-center gap-2 text-white">
-              <input type="checkbox" checked={maintenanceEnabled} onChange={(e) => setMaintenanceEnabled(e.target.checked)} className="w-4 h-4" />
-              Enable Maintenance (lock site)
-            </label>
-          </div>
-          <div>
-            <label className="block text-neutral-400 mb-1">Countdown Until</label>
-            <input type="datetime-local" value={maintenanceUntil} onChange={(e) => setMaintenanceUntil(e.target.value)} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-neutral-400 mb-1">Discord URL (optional)</label>
-            <input type="url" value={maintenanceDiscordUrl} onChange={(e) => setMaintenanceDiscordUrl(e.target.value)} placeholder="https://discord.gg/..." className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="174.99"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Compare-at (optional)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={compareAt}
+                onChange={(e) => setCompareAt(e.target.value)}
+                placeholder="199.99"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Stock Status</label>
+              <select
+                value={inStock ? "true" : "false"}
+                onChange={(e) => setInStock(e.target.value === "true")}
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="true">In Stock</option>
+                <option value="false">Out of Stock</option>
+              </select>
+              <div className="text-xs text-neutral-500 mt-2">
+                Tip: if Out of Stock, the website can still show preorder (if enabled).
+              </div>
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                value={stockCount}
+                onChange={(e) => setStockCount(e.target.value)}
+                placeholder="12"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+              <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
+            </div>
           </div>
         </div>
-        <div className="mt-4 flex items-center gap-3">
-          <strong className="text-white">Live public status:</strong>
-          <span className={liveStatus.includes("ENABLED") ? "text-red-400" : "text-green-400"}>{liveStatus}</span>
-          <button onClick={refreshLive} className="bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-white text-sm ml-auto">
-            Refresh
-          </button>
+
+        {/* Preorder */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+          <div className="mb-1 text-xs text-neutral-500">Preorder</div>
+          <h2 className="text-xl font-semibold text-white mb-1">Preorder Settings</h2>
+          <p className="text-sm text-neutral-400 mb-5">Controls the preorder CTA and messaging.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 text-white">
+                <input
+                  type="checkbox"
+                  checked={preorderEnabled}
+                  onChange={(e) => setPreorderEnabled(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Enable preorder button</div>
+                  <div className="text-xs text-neutral-500">Shows a preorder CTA when enabled.</div>
+                </div>
+              </label>
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={preorderPrice}
+                onChange={(e) => setPreorderPrice(e.target.value)}
+                placeholder="200.00"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Ship date (optional)</label>
+              <input
+                type="text"
+                value={preorderShipDate}
+                onChange={(e) => setPreorderShipDate(e.target.value)}
+                placeholder="Oct 27"
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+              <div className="text-xs text-neutral-500 mt-2">Leave empty to hide ship date text.</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Maintenance */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 lg:col-span-2">
+          <div className="mb-1 text-xs text-neutral-500">Site Access</div>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-1">Maintenance Mode</h2>
+              <p className="text-sm text-neutral-400">
+                When enabled, the public website is locked and shows a maintenance screen.
+              </p>
+            </div>
+            <div className="text-sm">
+              <div className="text-xs text-neutral-500 mb-1">Live public status</div>
+              <div className={`inline-flex items-center px-3 py-1 rounded-full border ${
+                liveEnabled ? "bg-red-900/30 text-red-300 border-red-700/30" : "bg-green-900/30 text-green-300 border-green-700/30"
+              }`}>
+                {liveStatus}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-3 text-white">
+                <input
+                  type="checkbox"
+                  checked={maintenanceEnabled}
+                  onChange={(e) => setMaintenanceEnabled(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <div>
+                  <div className="font-medium">Enable maintenance (lock site)</div>
+                  <div className="text-xs text-neutral-500">Use for drops, downtime, or site updates.</div>
+                </div>
+              </label>
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
+              <input
+                type="datetime-local"
+                value={maintenanceUntil}
+                onChange={(e) => setMaintenanceUntil(e.target.value)}
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+              <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
+            </div>
+            <div>
+              <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
+              <input
+                type="url"
+                value={maintenanceDiscordUrl}
+                onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
+                placeholder="https://discord.gg/..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+              />
+              <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Pricing & Stock */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Pricing & Stock</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-neutral-400 mb-1">Price (USD)</label>
-            <input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="174.99" className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div>
-            <label className="block text-neutral-400 mb-1">Compare-at (optional)</label>
-            <input type="number" step="0.01" min="0" value={compareAt} onChange={(e) => setCompareAt(e.target.value)} placeholder="199.99" className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div>
-            <label className="block text-neutral-400 mb-1">Stock Count</label>
-            <input type="number" step="1" min="0" value={stockCount} onChange={(e) => setStockCount(e.target.value)} placeholder="12" className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-            <small className="text-neutral-500">Shown on the website as &quot;In stock: N&quot;.</small>
-          </div>
-          <div>
-            <label className="block text-neutral-400 mb-1">Stock Status</label>
-            <select value={inStock ? "true" : "false"} onChange={(e) => setInStock(e.target.value === "true")} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white">
-              <option value="true">In Stock</option>
-              <option value="false">Out of Stock</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Preorder */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Preorder Settings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="flex items-center gap-2 text-white">
-              <input type="checkbox" checked={preorderEnabled} onChange={(e) => setPreorderEnabled(e.target.checked)} className="w-4 h-4" />
-              Enable Preorder Button
-            </label>
-          </div>
-          <div>
-            <label className="block text-neutral-400 mb-1">Preorder Price (USD)</label>
-            <input type="number" step="0.01" min="0" value={preorderPrice} onChange={(e) => setPreorderPrice(e.target.value)} placeholder="200.00" className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-neutral-400 mb-1">Preorder Ship Date (optional)</label>
-            <input type="text" value={preorderShipDate} onChange={(e) => setPreorderShipDate(e.target.value)} placeholder="Oct 27" className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white" />
-            <small className="text-neutral-500">Leave empty to hide ship date text.</small>
-          </div>
-        </div>
-      </div>
-
-      <button onClick={saveSettings} disabled={saving} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold">
-        {saving ? "Saving…" : "Save Changes"}
-      </button>
     </div>
   );
 }
