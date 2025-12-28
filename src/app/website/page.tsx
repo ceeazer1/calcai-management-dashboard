@@ -258,198 +258,199 @@ export default function WebsitePage() {
             Controls what customers see on the product page.
           </p>
 
-          {/* Pricing + Inventory (stacked; full-width inputs) */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="174.99"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Compare-at (optional)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={compareAt}
-                onChange={(e) => setCompareAt(e.target.value)}
-                placeholder="199.99"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Stock Status</label>
-              <select
-                value={inStock ? "true" : "false"}
-                onChange={(e) => setInStock(e.target.value === "true")}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="true">In Stock</option>
-                <option value="false">Out of Stock</option>
-              </select>
-              <div className="text-xs text-neutral-500 mt-2">
-                Tip: if Out of Stock, the website can still show preorder (if enabled).
-              </div>
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={stockCount}
-                onChange={(e) => setStockCount(e.target.value)}
-                placeholder="12"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-              <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="my-6 border-t border-neutral-800" />
-
-          {/* Preorder toggle + conditional fields */}
-          <div>
-            <div className="flex items-start justify-between gap-4">
+          {/* Narrower centered content (tile stays full width) */}
+          <div className="max-w-lg mx-auto space-y-6">
+            {/* Pricing + Inventory (stacked) */}
+            <div className="space-y-4">
               <div>
-                <div className="text-sm font-semibold text-white">Preorder</div>
-                <div className="text-xs text-neutral-500">Toggle preorder on/off. Configure details only when enabled.</div>
+                <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="174.99"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                {preorderEnabled ? (
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Compare-at (optional)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={compareAt}
+                  onChange={(e) => setCompareAt(e.target.value)}
+                  placeholder="199.99"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Stock Status</label>
+                <select
+                  value={inStock ? "true" : "false"}
+                  onChange={(e) => setInStock(e.target.value === "true")}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="true">In Stock</option>
+                  <option value="false">Out of Stock</option>
+                </select>
+                <div className="text-xs text-neutral-500 mt-2">
+                  Tip: if Out of Stock, the website can still show preorder (if enabled).
+                </div>
+              </div>
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={stockCount}
+                  onChange={(e) => setStockCount(e.target.value)}
+                  placeholder="12"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+                <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
+              </div>
+            </div>
+
+            <div className="border-t border-neutral-800" />
+
+            {/* Preorder toggle + conditional fields */}
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-white">Preorder</div>
+                  <div className="text-xs text-neutral-500">Toggle preorder on/off. Configure details only when enabled.</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {preorderEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreorderExpanded((v) => !v)}
+                      className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
+                      title={preorderExpanded ? "Hide preorder details" : "Edit preorder details"}
+                    >
+                      {preorderExpanded ? "Hide details" : "Edit details"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={() => setPreorderExpanded((v) => !v)}
-                    className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
-                    title={preorderExpanded ? "Hide preorder details" : "Edit preorder details"}
-                  >
-                    {preorderExpanded ? "Hide details" : "Edit details"}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={preorderEnabled}
-                  onClick={togglePreorder}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                    preorderEnabled ? "bg-blue-600 border-blue-500/40" : "bg-neutral-800 border-neutral-700"
-                  }`}
-                  title={preorderEnabled ? "Disable preorder" : "Enable preorder"}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                      preorderEnabled ? "translate-x-5" : "translate-x-1"
+                    role="switch"
+                    aria-checked={preorderEnabled}
+                    onClick={togglePreorder}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                      preorderEnabled ? "bg-blue-600 border-blue-500/40" : "bg-neutral-800 border-neutral-700"
                     }`}
-                  />
-                </button>
+                    title={preorderEnabled ? "Disable preorder" : "Enable preorder"}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                        preorderEnabled ? "translate-x-5" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
+
+              {preorderEnabled && preorderExpanded && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={preorderPrice}
+                      onChange={(e) => setPreorderPrice(e.target.value)}
+                      placeholder="200.00"
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-neutral-400 mb-1 text-sm">Ship date (optional)</label>
+                    <input
+                      type="text"
+                      value={preorderShipDate}
+                      onChange={(e) => setPreorderShipDate(e.target.value)}
+                      placeholder="Oct 27"
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <div className="text-xs text-neutral-500 mt-2">Leave empty to hide ship date text.</div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {preorderEnabled && preorderExpanded && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={preorderPrice}
-                    onChange={(e) => setPreorderPrice(e.target.value)}
-                    placeholder="200.00"
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-neutral-400 mb-1 text-sm">Ship date (optional)</label>
-                  <input
-                    type="text"
-                    value={preorderShipDate}
-                    onChange={(e) => setPreorderShipDate(e.target.value)}
-                    placeholder="Oct 27"
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                  />
-                  <div className="text-xs text-neutral-500 mt-2">Leave empty to hide ship date text.</div>
-                </div>
-              </div>
-            )}
-          </div>
+            <div className="border-t border-neutral-800" />
 
-          {/* Divider */}
-          <div className="my-6 border-t border-neutral-800" />
-
-          {/* Maintenance toggle + conditional fields */}
-          <div>
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-sm font-semibold text-white">Maintenance Mode</div>
-                <div className="text-xs text-neutral-500">
-                  Lock the public website behind a maintenance screen. <span className="text-neutral-600">Live: {liveStatus}</span>
+            {/* Maintenance toggle + conditional fields */}
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-semibold text-white">Maintenance Mode</div>
+                  <div className="text-xs text-neutral-500">
+                    Lock the public website behind a maintenance screen. <span className="text-neutral-600">Live: {liveStatus}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {maintenanceEnabled ? (
+                <div className="flex items-center gap-2">
+                  {maintenanceEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => setMaintenanceExpanded((v) => !v)}
+                      className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
+                      title={maintenanceExpanded ? "Hide maintenance details" : "Edit maintenance details"}
+                    >
+                      {maintenanceExpanded ? "Hide details" : "Edit details"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={() => setMaintenanceExpanded((v) => !v)}
-                    className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
-                    title={maintenanceExpanded ? "Hide maintenance details" : "Edit maintenance details"}
-                  >
-                    {maintenanceExpanded ? "Hide details" : "Edit details"}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={maintenanceEnabled}
-                  onClick={toggleMaintenance}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                    maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
-                  }`}
-                  title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
-                >
-                  <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                      maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+                    role="switch"
+                    aria-checked={maintenanceEnabled}
+                    onClick={toggleMaintenance}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                      maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
                     }`}
-                  />
-                </button>
+                    title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                        maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {maintenanceEnabled && maintenanceExpanded && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
-                  <input
-                    type="datetime-local"
-                    value={maintenanceUntil}
-                    onChange={(e) => setMaintenanceUntil(e.target.value)}
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                  />
-                  <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
+              {maintenanceEnabled && maintenanceExpanded && (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
+                    <input
+                      type="datetime-local"
+                      value={maintenanceUntil}
+                      onChange={(e) => setMaintenanceUntil(e.target.value)}
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
+                  </div>
+                  <div>
+                    <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
+                    <input
+                      type="url"
+                      value={maintenanceDiscordUrl}
+                      onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
+                      placeholder="https://discord.gg/..."
+                      className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                    />
+                    <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
-                  <input
-                    type="url"
-                    value={maintenanceDiscordUrl}
-                    onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
-                    placeholder="https://discord.gg/..."
-                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                  />
-                  <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
