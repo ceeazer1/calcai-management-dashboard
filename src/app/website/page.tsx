@@ -184,12 +184,13 @@ export default function WebsitePage() {
 
   return (
     <div className="p-6 md:p-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Website</h1>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="max-w-2xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Website</h1>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
             {storageLabel ? (
               <span
                 className={`px-3 py-1 rounded-full text-xs border ${
@@ -213,9 +214,9 @@ export default function WebsitePage() {
             <span className="px-3 py-1 rounded-full text-xs border bg-neutral-900 text-neutral-300 border-neutral-800">
               Last updated: {lastUpdatedLabel}
             </span>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <span className="hidden md:inline-block w-px h-6 bg-neutral-800 mx-2" aria-hidden />
+
             <button
               onClick={refreshLive}
               className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
@@ -242,17 +243,15 @@ export default function WebsitePage() {
             </button>
           </div>
         </div>
-      </div>
 
-      {alert && (
-        <div className={`mb-4 p-3 rounded-lg ${alert.type === "error" ? "bg-red-900/50 text-red-300" : "bg-green-900/50 text-green-300"}`}>
-          {alert.msg}
-        </div>
-      )}
+        {alert && (
+          <div className={`mb-4 p-3 rounded-lg ${alert.type === "error" ? "bg-red-900/50 text-red-300" : "bg-green-900/50 text-green-300"}`}>
+            {alert.msg}
+          </div>
+        )}
 
-      <div className="grid grid-cols-1 gap-6">
         {/* Storefront (Pricing + Preorder + Maintenance in one tile) */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 max-w-2xl mx-auto">
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="max-w-md mx-auto">
             <h2 className="text-xl font-semibold text-white mb-1">Storefront</h2>
             <p className="text-sm text-neutral-400">
