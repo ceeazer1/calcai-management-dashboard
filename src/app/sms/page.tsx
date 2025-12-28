@@ -36,6 +36,7 @@ export default function SmsPage() {
   const [subscribersLoaded, setSubscribersLoaded] = useState(false);
   const [subscribedCount, setSubscribedCount] = useState<number | null>(null);
   const [countLoading, setCountLoading] = useState(false);
+  const [tab, setTab] = useState<"broadcast" | "direct">("broadcast");
 
   // Broadcast state
   const [broadcastBody, setBroadcastBody] = useState("");
@@ -185,106 +186,131 @@ export default function SmsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Broadcast (first thing you see) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
+        {/* Main (tabs) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-white">Broadcast to All Subscribers</h2>
-            <span className="text-xs text-neutral-500">
-              {countLoading ? "Counting…" : subscribedCount !== null ? `${subscribedCount} subscribed` : "Count unavailable"} • confirm required
-            </span>
-          </div>
-          <div className="max-w-xl">
-            <div className="mb-4">
-              <label className="block text-neutral-400 mb-1">Message Preset</label>
-              <select
-                value={preset}
-                onChange={(e) => handlePresetChange(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-              >
-                <option value="">Custom message</option>
-                <option value="restock">Restock Alert</option>
-                <option value="preorder">Preorder Available</option>
-                <option value="shipping">Shipping Update</option>
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-neutral-400 mb-1">Message</label>
-              <textarea
-                rows={5}
-                value={broadcastBody}
-                onChange={(e) => setBroadcastBody(e.target.value)}
-                placeholder="Type your message…"
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-              />
-              <small className="text-neutral-500">Include STOP/HELP for compliance.</small>
-            </div>
-            <button
-              onClick={handleBroadcast}
-              disabled={broadcasting}
-              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
-            >
-              {broadcasting ? "Broadcasting…" : "Broadcast to All"}
-            </button>
-          </div>
-        </div>
-
-        {/* Test Send */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <h2 className="text-xl font-semibold text-white mb-4">Send Test Message</h2>
-          <div className="max-w-xl">
-            <div className="mb-4">
-              <label className="block text-neutral-400 mb-1">Country</label>
-              <select
-                value={testCountry}
-                onChange={(e) => setTestCountry(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-              >
-                {COUNTRIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.code} +{c.dial}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-4">
-              <label className="block text-neutral-400 mb-1">Phone Number</label>
-              <div className="flex">
-                <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
-                  +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
-                </span>
-                <input
-                  type="text"
-                  value={testNational}
-                  onChange={(e) => setTestNational(e.target.value)}
-                  placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
-                />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+            <div className="min-w-0">
+              <h2 className="text-xl font-semibold text-white">Messaging</h2>
+              <div className="text-xs text-neutral-500 mt-1">
+                {countLoading ? "Counting…" : subscribedCount !== null ? `${subscribedCount} subscribed` : "Count unavailable"}
+                {tab === "broadcast" ? " • confirm required" : ""}
               </div>
             </div>
-            <div className="mb-4">
-              <label className="block text-neutral-400 mb-1">Message</label>
-              <textarea
-                rows={4}
-                value={testBody}
-                onChange={(e) => setTestBody(e.target.value)}
-                placeholder="Type a test message…"
-                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-              />
-            </div>
-            <button
-              onClick={handleSendTest}
-              disabled={sendingTest}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
-            >
-              {sendingTest ? "Sending…" : "Send Test"}
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {/* Subscribers (hidden by default) */}
-      <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+            {/* Docker-like tab bar */}
+            <div className="inline-flex bg-neutral-950 border border-neutral-800 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setTab("broadcast")}
+                className={[
+                  "px-3 py-1.5 text-sm rounded-md transition-colors",
+                  tab === "broadcast" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
+                ].join(" ")}
+              >
+                Broadcast to all
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("direct")}
+                className={[
+                  "px-3 py-1.5 text-sm rounded-md transition-colors",
+                  tab === "direct" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
+                ].join(" ")}
+              >
+                Send to number
+              </button>
+            </div>
+          </div>
+
+          {tab === "broadcast" ? (
+            <div className="max-w-xl">
+              <div className="mb-4">
+                <label className="block text-neutral-400 mb-1">Message Preset</label>
+                <select
+                  value={preset}
+                  onChange={(e) => handlePresetChange(e.target.value)}
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                >
+                  <option value="">Custom message</option>
+                  <option value="restock">Restock Alert</option>
+                  <option value="preorder">Preorder Available</option>
+                  <option value="shipping">Shipping Update</option>
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-neutral-400 mb-1">Message</label>
+                <textarea
+                  rows={6}
+                  value={broadcastBody}
+                  onChange={(e) => setBroadcastBody(e.target.value)}
+                  placeholder="Type your message…"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                />
+                <small className="text-neutral-500">Include STOP/HELP for compliance.</small>
+              </div>
+              <button
+                onClick={handleBroadcast}
+                disabled={broadcasting}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
+              >
+                {broadcasting ? "Broadcasting…" : "Broadcast to All"}
+              </button>
+            </div>
+          ) : (
+            <div className="max-w-xl">
+              <div className="mb-4">
+                <label className="block text-neutral-400 mb-1">Country</label>
+                <select
+                  value={testCountry}
+                  onChange={(e) => setTestCountry(e.target.value)}
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} +{c.dial}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-neutral-400 mb-1">Phone Number</label>
+                <div className="flex">
+                  <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
+                    +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
+                  </span>
+                  <input
+                    type="text"
+                    value={testNational}
+                    onChange={(e) => setTestNational(e.target.value)}
+                    placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
+                    className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
+                  />
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-neutral-400 mb-1">Message</label>
+                <textarea
+                  rows={5}
+                  value={testBody}
+                  onChange={(e) => setTestBody(e.target.value)}
+                  placeholder="Type a message…"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                />
+              </div>
+              <button
+                onClick={handleSendTest}
+                disabled={sendingTest}
+                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
+              >
+                {sendingTest ? "Sending…" : "Send"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Subscribers (hidden by default) */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold text-white">Subscribers</h2>
@@ -379,6 +405,7 @@ export default function SmsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
