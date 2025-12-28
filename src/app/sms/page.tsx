@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Eye, X } from "lucide-react";
 
 interface Subscriber {
   phone: string;
@@ -186,10 +186,10 @@ export default function SmsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
+      <div className="max-w-4xl mx-auto">
         {/* Main (tabs) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
             <div className="min-w-0">
               <h2 className="text-xl font-semibold text-white">Messaging</h2>
               <div className="text-xs text-neutral-500 mt-1">
@@ -198,27 +198,39 @@ export default function SmsPage() {
               </div>
             </div>
 
-            {/* Docker-like tab bar */}
-            <div className="inline-flex bg-neutral-950 border border-neutral-800 rounded-lg p-1">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Docker-like tab bar */}
+              <div className="inline-flex bg-neutral-950 border border-neutral-800 rounded-lg p-1">
+                <button
+                  type="button"
+                  onClick={() => setTab("broadcast")}
+                  className={[
+                    "px-3 py-1.5 text-sm rounded-md transition-colors",
+                    tab === "broadcast" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
+                  ].join(" ")}
+                >
+                  Broadcast to all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTab("direct")}
+                  className={[
+                    "px-3 py-1.5 text-sm rounded-md transition-colors",
+                    tab === "direct" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
+                  ].join(" ")}
+                >
+                  Send to number
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setTab("broadcast")}
-                className={[
-                  "px-3 py-1.5 text-sm rounded-md transition-colors",
-                  tab === "broadcast" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
-                ].join(" ")}
+                onClick={() => setShowSubscribers(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+                title="View subscriber list"
               >
-                Broadcast to all
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("direct")}
-                className={[
-                  "px-3 py-1.5 text-sm rounded-md transition-colors",
-                  tab === "direct" ? "bg-neutral-800 text-white" : "text-neutral-400 hover:text-white",
-                ].join(" ")}
-              >
-                Send to number
+                <Eye className="h-4 w-4" />
+                View subscribers
               </button>
             </div>
           </div>
@@ -308,38 +320,34 @@ export default function SmsPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* Subscribers (hidden by default) */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white">Subscribers</h2>
-            <p className="text-sm text-neutral-400">
-              Subscriber phone numbers are hidden by default. Click to reveal.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowSubscribers((v) => !v)}
-            className="inline-flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-white"
+      {/* Subscribers modal */}
+      {showSubscribers && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSubscribers(false)}
+        >
+          <div
+            className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 max-w-5xl w-full max-h-[85vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            {showSubscribers ? (
-              <>
-                <EyeOff className="h-4 w-4" />
-                Hide list
-                <ChevronDown className="h-4 w-4 opacity-80" />
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4" />
-                View list
-                <ChevronRight className="h-4 w-4 opacity-80" />
-              </>
-            )}
-          </button>
-        </div>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-white">Subscribers</h3>
+                <div className="text-xs text-neutral-500">
+                  {total ? `${total} total` : " "}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSubscribers(false)}
+                className="text-neutral-400 hover:text-white"
+                title="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-        {showSubscribers && (
-          <div className="mt-5">
             <div className="flex flex-wrap gap-3 mb-4">
               <input
                 type="text"
@@ -374,6 +382,7 @@ export default function SmsPage() {
               </button>
               <span className="text-neutral-400 self-center ml-auto">{total} total</span>
             </div>
+
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -395,8 +404,12 @@ export default function SmsPage() {
                   ))}
                   {subscribers.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="py-4 text-center text-neutral-500">
-                        {loading ? "Loading…" : subscribersLoaded ? "No subscribers found" : "Click “Load subscribers” to fetch the list"}
+                      <td colSpan={4} className="py-6 text-center text-neutral-500">
+                        {loading
+                          ? "Loading…"
+                          : subscribersLoaded
+                            ? "No subscribers found"
+                            : "Click “Load subscribers” to fetch the list"}
                       </td>
                     </tr>
                   )}
@@ -404,9 +417,8 @@ export default function SmsPage() {
               </table>
             </div>
           </div>
-        )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
