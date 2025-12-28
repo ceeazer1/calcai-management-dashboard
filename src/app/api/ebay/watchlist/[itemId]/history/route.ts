@@ -17,9 +17,10 @@ function snapshotsKey(uid: string, itemId: string) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
-  const itemId = decodeURIComponent(params.itemId || "").trim();
+  const { itemId: rawItemId } = await params;
+  const itemId = decodeURIComponent(rawItemId || "").trim();
   if (!itemId) return NextResponse.json({ ok: false, error: "missing_item_id" }, { status: 400 });
 
   const existingUid = getEbayUserId(req);

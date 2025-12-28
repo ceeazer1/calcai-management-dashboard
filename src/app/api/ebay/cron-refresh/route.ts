@@ -124,10 +124,10 @@ export async function GET(req: NextRequest) {
       (acc, r) => {
         acc.users += 1;
         acc.items += r.total;
-        acc.ok += r.refreshed;
+        acc.refreshed += r.refreshed;
         return acc;
       },
-      { users: 0, items: 0, ok: 0 }
+      { users: 0, items: 0, refreshed: 0 }
     );
 
     return NextResponse.json({ ok: true, ...totals, perUser: perUserResults });
