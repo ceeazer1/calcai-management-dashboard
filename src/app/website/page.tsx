@@ -159,57 +159,62 @@ export default function WebsitePage() {
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Website</h1>
-          <p className="text-sm text-neutral-400 mt-1">Manage storefront pricing, preorder, and maintenance mode.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {storageLabel ? (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {storageLabel ? (
+              <span
+                className={`px-3 py-1 rounded-full text-xs border ${
+                  storage === "kv"
+                    ? "bg-green-900/30 text-green-300 border-green-700/30"
+                    : "bg-yellow-900/30 text-yellow-300 border-yellow-700/30"
+                }`}
+                title="Storage backend for website settings"
+              >
+                Storage: {storageLabel}
+              </span>
+            ) : null}
             <span
               className={`px-3 py-1 rounded-full text-xs border ${
-                storage === "kv"
-                  ? "bg-green-900/30 text-green-300 border-green-700/30"
-                  : "bg-yellow-900/30 text-yellow-300 border-yellow-700/30"
+                liveEnabled
+                  ? "bg-red-900/30 text-red-300 border-red-700/30"
+                  : "bg-green-900/30 text-green-300 border-green-700/30"
               }`}
-              title="Storage backend for website settings"
+              title="Public maintenance status"
             >
-              Storage: {storageLabel}
+              Maintenance: {liveEnabled ? "ENABLED" : "DISABLED"}
             </span>
-          ) : null}
-          <span
-            className={`px-3 py-1 rounded-full text-xs border ${
-              liveEnabled ? "bg-red-900/30 text-red-300 border-red-700/30" : "bg-green-900/30 text-green-300 border-green-700/30"
-            }`}
-            title="Public maintenance status"
-          >
-            Maintenance: {liveEnabled ? "ENABLED" : "DISABLED"}
-          </span>
-          <span className="px-3 py-1 rounded-full text-xs border bg-neutral-900 text-neutral-300 border-neutral-800">
-            Last updated: {lastUpdatedLabel}
-          </span>
+            <span className="px-3 py-1 rounded-full text-xs border bg-neutral-900 text-neutral-300 border-neutral-800">
+              Last updated: {lastUpdatedLabel}
+            </span>
+          </div>
 
-          <button
-            onClick={refreshLive}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
-            title="Refresh public status"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </button>
-          <button
-            onClick={loadSettings}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
-            title="Reload settings (discard unsaved changes)"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </button>
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              onClick={refreshLive}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+              title="Refresh public status"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+            <button
+              onClick={loadSettings}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+              title="Reload settings (discard unsaved changes)"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </button>
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -222,7 +227,6 @@ export default function WebsitePage() {
       <div className="grid grid-cols-1 gap-6">
         {/* Storefront (Pricing + Preorder + Maintenance in one tile) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <div className="mb-1 text-xs text-neutral-500">Storefront</div>
           <h2 className="text-xl font-semibold text-white mb-1">Pricing, Inventory, Preorder & Maintenance</h2>
           <p className="text-sm text-neutral-400 mb-5">
             Controls what customers see on the product page.
