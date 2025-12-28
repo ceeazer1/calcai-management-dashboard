@@ -300,9 +300,6 @@ export default function WebsitePage() {
                     <option value="true">In Stock</option>
                     <option value="false">Out of Stock</option>
                   </select>
-                  <div className="text-xs text-neutral-500 mt-2">
-                    Tip: if Out of Stock, the website can still show preorder (if enabled).
-                  </div>
                 </div>
                 <div>
                   <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
@@ -327,7 +324,6 @@ export default function WebsitePage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-white">Preorder</div>
-                  <div className="text-xs text-neutral-500">Toggle preorder on/off. Configure details only when enabled.</div>
                 </div>
                 <div className="flex items-center gap-2">
                   {preorderEnabled ? (
@@ -395,9 +391,12 @@ export default function WebsitePage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-white">Maintenance Mode</div>
-                  <div className="text-xs text-neutral-500">
-                    Lock the public website behind a maintenance screen. <span className="text-neutral-600">Live: {liveStatus}</span>
-                  </div>
+                  {liveEnabled ? (
+                    <div className="text-xs text-neutral-500">
+                      <span className="text-neutral-400">Live:</span>{" "}
+                      <span className="text-neutral-300">{liveStatus}</span>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   {maintenanceEnabled ? (
