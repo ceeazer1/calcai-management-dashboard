@@ -34,3 +34,28 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## eBay Listings section (Dashboard)
+
+This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
+
+- Searching listings (`item_summary/search`)
+- Fetching full item details (`getItem`) including images + description
+- Watchlist + saved searches + price snapshots (stored in **Vercel KV** when configured)
+
+### Required env vars
+
+- `EBAY_CLIENT_ID`
+- `EBAY_CLIENT_SECRET`
+
+### Optional env vars
+
+- `EBAY_ENV`: `production` (default) or `sandbox`
+- `EBAY_API_BASE_URL`: override base URL (advanced)
+- `EBAY_OAUTH_SCOPE`: override OAuth scope (default is Browse-ready app scope)
+- `KV_REST_API_URL`, `KV_REST_API_TOKEN`: enables persistence via Vercel KV (otherwise uses an in-memory dev fallback)
+- `EBAY_CRON_TOKEN`: if set, enables the protected cron endpoint `GET /api/ebay/cron-refresh?token=...` to refresh watched items for all known users
+
+### Notes
+
+- Buying actions (Best Offer / Bidding / Checkout) are intentionally stubbed and should be implemented behind feature flags once the required eBay API access + user OAuth flows are available.
