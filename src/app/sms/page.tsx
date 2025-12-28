@@ -178,15 +178,15 @@ export default function SmsPage() {
 
   return (
     <div className="p-6 md:p-10">
-      <h1 className="text-2xl font-bold text-white mb-6">SMS Management</h1>
-
-      {alert && (
-        <div className={`mb-4 p-3 rounded-lg ${alert.type === "error" ? "bg-red-900/50 text-red-300" : "bg-green-900/50 text-green-300"}`}>
-          {alert.msg}
-        </div>
-      )}
-
       <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold text-white mb-4">SMS Management</h1>
+
+        {alert && (
+          <div className={`mb-4 p-3 rounded-lg ${alert.type === "error" ? "bg-red-900/50 text-red-300" : "bg-green-900/50 text-green-300"}`}>
+            {alert.msg}
+          </div>
+        )}
+
         {/* Main (tabs) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
@@ -236,21 +236,24 @@ export default function SmsPage() {
           </div>
 
           {tab === "broadcast" ? (
-            <div className="max-w-xl">
-              <div className="mb-4">
-                <label className="block text-neutral-400 mb-1">Message Preset</label>
-                <select
-                  value={preset}
-                  onChange={(e) => handlePresetChange(e.target.value)}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-                >
-                  <option value="">Custom message</option>
-                  <option value="restock">Restock Alert</option>
-                  <option value="preorder">Preorder Available</option>
-                  <option value="shipping">Shipping Update</option>
-                </select>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-neutral-400 mb-1">Message Preset</label>
+                  <select
+                    value={preset}
+                    onChange={(e) => handlePresetChange(e.target.value)}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                  >
+                    <option value="">Custom message</option>
+                    <option value="restock">Restock Alert</option>
+                    <option value="preorder">Preorder Available</option>
+                    <option value="shipping">Shipping Update</option>
+                  </select>
+                </div>
               </div>
-              <div className="mb-4">
+
+              <div>
                 <label className="block text-neutral-400 mb-1">Message</label>
                 <textarea
                   rows={6}
@@ -261,46 +264,52 @@ export default function SmsPage() {
                 />
                 <small className="text-neutral-500">Include STOP/HELP for compliance.</small>
               </div>
-              <button
-                onClick={handleBroadcast}
-                disabled={broadcasting}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
-              >
-                {broadcasting ? "Broadcasting…" : "Broadcast to All"}
-              </button>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleBroadcast}
+                  disabled={broadcasting}
+                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
+                >
+                  {broadcasting ? "Broadcasting…" : "Broadcast to All"}
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="max-w-xl">
-              <div className="mb-4">
-                <label className="block text-neutral-400 mb-1">Country</label>
-                <select
-                  value={testCountry}
-                  onChange={(e) => setTestCountry(e.target.value)}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code} +{c.dial}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="mb-4">
-                <label className="block text-neutral-400 mb-1">Phone Number</label>
-                <div className="flex">
-                  <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
-                    +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
-                  </span>
-                  <input
-                    type="text"
-                    value={testNational}
-                    onChange={(e) => setTestNational(e.target.value)}
-                    placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
-                    className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
-                  />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-neutral-400 mb-1">Country</label>
+                  <select
+                    value={testCountry}
+                    onChange={(e) => setTestCountry(e.target.value)}
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code} +{c.dial}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-neutral-400 mb-1">Phone Number</label>
+                  <div className="flex">
+                    <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
+                      +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
+                    </span>
+                    <input
+                      type="text"
+                      value={testNational}
+                      onChange={(e) => setTestNational(e.target.value)}
+                      placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
+                      className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="mb-4">
+
+              <div>
                 <label className="block text-neutral-400 mb-1">Message</label>
                 <textarea
                   rows={5}
@@ -310,13 +319,16 @@ export default function SmsPage() {
                   className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
                 />
               </div>
-              <button
-                onClick={handleSendTest}
-                disabled={sendingTest}
-                className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
-              >
-                {sendingTest ? "Sending…" : "Send"}
-              </button>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleSendTest}
+                  disabled={sendingTest}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
+                >
+                  {sendingTest ? "Sending…" : "Send"}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -335,9 +347,7 @@ export default function SmsPage() {
             <div className="flex items-center justify-between gap-4 mb-4">
               <div className="min-w-0">
                 <h3 className="text-lg font-semibold text-white">Subscribers</h3>
-                <div className="text-xs text-neutral-500">
-                  {total ? `${total} total` : " "}
-                </div>
+                <div className="text-xs text-neutral-500">Phone numbers are hidden by default on the SMS page.</div>
               </div>
               <button
                 onClick={() => setShowSubscribers(false)}
@@ -348,21 +358,21 @@ export default function SmsPage() {
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-3 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
               <input
                 type="text"
                 placeholder="Search phone…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && loadSubscribers()}
-                className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                className="flex-1 min-w-[220px] bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
               />
               <select
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
                 }}
-                className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+                className="w-full md:w-44 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
               >
                 <option value="">All</option>
                 <option value="subscribed">Subscribed</option>
@@ -380,7 +390,7 @@ export default function SmsPage() {
               >
                 Export CSV
               </button>
-              <span className="text-neutral-400 self-center ml-auto">{total} total</span>
+              <span className="text-neutral-400 self-center md:ml-auto">{total} total</span>
             </div>
 
             <div className="overflow-x-auto">
