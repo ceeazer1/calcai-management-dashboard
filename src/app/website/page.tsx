@@ -184,7 +184,7 @@ export default function WebsitePage() {
 
   return (
     <div className="p-6 md:p-10">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Website</h1>
         </div>
@@ -253,13 +253,15 @@ export default function WebsitePage() {
       <div className="grid grid-cols-1 gap-6">
         {/* Storefront (Pricing + Preorder + Maintenance in one tile) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 max-w-2xl mx-auto">
-          <h2 className="text-xl font-semibold text-white mb-1">Storefront</h2>
-          <p className="text-sm text-neutral-400 mb-5">
-            Controls what customers see on the product page.
-          </p>
+          <div className="max-w-md mx-auto">
+            <h2 className="text-xl font-semibold text-white mb-1">Storefront</h2>
+            <p className="text-sm text-neutral-400">
+              Controls what customers see on the product page.
+            </p>
+          </div>
 
-          {/* Narrower centered content (tile stays full width) */}
-          <div className="max-w-md mx-auto space-y-6">
+          {/* Centered content */}
+          <div className="max-w-md mx-auto space-y-6 mt-5">
             {/* Pricing + Inventory (two narrow columns) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -321,21 +323,22 @@ export default function WebsitePage() {
 
             {/* Preorder toggle + conditional fields */}
             <div>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-white">Preorder</div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {preorderEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => setPreorderExpanded((v) => !v)}
-                      className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
-                      title={preorderExpanded ? "Hide preorder details" : "Edit preorder details"}
-                    >
-                      {preorderExpanded ? "Hide details" : "Edit details"}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setPreorderExpanded((v) => !v)}
+                    className={[
+                      "px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm",
+                      preorderEnabled ? "" : "invisible pointer-events-none",
+                    ].join(" ")}
+                    title={preorderExpanded ? "Hide preorder details" : "Edit preorder details"}
+                  >
+                    {preorderExpanded ? "Hide details" : "Edit details"}
+                  </button>
                   <button
                     type="button"
                     role="switch"
@@ -388,7 +391,7 @@ export default function WebsitePage() {
 
             {/* Maintenance toggle + conditional fields */}
             <div>
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold text-white">Maintenance Mode</div>
                   {liveEnabled ? (
@@ -399,16 +402,17 @@ export default function WebsitePage() {
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  {maintenanceEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => setMaintenanceExpanded((v) => !v)}
-                      className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
-                      title={maintenanceExpanded ? "Hide maintenance details" : "Edit maintenance details"}
-                    >
-                      {maintenanceExpanded ? "Hide details" : "Edit details"}
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setMaintenanceExpanded((v) => !v)}
+                    className={[
+                      "px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm",
+                      maintenanceEnabled ? "" : "invisible pointer-events-none",
+                    ].join(" ")}
+                    title={maintenanceExpanded ? "Hide maintenance details" : "Edit maintenance details"}
+                  >
+                    {maintenanceExpanded ? "Hide details" : "Edit details"}
+                  </button>
                   <button
                     type="button"
                     role="switch"
