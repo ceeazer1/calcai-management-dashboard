@@ -250,59 +250,65 @@ export default function WebsitePage() {
             Controls what customers see on the product page.
           </p>
 
-          {/* Pricing + Inventory */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                placeholder="174.99"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Compare-at (optional)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={compareAt}
-                onChange={(e) => setCompareAt(e.target.value)}
-                placeholder="199.99"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Stock Status</label>
-              <select
-                value={inStock ? "true" : "false"}
-                onChange={(e) => setInStock(e.target.value === "true")}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="true">In Stock</option>
-                <option value="false">Out of Stock</option>
-              </select>
-              <div className="text-xs text-neutral-500 mt-2">
-                Tip: if Out of Stock, the website can still show preorder (if enabled).
+          {/* Pricing + Inventory (left = price/compare, right = stock fields) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: pricing */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="174.99"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Compare-at (optional)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={compareAt}
+                  onChange={(e) => setCompareAt(e.target.value)}
+                  placeholder="199.99"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
               </div>
             </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
-              <input
-                type="number"
-                step="1"
-                min="0"
-                value={stockCount}
-                onChange={(e) => setStockCount(e.target.value)}
-                placeholder="12"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-              <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
+
+            {/* Right: inventory */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Stock Status</label>
+                <select
+                  value={inStock ? "true" : "false"}
+                  onChange={(e) => setInStock(e.target.value === "true")}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                >
+                  <option value="true">In Stock</option>
+                  <option value="false">Out of Stock</option>
+                </select>
+                <div className="text-xs text-neutral-500 mt-2">
+                  Tip: if Out of Stock, the website can still show preorder (if enabled).
+                </div>
+              </div>
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Stock Count</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={stockCount}
+                  onChange={(e) => setStockCount(e.target.value)}
+                  placeholder="12"
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+                <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
+              </div>
             </div>
           </div>
 
