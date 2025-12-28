@@ -97,7 +97,7 @@ export default function WebsitePage() {
       const j = await r.json();
       const m = j?.maintenance || {};
       const enabled = !!m.enabled;
-      setLiveStatus(`${enabled ? "ENABLED" : "DISABLED"}${m.until ? ` • until ${m.until}` : ""}`);
+      setLiveStatus(`${enabled ? "ENABLED" : "DISABLED"}${enabled && m.until ? ` • until ${m.until}` : ""}`);
     } catch {
       setLiveStatus("error");
     }
@@ -220,14 +220,15 @@ export default function WebsitePage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Storefront */}
+        {/* Storefront (Pricing + Preorder in one tile) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="mb-1 text-xs text-neutral-500">Storefront</div>
-          <h2 className="text-xl font-semibold text-white mb-1">Pricing & Inventory</h2>
+          <h2 className="text-xl font-semibold text-white mb-1">Pricing, Inventory & Preorder</h2>
           <p className="text-sm text-neutral-400 mb-5">
             Controls what customers see on the product page.
           </p>
 
+          {/* Pricing + Inventory */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
@@ -282,112 +283,119 @@ export default function WebsitePage() {
               <div className="text-xs text-neutral-500 mt-2">Shown as “In stock: N”. Leave blank to hide count.</div>
             </div>
           </div>
-        </div>
 
-        {/* Preorder */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <div className="mb-1 text-xs text-neutral-500">Preorder</div>
-          <h2 className="text-xl font-semibold text-white mb-1">Preorder Settings</h2>
-          <p className="text-sm text-neutral-400 mb-5">Controls the preorder CTA and messaging.</p>
+          {/* Divider */}
+          <div className="my-6 border-t border-neutral-800" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-3 text-white">
-                <input
-                  type="checkbox"
-                  checked={preorderEnabled}
-                  onChange={(e) => setPreorderEnabled(e.target.checked)}
-                  className="w-4 h-4"
+          {/* Preorder toggle + conditional fields */}
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-white">Preorder</div>
+                <div className="text-xs text-neutral-500">Toggle preorder on/off. Configure details only when enabled.</div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={preorderEnabled}
+                onClick={() => setPreorderEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                  preorderEnabled ? "bg-blue-600 border-blue-500/40" : "bg-neutral-800 border-neutral-700"
+                }`}
+                title={preorderEnabled ? "Disable preorder" : "Enable preorder"}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                    preorderEnabled ? "translate-x-5" : "translate-x-1"
+                  }`}
                 />
+              </button>
+            </div>
+
+            {preorderEnabled && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <div className="font-medium">Enable preorder button</div>
-                  <div className="text-xs text-neutral-500">Shows a preorder CTA when enabled.</div>
+                  <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={preorderPrice}
+                    onChange={(e) => setPreorderPrice(e.target.value)}
+                    placeholder="200.00"
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
                 </div>
-              </label>
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Preorder Price (USD)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={preorderPrice}
-                onChange={(e) => setPreorderPrice(e.target.value)}
-                placeholder="200.00"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Ship date (optional)</label>
-              <input
-                type="text"
-                value={preorderShipDate}
-                onChange={(e) => setPreorderShipDate(e.target.value)}
-                placeholder="Oct 27"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-              <div className="text-xs text-neutral-500 mt-2">Leave empty to hide ship date text.</div>
-            </div>
+                <div>
+                  <label className="block text-neutral-400 mb-1 text-sm">Ship date (optional)</label>
+                  <input
+                    type="text"
+                    value={preorderShipDate}
+                    onChange={(e) => setPreorderShipDate(e.target.value)}
+                    placeholder="Oct 27"
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="text-xs text-neutral-500 mt-2">Leave empty to hide ship date text.</div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Maintenance */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 lg:col-span-2">
+        {/* Maintenance (toggle + conditional fields) */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="mb-1 text-xs text-neutral-500">Site Access</div>
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-white mb-1">Maintenance Mode</h2>
               <p className="text-sm text-neutral-400">
-                When enabled, the public website is locked and shows a maintenance screen.
+                Lock the public website behind a maintenance screen.
               </p>
+              <div className="text-xs text-neutral-500 mt-2">Live: {liveStatus}</div>
             </div>
-            <div className="text-sm">
-              <div className="text-xs text-neutral-500 mb-1">Live public status</div>
-              <div className={`inline-flex items-center px-3 py-1 rounded-full border ${
-                liveEnabled ? "bg-red-900/30 text-red-300 border-red-700/30" : "bg-green-900/30 text-green-300 border-green-700/30"
-              }`}>
-                {liveStatus}
-              </div>
-            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={maintenanceEnabled}
+              onClick={() => setMaintenanceEnabled((v) => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
+              }`}
+              title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                  maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+                }`}
+              />
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-3 text-white">
+          {maintenanceEnabled && (
+            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
                 <input
-                  type="checkbox"
-                  checked={maintenanceEnabled}
-                  onChange={(e) => setMaintenanceEnabled(e.target.checked)}
-                  className="w-4 h-4"
+                  type="datetime-local"
+                  value={maintenanceUntil}
+                  onChange={(e) => setMaintenanceUntil(e.target.value)}
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                 />
-                <div>
-                  <div className="font-medium">Enable maintenance (lock site)</div>
-                  <div className="text-xs text-neutral-500">Use for drops, downtime, or site updates.</div>
-                </div>
-              </label>
+                <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
+              </div>
+              <div>
+                <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
+                <input
+                  type="url"
+                  value={maintenanceDiscordUrl}
+                  onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
+                  placeholder="https://discord.gg/..."
+                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                />
+                <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
+              </div>
             </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
-              <input
-                type="datetime-local"
-                value={maintenanceUntil}
-                onChange={(e) => setMaintenanceUntil(e.target.value)}
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-              <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
-            </div>
-            <div>
-              <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
-              <input
-                type="url"
-                value={maintenanceDiscordUrl}
-                onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
-                placeholder="https://discord.gg/..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-              />
-              <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
