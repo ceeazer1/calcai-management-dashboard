@@ -55,7 +55,20 @@ This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
 - `EBAY_OAUTH_SCOPE`: override OAuth scope (default is Browse-ready app scope)
 - `KV_REST_API_URL`, `KV_REST_API_TOKEN`: enables persistence via Vercel KV (otherwise uses an in-memory dev fallback)
 - `EBAY_CRON_TOKEN`: if set, enables the protected cron endpoint `GET /api/ebay/cron-refresh?token=...` to refresh watched items for all known users
+- `EBAY_ACCOUNT_DELETION_VERIFICATION_TOKEN`: required only if you configure eBay “Marketplace account deletion notification endpoint” verification (see below)
 
 ### Notes
 
 - Buying actions (Best Offer / Bidding / Checkout) are intentionally stubbed and should be implemented behind feature flags once the required eBay API access + user OAuth flows are available.
+
+### Marketplace account deletion notifications (eBay compliance)
+
+In the eBay Developer Portal, under your app’s **Notifications**, you may be asked to configure:
+
+- **Marketplace account deletion notification endpoint**: use your public HTTPS URL:
+  - `https://<your-dashboard-domain>/api/ebay/account-deletion`
+- **Verification token**: generate a random 32–80 char string and set it in:
+  - eBay portal field **and**
+  - `EBAY_ACCOUNT_DELETION_VERIFICATION_TOKEN` (Vercel env var)
+
+This repo includes the matching route handler at `src/app/api/ebay/account-deletion/route.ts` that answers eBay’s verification `challenge_code` requests.

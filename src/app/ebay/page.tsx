@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bookmark,
   ExternalLink,
   Loader2,
   RefreshCw,
@@ -66,22 +65,6 @@ interface PriceSnapshot {
   availabilityStatus: string | null;
 }
 
-interface SavedSearch {
-  id: string;
-  name: string;
-  createdAt: number;
-  query: {
-    keyword: string;
-    marketplaceId: EbayMarketplaceId;
-    buyingOptions: EbayBuyingOption[];
-    conditionIds: number[];
-    minPrice: number | null;
-    maxPrice: number | null;
-    itemLocationCountry: string | null;
-    sort: string | null;
-  };
-}
-
 const MARKETPLACES: { id: EbayMarketplaceId; label: string }[] = [
   { id: "EBAY_US", label: "eBay US (EBAY_US)" },
   { id: "EBAY_GB", label: "eBay UK (EBAY_GB)" },
@@ -97,6 +80,8 @@ const COUNTRIES: { code: string; label: string }[] = [
   { code: "DE", label: "Germany (DE)" },
   { code: "AU", label: "Australia (AU)" },
 ];
+
+const PRESET_KEYWORD = "TI-84 Plus CE";
 
 function fmtMoney(m: Money | null | undefined) {
   if (!m) return "-";
@@ -155,7 +140,8 @@ function Sparkline({ points }: { points: { ts: number; value: number }[] }) {
 }
 
 export default function EbayPage() {
-  const [keyword, setKeyword] = useState("");
+  const [customSearch, setCustomSearch] = useState(false);
+  const [keyword, setKeyword] = useState(PRESET_KEYWORD);
   const [marketplaceId, setMarketplaceId] = useState<EbayMarketplaceId>("EBAY_US");
   const [buyFixed, setBuyFixed] = useState(true);
   const [buyAuction, setBuyAuction] = useState(true);
@@ -171,9 +157,6 @@ export default function EbayPage() {
 
   const [watchlist, setWatchlist] = useState<WatchedItem[]>([]);
   const [watchLoading, setWatchLoading] = useState(true);
-
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [savedLoading, setSavedLoading] = useState(true);
 
   const watchedSet = useMemo(() => new Set(watchlist.map((w) => w.itemId)), [watchlist]);
 
@@ -197,26 +180,16 @@ export default function EbayPage() {
     setWatchLoading(false);
   }
 
-  async function loadSavedSearches() {
-    setSavedLoading(true);
-    try {
-      const r = await fetch("/api/ebay/saved-searches", { cache: "no-store" });
-      const j = await r.json().catch(() => ({}));
-      setSavedSearches(Array.isArray(j.searches) ? j.searches : []);
-    } catch {
-      setSavedSearches([]);
-    }
-    setSavedLoading(false);
-  }
-
   useEffect(() => {
     loadWatchlist();
-    loadSavedSearches();
+    // Auto-run preset search on first load
+    void runSearchFor(PRESET_KEYWORD);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function runSearch() {
+  async function runSearchFor(qRaw: string) {
     setSearchError("");
-    const q = keyword.trim();
+    const q = String(qRaw || "").trim();
     if (!q) {
       setSearchError("Keyword is required.");
       return;
@@ -244,6 +217,16 @@ export default function EbayPage() {
       setSearchError(String(e?.message || "Search failed"));
     }
     setSearchLoading(false);
+  }
+
+  async function runSearch() {
+    return runSearchFor(keyword);
+  }
+
+  async function runPresetSearch() {
+    setCustomSearch(false);
+    setKeyword(PRESET_KEYWORD);
+    return runSearchFor(PRESET_KEYWORD);
   }
 
   async function openDetails(itemId: string, mp: EbayMarketplaceId = marketplaceId) {
@@ -317,68 +300,6 @@ export default function EbayPage() {
     }
   }
 
-  async function saveCurrentSearch() {
-    const q = keyword.trim();
-    if (!q) return;
-    const buyingOptions: EbayBuyingOption[] = [];
-    if (buyFixed) buyingOptions.push("FIXED_PRICE");
-    if (buyAuction) buyingOptions.push("AUCTION");
-    const query = {
-      keyword: q,
-      marketplaceId,
-      buyingOptions,
-      conditionIds:
-        condition === "new"
-          ? [1000]
-          : condition === "used"
-            ? [3000]
-            : condition === "refurbished"
-              ? [2000]
-              : condition === "parts"
-                ? [7000]
-                : [],
-      minPrice: minPrice ? Number(minPrice) : null,
-      maxPrice: maxPrice ? Number(maxPrice) : null,
-      itemLocationCountry: itemLocationCountry || null,
-      sort: sort || null,
-    };
-    try {
-      const r = await fetch("/api/ebay/saved-searches", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (j?.searches && Array.isArray(j.searches)) setSavedSearches(j.searches);
-    } catch {
-      // ignore
-    }
-  }
-
-  async function deleteSavedSearch(id: string) {
-    try {
-      const r = await fetch(`/api/ebay/saved-searches?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      const j = await r.json().catch(() => ({}));
-      if (j?.searches && Array.isArray(j.searches)) setSavedSearches(j.searches);
-    } catch {
-      // ignore
-    }
-  }
-
-  function applySavedSearch(s: SavedSearch) {
-    setKeyword(s.query.keyword);
-    setMarketplaceId(s.query.marketplaceId || "EBAY_US");
-    setBuyFixed(!s.query.buyingOptions?.length || s.query.buyingOptions.includes("FIXED_PRICE"));
-    setBuyAuction(!s.query.buyingOptions?.length || s.query.buyingOptions.includes("AUCTION"));
-    const c = s.query.conditionIds?.[0];
-    setCondition(c === 1000 ? "new" : c === 3000 ? "used" : c === 2000 ? "refurbished" : c === 7000 ? "parts" : "");
-    setMinPrice(s.query.minPrice !== null && s.query.minPrice !== undefined ? String(s.query.minPrice) : "");
-    setMaxPrice(s.query.maxPrice !== null && s.query.maxPrice !== undefined ? String(s.query.maxPrice) : "");
-    setItemLocationCountry(s.query.itemLocationCountry || "");
-    setSort(s.query.sort || "bestMatch");
-    setTimeout(() => runSearch(), 0);
-  }
-
   const historyPoints = useMemo(() => {
     const pts: { ts: number; value: number }[] = [];
     for (const s of history) {
@@ -409,145 +330,150 @@ export default function EbayPage() {
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
         {/* Left: Search + Results */}
         <div className="space-y-6">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
-                <input
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='Keyword (e.g. "TI-84 Plus CE")'
-                  className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200 focus:outline-none focus:border-blue-500"
-                />
-              </div>
-              <button
-                onClick={runSearch}
-                disabled={searchLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
-              >
-                {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                Search
-              </button>
-              <button
-                onClick={saveCurrentSearch}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
-                title="Save this search"
-              >
-                <Bookmark className="h-4 w-4" />
-                Save
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Marketplace</label>
-                <select
-                  value={marketplaceId}
-                  onChange={(e) => setMarketplaceId(e.target.value as EbayMarketplaceId)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+          {customSearch ? (
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="text-sm text-neutral-300 font-medium">Custom search</div>
+                <button
+                  onClick={runPresetSearch}
+                  className="px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+                  title="Back to preset search"
                 >
-                  {MARKETPLACES.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
+                  Use preset
+                </button>
               </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Buying options</label>
-                <div className="flex gap-3 items-center h-[38px]">
-                  <label className="inline-flex items-center gap-2 text-sm text-neutral-200">
-                    <input
-                      type="checkbox"
-                      checked={buyFixed}
-                      onChange={(e) => setBuyFixed(e.target.checked)}
-                      className="accent-blue-500"
-                    />
-                    Fixed price
-                  </label>
-                  <label className="inline-flex items-center gap-2 text-sm text-neutral-200">
-                    <input
-                      type="checkbox"
-                      checked={buyAuction}
-                      onChange={(e) => setBuyAuction(e.target.checked)}
-                      className="accent-blue-500"
-                    />
-                    Auction
-                  </label>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                  <input
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder='Keyword (e.g. "TI-84 Plus CE")'
+                    className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={() => runSearch()}
+                  disabled={searchLoading}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                >
+                  {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Search
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Marketplace</label>
+                  <select
+                    value={marketplaceId}
+                    onChange={(e) => setMarketplaceId(e.target.value as EbayMarketplaceId)}
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  >
+                    {MARKETPLACES.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Buying options</label>
+                  <div className="flex gap-3 items-center h-[38px]">
+                    <label className="inline-flex items-center gap-2 text-sm text-neutral-200">
+                      <input
+                        type="checkbox"
+                        checked={buyFixed}
+                        onChange={(e) => setBuyFixed(e.target.checked)}
+                        className="accent-blue-500"
+                      />
+                      Fixed price
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm text-neutral-200">
+                      <input
+                        type="checkbox"
+                        checked={buyAuction}
+                        onChange={(e) => setBuyAuction(e.target.checked)}
+                        className="accent-blue-500"
+                      />
+                      Auction
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Condition</label>
+                  <select
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  >
+                    <option value="">Any</option>
+                    <option value="new">New</option>
+                    <option value="used">Used</option>
+                    <option value="refurbished">Refurbished</option>
+                    <option value="parts">For parts / not working</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Price min</label>
+                  <input
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    inputMode="decimal"
+                    placeholder="e.g. 30"
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Price max</label>
+                  <input
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    inputMode="decimal"
+                    placeholder="e.g. 150"
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Ships from (country)</label>
+                  <select
+                    value={itemLocationCountry}
+                    onChange={(e) => setItemLocationCountry(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  >
+                    <option value="">Any</option>
+                    {COUNTRIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-neutral-400 mb-1">Sort</label>
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
+                  >
+                    <option value="bestMatch">Best match</option>
+                    <option value="price">Price: low → high</option>
+                    <option value="-price">Price: high → low</option>
+                    <option value="endingSoonest">Ending soon</option>
+                  </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Condition</label>
-                <select
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
-                >
-                  <option value="">Any</option>
-                  <option value="new">New</option>
-                  <option value="used">Used</option>
-                  <option value="refurbished">Refurbished</option>
-                  <option value="parts">For parts / not working</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Price min</label>
-                <input
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="e.g. 30"
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Price max</label>
-                <input
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="e.g. 150"
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Ships from (country)</label>
-                <select
-                  value={itemLocationCountry}
-                  onChange={(e) => setItemLocationCountry(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
-                >
-                  <option value="">Any</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-neutral-400 mb-1">Sort</label>
-                <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-950 border border-neutral-800 rounded-lg text-sm text-neutral-200"
-                >
-                  <option value="bestMatch">Best match</option>
-                  <option value="price">Price: low → high</option>
-                  <option value="-price">Price: high → low</option>
-                  <option value="endingSoonest">Ending soon</option>
-                </select>
-              </div>
+              {searchError && <div className="mt-3 text-sm text-red-400">{searchError}</div>}
             </div>
-
-            {searchError && <div className="mt-3 text-sm text-red-400">{searchError}</div>}
-          </div>
+          ) : null}
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -627,7 +553,7 @@ export default function EbayPage() {
           </div>
         </div>
 
-        {/* Right: Watchlist + Saved searches */}
+        {/* Right: Watchlist + Preset search */}
         <div className="space-y-6">
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -680,35 +606,37 @@ export default function EbayPage() {
           </div>
 
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white">Saved searches</h2>
-              <div className="text-xs text-neutral-500">{savedLoading ? "…" : `${savedSearches.length}`}</div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-white">Saved search</h2>
+              <button
+                onClick={() => setCustomSearch(true)}
+                className="px-3 py-1.5 rounded-lg bg-neutral-950 border border-neutral-800 text-neutral-200 hover:bg-neutral-800 transition-colors text-sm"
+                title="Open custom search"
+              >
+                Custom search
+              </button>
             </div>
-            {savedLoading ? (
-              <div className="text-sm text-neutral-400">Loading…</div>
-            ) : savedSearches.length === 0 ? (
-              <div className="text-sm text-neutral-400">No saved searches yet.</div>
-            ) : (
-              <div className="space-y-2 max-h-[40vh] overflow-auto pr-1">
-                {savedSearches.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2 bg-neutral-950 border border-neutral-800 rounded-lg p-3">
-                    <button onClick={() => applySavedSearch(s)} className="flex-1 text-left min-w-0">
-                      <div className="text-xs text-white truncate">{s.name}</div>
-                      <div className="text-[11px] text-neutral-500 truncate">
-                        {s.query.marketplaceId} • {s.query.keyword}
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => deleteSavedSearch(s.id)}
-                      className="p-2 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-300 hover:bg-neutral-800 transition-colors"
-                      title="Delete saved search"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+            <div className="bg-neutral-950 border border-neutral-800 rounded-lg p-4">
+              <div className="text-sm text-white font-medium truncate">{PRESET_KEYWORD}</div>
+              <div className="text-xs text-neutral-500 mt-1">Marketplace: {marketplaceId}</div>
+              <div className="mt-3 flex items-center gap-2">
+                <button
+                  onClick={() => runPresetSearch()}
+                  disabled={searchLoading}
+                  className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-medium text-white transition-colors"
+                >
+                  {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                  Search
+                </button>
+                <button
+                  onClick={() => runPresetSearch()}
+                  className="px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200"
+                  title="Reset to preset"
+                >
+                  Reset
+                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
