@@ -219,11 +219,11 @@ export default function WebsitePage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Storefront (Pricing + Preorder in one tile) */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Storefront (Pricing + Preorder + Maintenance in one tile) */}
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
           <div className="mb-1 text-xs text-neutral-500">Storefront</div>
-          <h2 className="text-xl font-semibold text-white mb-1">Pricing, Inventory & Preorder</h2>
+          <h2 className="text-xl font-semibold text-white mb-1">Pricing, Inventory, Preorder & Maintenance</h2>
           <p className="text-sm text-neutral-400 mb-5">
             Controls what customers see on the product page.
           </p>
@@ -340,62 +340,63 @@ export default function WebsitePage() {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Maintenance (toggle + conditional fields) */}
-        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
-          <div className="mb-1 text-xs text-neutral-500">Site Access</div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-1">Maintenance Mode</h2>
-              <p className="text-sm text-neutral-400">
-                Lock the public website behind a maintenance screen.
-              </p>
-              <div className="text-xs text-neutral-500 mt-2">Live: {liveStatus}</div>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={maintenanceEnabled}
-              onClick={() => setMaintenanceEnabled((v) => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
-                maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
-              }`}
-              title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
-            >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
-                  maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+          {/* Divider */}
+          <div className="my-6 border-t border-neutral-800" />
+
+          {/* Maintenance toggle + conditional fields */}
+          <div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-white">Maintenance Mode</div>
+                <div className="text-xs text-neutral-500">
+                  Lock the public website behind a maintenance screen. <span className="text-neutral-600">Live: {liveStatus}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={maintenanceEnabled}
+                onClick={() => setMaintenanceEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full border transition-colors ${
+                  maintenanceEnabled ? "bg-red-600 border-red-500/40" : "bg-neutral-800 border-neutral-700"
                 }`}
-              />
-            </button>
-          </div>
-
-          {maintenanceEnabled && (
-            <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
-                <input
-                  type="datetime-local"
-                  value={maintenanceUntil}
-                  onChange={(e) => setMaintenanceUntil(e.target.value)}
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                title={maintenanceEnabled ? "Disable maintenance" : "Enable maintenance"}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition ${
+                    maintenanceEnabled ? "translate-x-5" : "translate-x-1"
+                  }`}
                 />
-                <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
-              </div>
-              <div>
-                <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
-                <input
-                  type="url"
-                  value={maintenanceDiscordUrl}
-                  onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
-                  placeholder="https://discord.gg/..."
-                  className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
-                />
-                <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
-              </div>
+              </button>
             </div>
-          )}
+
+            {maintenanceEnabled && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-neutral-400 mb-1 text-sm">Countdown until (optional)</label>
+                  <input
+                    type="datetime-local"
+                    value={maintenanceUntil}
+                    onChange={(e) => setMaintenanceUntil(e.target.value)}
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="text-xs text-neutral-500 mt-2">Uses your local time; saved as UTC ISO.</div>
+                </div>
+                <div>
+                  <label className="block text-neutral-400 mb-1 text-sm">Discord URL (optional)</label>
+                  <input
+                    type="url"
+                    value={maintenanceDiscordUrl}
+                    onChange={(e) => setMaintenanceDiscordUrl(e.target.value)}
+                    placeholder="https://discord.gg/..."
+                    className="w-full bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"
+                  />
+                  <div className="text-xs text-neutral-500 mt-2">Displayed on the maintenance screen.</div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
