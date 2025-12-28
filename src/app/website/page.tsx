@@ -116,11 +116,20 @@ export default function WebsitePage() {
   const saveSettings = async () => {
     setSaving(true);
     try {
+      const stockCountNum =
+        stockCount === "" || stockCount === null || stockCount === undefined ? null : Number(stockCount);
+      // UX rule: "Out of stock" UI on the website should be controlled by inStock.
+      // If inStock=true, treat 0/NaN/empty as "no count" (null) to avoid showing sold-out on older storefront code.
+      const normalizedStockCount =
+        inStock && typeof stockCountNum === "number" && Number.isFinite(stockCountNum) && stockCountNum > 0
+          ? Math.trunc(stockCountNum)
+          : null;
+
       const payload = {
         price: Number(price),
         compareAt: compareAt === "" ? null : Number(compareAt),
         inStock,
-        stockCount: stockCount === "" ? null : Number(stockCount),
+        stockCount: normalizedStockCount,
         preorderEnabled,
         preorderPrice: preorderPrice === "" ? null : Number(preorderPrice),
         preorderShipDate,
