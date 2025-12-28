@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 interface Subscriber {
   phone: string;
@@ -31,6 +32,8 @@ export default function SmsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showSubscribers, setShowSubscribers] = useState(false);
+  const [subscribersLoaded, setSubscribersLoaded] = useState(false);
 
   // Broadcast state
   const [broadcastBody, setBroadcastBody] = useState("");
@@ -67,6 +70,7 @@ export default function SmsPage() {
       }
       setSubscribers(j.rows || []);
       setTotal(j.total || 0);
+      setSubscribersLoaded(true);
     } catch (e) {
       console.error("loadSubscribers error:", e);
       showAlert("Failed to load subscribers", "error");
@@ -75,7 +79,10 @@ export default function SmsPage() {
     }
   };
 
-  useEffect(() => { loadSubscribers(); }, []);
+  useEffect(() => {
+    if (showSubscribers && !subscribersLoaded) loadSubscribers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showSubscribers]);
 
   const handleBroadcast = async () => {
     if (!broadcastBody.trim()) {
@@ -149,7 +156,7 @@ export default function SmsPage() {
   };
 
   return (
-    <div className="max-w-6xl">
+    <div className="p-6 md:p-10">
       <h1 className="text-2xl font-bold text-white mb-6">SMS Management</h1>
 
       {alert && (
@@ -158,141 +165,198 @@ export default function SmsPage() {
         </div>
       )}
 
-      {/* Subscribers Section */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Subscribers</h2>
-        <div className="flex flex-wrap gap-3 mb-4">
-          <input
-            type="text"
-            placeholder="Search phone…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && loadSubscribers()}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value); }}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-          >
-            <option value="">All</option>
-            <option value="subscribed">Subscribed</option>
-            <option value="opted_out">Opted out</option>
-          </select>
-          <button onClick={loadSubscribers} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white">
-            {loading ? "Loading…" : "Reload"}
-          </button>
-          <button onClick={exportCSV} className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-white">
-            Export CSV
-          </button>
-          <span className="text-neutral-400 self-center ml-auto">{total} total</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Broadcast (first thing you see) */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-white">Broadcast to All Subscribers</h2>
+            <span className="text-xs text-neutral-500">High impact • confirm required</span>
+          </div>
+          <div className="max-w-xl">
+            <div className="mb-4">
+              <label className="block text-neutral-400 mb-1">Message Preset</label>
+              <select
+                value={preset}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+              >
+                <option value="">Custom message</option>
+                <option value="restock">Restock Alert</option>
+                <option value="preorder">Preorder Available</option>
+                <option value="shipping">Shipping Update</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-neutral-400 mb-1">Message</label>
+              <textarea
+                rows={5}
+                value={broadcastBody}
+                onChange={(e) => setBroadcastBody(e.target.value)}
+                placeholder="Type your message…"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+              />
+              <small className="text-neutral-500">Include STOP/HELP for compliance.</small>
+            </div>
+            <button
+              onClick={handleBroadcast}
+              disabled={broadcasting}
+              className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
+            >
+              {broadcasting ? "Broadcasting…" : "Broadcast to All"}
+            </button>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-neutral-400 border-b border-neutral-700">
-                <th className="py-2 px-3">Phone</th>
-                <th className="py-2 px-3">Status</th>
-                <th className="py-2 px-3">Source</th>
-                <th className="py-2 px-3">Consent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subscribers.map((s, i) => (
-                <tr key={i} className="border-b border-neutral-800 text-white">
-                  <td className="py-2 px-3">{s.phone}</td>
-                  <td className="py-2 px-3">{s.status}</td>
-                  <td className="py-2 px-3 text-neutral-400">{s.source || "-"}</td>
-                  <td className="py-2 px-3 text-neutral-400">{s.consent_ts || "-"}</td>
-                </tr>
-              ))}
-              {subscribers.length === 0 && (
-                <tr><td colSpan={4} className="py-4 text-center text-neutral-500">No subscribers found</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      {/* Broadcast Section */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800 mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Broadcast to All Subscribers</h2>
-        <div className="max-w-xl">
-          <div className="mb-4">
-            <label className="block text-neutral-400 mb-1">Message Preset</label>
-            <select value={preset} onChange={(e) => handlePresetChange(e.target.value)} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white">
-              <option value="">Custom message</option>
-              <option value="restock">Restock Alert</option>
-              <option value="preorder">Preorder Available</option>
-              <option value="shipping">Shipping Update</option>
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-neutral-400 mb-1">Message</label>
-            <textarea
-              rows={4}
-              value={broadcastBody}
-              onChange={(e) => setBroadcastBody(e.target.value)}
-              placeholder="Type your message…"
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-            />
-            <small className="text-neutral-500">Include STOP/HELP for compliance.</small>
-          </div>
-          <button
-            onClick={handleBroadcast}
-            disabled={broadcasting}
-            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-6 py-3 rounded-lg text-white font-semibold"
-          >
-            {broadcasting ? "Broadcasting…" : "Broadcast to All"}
-          </button>
-        </div>
-      </div>
-
-      {/* Test Send Section */}
-      <div className="bg-neutral-900 rounded-lg p-6 border border-neutral-800">
-        <h2 className="text-xl font-semibold text-white mb-4">Send Test Message</h2>
-        <div className="max-w-xl">
-          <div className="mb-4">
-            <label className="block text-neutral-400 mb-1">Country</label>
-            <select value={testCountry} onChange={(e) => setTestCountry(e.target.value)} className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white">
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code} +{c.dial}</option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-4">
-            <label className="block text-neutral-400 mb-1">Phone Number</label>
-            <div className="flex">
-              <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
-                +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
-              </span>
-              <input
-                type="text"
-                value={testNational}
-                onChange={(e) => setTestNational(e.target.value)}
-                placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
-                className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
+        {/* Test Send */}
+        <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+          <h2 className="text-xl font-semibold text-white mb-4">Send Test Message</h2>
+          <div className="max-w-xl">
+            <div className="mb-4">
+              <label className="block text-neutral-400 mb-1">Country</label>
+              <select
+                value={testCountry}
+                onChange={(e) => setTestCountry(e.target.value)}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+              >
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.code} +{c.dial}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-neutral-400 mb-1">Phone Number</label>
+              <div className="flex">
+                <span className="bg-neutral-800 border border-neutral-700 border-r-0 rounded-l-lg px-3 py-2 text-neutral-400">
+                  +{COUNTRIES.find((c) => c.code === testCountry)?.dial || "1"}
+                </span>
+                <input
+                  type="text"
+                  value={testNational}
+                  onChange={(e) => setTestNational(e.target.value)}
+                  placeholder={COUNTRIES.find((c) => c.code === testCountry)?.placeholder}
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded-r-lg px-3 py-2 text-white"
+                />
+              </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-neutral-400 mb-1">Message</label>
+              <textarea
+                rows={4}
+                value={testBody}
+                onChange={(e) => setTestBody(e.target.value)}
+                placeholder="Type a test message…"
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
               />
             </div>
+            <button
+              onClick={handleSendTest}
+              disabled={sendingTest}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
+            >
+              {sendingTest ? "Sending…" : "Send Test"}
+            </button>
           </div>
-          <div className="mb-4">
-            <label className="block text-neutral-400 mb-1">Message</label>
-            <textarea
-              rows={3}
-              value={testBody}
-              onChange={(e) => setTestBody(e.target.value)}
-              placeholder="Type a test message…"
-              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
-            />
+        </div>
+      </div>
+
+      {/* Subscribers (hidden by default) */}
+      <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Subscribers</h2>
+            <p className="text-sm text-neutral-400">
+              Subscriber phone numbers are hidden by default. Click to reveal.
+            </p>
           </div>
           <button
-            onClick={handleSendTest}
-            disabled={sendingTest}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded-lg text-white"
+            onClick={() => setShowSubscribers((v) => !v)}
+            className="inline-flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-lg text-white"
           >
-            {sendingTest ? "Sending…" : "Send Test"}
+            {showSubscribers ? (
+              <>
+                <EyeOff className="h-4 w-4" />
+                Hide list
+                <ChevronDown className="h-4 w-4 opacity-80" />
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4" />
+                View list
+                <ChevronRight className="h-4 w-4 opacity-80" />
+              </>
+            )}
           </button>
         </div>
+
+        {showSubscribers && (
+          <div className="mt-5">
+            <div className="flex flex-wrap gap-3 mb-4">
+              <input
+                type="text"
+                placeholder="Search phone…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && loadSubscribers()}
+                className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                }}
+                className="bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-white"
+              >
+                <option value="">All</option>
+                <option value="subscribed">Subscribed</option>
+                <option value="opted_out">Opted out</option>
+              </select>
+              <button
+                onClick={loadSubscribers}
+                className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white"
+              >
+                {loading ? "Loading…" : subscribersLoaded ? "Reload" : "Load subscribers"}
+              </button>
+              <button
+                onClick={exportCSV}
+                className="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded-lg text-white"
+              >
+                Export CSV
+              </button>
+              <span className="text-neutral-400 self-center ml-auto">{total} total</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="text-left text-neutral-400 border-b border-neutral-700">
+                    <th className="py-2 px-3">Phone</th>
+                    <th className="py-2 px-3">Status</th>
+                    <th className="py-2 px-3">Source</th>
+                    <th className="py-2 px-3">Consent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subscribers.map((s, i) => (
+                    <tr key={i} className="border-b border-neutral-800 text-white">
+                      <td className="py-2 px-3">{s.phone}</td>
+                      <td className="py-2 px-3">{s.status}</td>
+                      <td className="py-2 px-3 text-neutral-400">{s.source || "-"}</td>
+                      <td className="py-2 px-3 text-neutral-400">{s.consent_ts || "-"}</td>
+                    </tr>
+                  ))}
+                  {subscribers.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-4 text-center text-neutral-500">
+                        {loading ? "Loading…" : subscribersLoaded ? "No subscribers found" : "Click “Load subscribers” to fetch the list"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
