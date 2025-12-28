@@ -258,8 +258,8 @@ export default function WebsitePage() {
             Controls what customers see on the product page.
           </p>
 
-          {/* Pricing + Inventory (two rows; same input widths) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Pricing + Inventory (stacked; full-width inputs) */}
+          <div className="space-y-4">
             <div>
               <label className="block text-neutral-400 mb-1 text-sm">Price (USD)</label>
               <input
