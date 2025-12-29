@@ -92,10 +92,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Compare at
-    if (body.compareAt !== undefined && body.compareAt !== null && body.compareAt !== '') {
-      const c = Number(body.compareAt);
-      if (Number.isFinite(c) && c >= 0 && c <= 999999) next.compareAt = Number(c.toFixed(2));
-      else return NextResponse.json({ error: 'Invalid compareAt' }, { status: 400 });
+    if (body.compareAt !== undefined) {
+      // allow clearing compareAt
+      if (body.compareAt === null || body.compareAt === '') {
+        next.compareAt = null;
+      } else {
+        const c = Number(body.compareAt);
+        if (Number.isFinite(c) && c >= 0 && c <= 999999) next.compareAt = Number(c.toFixed(2));
+        else return NextResponse.json({ error: 'Invalid compareAt' }, { status: 400 });
+      }
     }
 
     // In stock
@@ -106,10 +111,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Stock count
-    if (body.stockCount !== undefined && body.stockCount !== null && body.stockCount !== '') {
-      const s = Number(body.stockCount);
-      if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
-      else return NextResponse.json({ error: 'Invalid stockCount' }, { status: 400 });
+    if (body.stockCount !== undefined) {
+      // allow clearing stockCount
+      if (body.stockCount === null || body.stockCount === '') {
+        next.stockCount = null;
+      } else {
+        const s = Number(body.stockCount);
+        if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
+        else return NextResponse.json({ error: 'Invalid stockCount' }, { status: 400 });
+      }
     }
 
     // Preorder enabled
@@ -120,10 +130,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Preorder price
-    if (body.preorderPrice !== undefined && body.preorderPrice !== null && body.preorderPrice !== '') {
-      const pp = Number(body.preorderPrice);
-      if (Number.isFinite(pp) && pp >= 0 && pp <= 999999) next.preorderPrice = Number(pp.toFixed(2));
-      else return NextResponse.json({ error: 'Invalid preorderPrice' }, { status: 400 });
+    if (body.preorderPrice !== undefined) {
+      // allow clearing preorderPrice
+      if (body.preorderPrice === null || body.preorderPrice === '') {
+        next.preorderPrice = null;
+      } else {
+        const pp = Number(body.preorderPrice);
+        if (Number.isFinite(pp) && pp >= 0 && pp <= 999999) next.preorderPrice = Number(pp.toFixed(2));
+        else return NextResponse.json({ error: 'Invalid preorderPrice' }, { status: 400 });
+      }
     }
 
     // Preorder ship date
