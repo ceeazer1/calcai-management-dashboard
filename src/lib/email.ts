@@ -199,22 +199,32 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </tr>
                     </table>
 
-                    <!-- Labels (separate row, will wrap nicely on mobile) -->
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px; table-layout:fixed;">
+                    <!-- Labels row aligned to the exact same columns as the icons/lines above -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;">
                       <tr>
-                        <td width="25%" align="center">
-                          <div class="stepLabel" style="color:#22c55e; font-size:13px; font-weight:800;">Order Placed</div>
+                        <!-- Label 1 -->
+                        <td width="44" align="center" valign="top">
+                          <div class="stepLabel" style="color:#22c55e; font-size:13px; font-weight:800; text-align:center;">Order Placed</div>
                         </td>
-                        <td width="25%" align="center">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
+                        <!-- Spacer under line -->
+                        <td>&nbsp;</td>
+                        <!-- Label 2 -->
+                        <td width="44" align="center" valign="top">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Processing</span><span class="labelShort">Process</span>
                           </div>
                         </td>
-                        <td width="25%" align="center">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">Shipped</div>
+                        <!-- Spacer under line -->
+                        <td>&nbsp;</td>
+                        <!-- Label 3 -->
+                        <td width="44" align="center" valign="top">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">Shipped</div>
                         </td>
-                        <td width="25%" align="center">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
+                        <!-- Spacer under line -->
+                        <td>&nbsp;</td>
+                        <!-- Label 4 -->
+                        <td width="44" align="center" valign="top">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Delivered</span><span class="labelShort">Deliv.</span>
                           </div>
                         </td>
