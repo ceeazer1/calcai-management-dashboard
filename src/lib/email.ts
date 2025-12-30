@@ -60,17 +60,65 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
         <p style="margin: 0; color: #a3a3a3; font-size: 14px;">Thank you for your purchase</p>
       </div>
       
-      <!-- Progress Bar -->
-      <div style="padding: 24px 32px; background-color: #0f0f0f; border-bottom: 1px solid #262626;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-          <span style="color: #22c55e; font-size: 12px; font-weight: 500;">Order Placed</span>
-          <span style="color: #525252; font-size: 12px; font-weight: 500;">Processing</span>
-          <span style="color: #525252; font-size: 12px; font-weight: 500;">Shipped</span>
-          <span style="color: #525252; font-size: 12px; font-weight: 500;">Delivered</span>
-        </div>
-        <div style="background-color: #262626; border-radius: 4px; height: 8px; overflow: hidden;">
-          <div style="background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); width: 25%; height: 100%; border-radius: 4px;"></div>
-        </div>
+      <!-- Order Progress Timeline -->
+      <div style="padding: 32px; background-color: #0f0f0f; border-bottom: 1px solid #262626;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+          <tr>
+            <!-- Step 1: Order Placed (Completed) -->
+            <td width="25%" style="text-align: center; vertical-align: top;">
+              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #22c55e; border-radius: 50%; display: inline-block;">
+                <span style="color: #ffffff; font-size: 14px; line-height: 32px;">&#10003;</span>
+              </div>
+            </td>
+            <!-- Step 2: Processing (Pending) -->
+            <td width="25%" style="text-align: center; vertical-align: top;">
+              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
+                <span style="color: #525252; font-size: 12px; line-height: 28px;">2</span>
+              </div>
+            </td>
+            <!-- Step 3: Shipped (Pending) -->
+            <td width="25%" style="text-align: center; vertical-align: top;">
+              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
+                <span style="color: #525252; font-size: 12px; line-height: 28px;">3</span>
+              </div>
+            </td>
+            <!-- Step 4: Delivered (Pending) -->
+            <td width="25%" style="text-align: center; vertical-align: top;">
+              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
+                <span style="color: #525252; font-size: 12px; line-height: 28px;">4</span>
+              </div>
+            </td>
+          </tr>
+          <!-- Connecting Lines -->
+          <tr>
+            <td colspan="4" style="padding: 8px 0;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="12.5%"></td>
+                  <td width="25%" style="height: 3px; background: linear-gradient(90deg, #22c55e 0%, #404040 100%);"></td>
+                  <td width="25%" style="height: 3px; background-color: #404040;"></td>
+                  <td width="25%" style="height: 3px; background-color: #404040;"></td>
+                  <td width="12.5%"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <!-- Labels -->
+          <tr>
+            <td width="25%" style="text-align: center; padding-top: 8px;">
+              <p style="margin: 0; color: #22c55e; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Order Placed</p>
+            </td>
+            <td width="25%" style="text-align: center; padding-top: 8px;">
+              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Processing</p>
+            </td>
+            <td width="25%" style="text-align: center; padding-top: 8px;">
+              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Shipped</p>
+            </td>
+            <td width="25%" style="text-align: center; padding-top: 8px;">
+              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Delivered</p>
+            </td>
+          </tr>
+        </table>
       </div>
       
       <!-- Content -->
@@ -140,8 +188,8 @@ Hi ${customerName},
 
 Thank you for your order. We're excited to get your CalcAI on its way to you.
 
-ORDER STATUS: Order Placed > Processing > Shipped > Delivered
-              [=====                                        ] 25%
+ORDER STATUS:
+[✓] Order Placed  →  [ ] Processing  →  [ ] Shipped  →  [ ] Delivered
 
 Order ID: ${orderId}
 
