@@ -37,8 +37,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     .map(
       (item) =>
         `<tr>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e5e5;">${item.quantity}× ${item.description}</td>
-          <td style="padding: 12px; border-bottom: 1px solid #e5e5e5; text-align: right;">${formatCurrency(item.amount, currency)}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #262626; color: #e5e5e5;">${item.quantity}× ${item.description}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #262626; text-align: right; color: #a3a3a3;">${formatCurrency(item.amount, currency)}</td>
         </tr>`
     )
     .join('');
@@ -51,66 +51,80 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-    <div style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;">
+    <div style="background-color: #171717; border-radius: 12px; border: 1px solid #262626; overflow: hidden;">
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 32px; text-align: center;">
-        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">Order Confirmed! 🎉</h1>
+      <div style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #262626;">
+        <h1 style="margin: 0 0 8px; color: #ffffff; font-size: 24px; font-weight: 600;">Order Confirmed</h1>
+        <p style="margin: 0; color: #a3a3a3; font-size: 14px;">Thank you for your purchase</p>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div style="padding: 24px 32px; background-color: #0f0f0f; border-bottom: 1px solid #262626;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+          <span style="color: #22c55e; font-size: 12px; font-weight: 500;">Order Placed</span>
+          <span style="color: #525252; font-size: 12px; font-weight: 500;">Processing</span>
+          <span style="color: #525252; font-size: 12px; font-weight: 500;">Shipped</span>
+          <span style="color: #525252; font-size: 12px; font-weight: 500;">Delivered</span>
+        </div>
+        <div style="background-color: #262626; border-radius: 4px; height: 8px; overflow: hidden;">
+          <div style="background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); width: 25%; height: 100%; border-radius: 4px;"></div>
+        </div>
       </div>
       
       <!-- Content -->
       <div style="padding: 32px;">
-        <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
+        <p style="margin: 0 0 20px; color: #e5e5e5; font-size: 16px; line-height: 1.6;">
           Hi ${customerName},
         </p>
-        <p style="margin: 0 0 24px; color: #374151; font-size: 16px; line-height: 1.6;">
-          Thank you for your order! We're excited to get your CalcAI on its way to you.
+        <p style="margin: 0 0 24px; color: #a3a3a3; font-size: 15px; line-height: 1.6;">
+          Thank you for your order. We're excited to get your CalcAI on its way to you.
         </p>
         
         <!-- Order ID -->
-        <div style="background-color: #f3f4f6; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #6b7280; font-size: 14px;">Order ID</p>
-          <p style="margin: 4px 0 0; color: #111827; font-size: 14px; font-family: monospace;">${orderId}</p>
+        <div style="background-color: #0f0f0f; border: 1px solid #262626; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <p style="margin: 0; color: #737373; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Order ID</p>
+          <p style="margin: 6px 0 0; color: #e5e5e5; font-size: 14px; font-family: monospace;">${orderId}</p>
         </div>
         
         <!-- Items Table -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
           <thead>
-            <tr style="background-color: #f9fafb;">
-              <th style="padding: 12px; text-align: left; color: #6b7280; font-size: 14px; font-weight: 500;">Item</th>
-              <th style="padding: 12px; text-align: right; color: #6b7280; font-size: 14px; font-weight: 500;">Amount</th>
+            <tr style="border-bottom: 1px solid #262626;">
+              <th style="padding: 12px 0; text-align: left; color: #737373; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Item</th>
+              <th style="padding: 12px 0; text-align: right; color: #737373; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Amount</th>
             </tr>
           </thead>
           <tbody>
             ${itemsHtml}
           </tbody>
           <tfoot>
-            <tr>
-              <td style="padding: 16px 12px; font-weight: 600; color: #111827;">Total</td>
-              <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: #111827; font-size: 18px;">${formatCurrency(amount, currency)}</td>
+            <tr style="border-top: 1px solid #262626;">
+              <td style="padding: 16px 0; font-weight: 600; color: #ffffff;">Total</td>
+              <td style="padding: 16px 0; text-align: right; font-weight: 600; color: #ffffff; font-size: 18px;">${formatCurrency(amount, currency)}</td>
             </tr>
           </tfoot>
         </table>
         
         <!-- What's Next -->
-        <div style="border-top: 1px solid #e5e5e5; padding-top: 24px;">
-          <h3 style="margin: 0 0 12px; color: #111827; font-size: 16px; font-weight: 600;">What's Next?</h3>
-          <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.8;">
-            <li>We'll process your order within 1-2 business days</li>
-            <li>You'll receive a shipping confirmation email with tracking info</li>
-            <li>Estimated delivery: 3-7 business days after shipping</li>
-          </ul>
+        <div style="border-top: 1px solid #262626; padding-top: 24px;">
+          <h3 style="margin: 0 0 16px; color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">What's Next</h3>
+          <div style="color: #a3a3a3; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #3b82f6;">We'll process your order within 1-2 business days</p>
+            <p style="margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #262626;">You'll receive a shipping confirmation with tracking</p>
+            <p style="margin: 0; padding-left: 16px; border-left: 2px solid #262626;">Estimated delivery: 3-7 business days after shipping</p>
+          </div>
         </div>
       </div>
       
       <!-- Footer -->
-      <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e5e5;">
-        <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+      <div style="background-color: #0f0f0f; padding: 24px; text-align: center; border-top: 1px solid #262626;">
+        <p style="margin: 0 0 8px; color: #737373; font-size: 14px;">
           Questions? Reply to this email or visit <a href="https://calcai.cc/faq" style="color: #3b82f6; text-decoration: none;">calcai.cc/faq</a>
         </p>
-        <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-          © ${new Date().getFullYear()} CalcAI. All rights reserved.
+        <p style="margin: 0; color: #525252; font-size: 12px;">
+          ${new Date().getFullYear()} CalcAI. All rights reserved.
         </p>
       </div>
     </div>
@@ -120,27 +134,30 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
 `;
 
   const textContent = `
-Order Confirmed!
+Order Confirmed
 
 Hi ${customerName},
 
-Thank you for your order! We're excited to get your CalcAI on its way to you.
+Thank you for your order. We're excited to get your CalcAI on its way to you.
+
+ORDER STATUS: Order Placed > Processing > Shipped > Delivered
+              [=====                                        ] 25%
 
 Order ID: ${orderId}
 
 Items:
-${items.map((item) => `- ${item.quantity}× ${item.description}: ${formatCurrency(item.amount, currency)}`).join('\n')}
+${items.map((item) => `- ${item.quantity}x ${item.description}: ${formatCurrency(item.amount, currency)}`).join('\n')}
 
 Total: ${formatCurrency(amount, currency)}
 
-What's Next?
-- We'll process your order within 1-2 business days
-- You'll receive a shipping confirmation email with tracking info
-- Estimated delivery: 3-7 business days after shipping
+What's Next:
+1. We'll process your order within 1-2 business days
+2. You'll receive a shipping confirmation with tracking
+3. Estimated delivery: 3-7 business days after shipping
 
 Questions? Reply to this email or visit https://calcai.cc/faq
 
-© ${new Date().getFullYear()} CalcAI. All rights reserved.
+${new Date().getFullYear()} CalcAI. All rights reserved.
 `;
 
   const response = await fetch('https://api.resend.com/emails', {
