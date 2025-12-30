@@ -8,6 +8,23 @@ function getStripe() {
   return new Stripe(key);
 }
 
+function formatPaymentMethod(pi: Stripe.PaymentIntent | null | undefined): string | null {
+  if (!pi) return null;
+  const charge = (pi.latest_charge && typeof pi.latest_charge === 'object') ? pi.latest_charge : null;
+  // Charge.payment_method_details is the most reliable source for human labels.
+  const details = charge?.payment_method_details as Stripe.Charge.PaymentMethodDetails | null | undefined;
+  if (!details) return null;
+
+  if (details.type === 'card' && details.card) {
+    const brand = (details.card.brand || 'Card').toUpperCase();
+    const last4 = details.card.last4 ? `•••• ${details.card.last4}` : '';
+    const wallet = details.card.wallet?.type ? ` (${details.card.wallet.type})` : '';
+    return `${brand} ${last4}${wallet}`.trim();
+  }
+
+  return details.type ? details.type.replace(/_/g, ' ') : null;
+}
+
 // Stripe sends raw body, we need to handle it properly
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
@@ -47,6 +64,13 @@ export async function POST(req: NextRequest) {
 
         if (email) {
           try {
+            // Retrieve session with expanded payment intent + latest charge so we can show payment method
+            const full = await stripe.checkout.sessions.retrieve(session.id, {
+              expand: ['payment_intent', 'payment_intent.latest_charge'],
+            });
+            const pi = full.payment_intent && typeof full.payment_intent === 'object' ? (full.payment_intent as Stripe.PaymentIntent) : null;
+            const paymentMethod = formatPaymentMethod(pi);
+
             // Fetch line items separately
             const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
             const items = lineItems.data.map((item) => ({
@@ -62,6 +86,7 @@ export async function POST(req: NextRequest) {
               amount: session.amount_total || 0,
               currency: session.currency || 'usd',
               items,
+              paymentMethod: paymentMethod || undefined,
             });
 
             console.log(`[webhook] Confirmation email sent to ${email} for order ${session.id}`);

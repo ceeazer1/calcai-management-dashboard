@@ -8,6 +8,22 @@ function getStripe() {
   return new Stripe(key);
 }
 
+function formatPaymentMethod(pi: Stripe.PaymentIntent | null | undefined): string | null {
+  if (!pi) return null;
+  const charge = (pi.latest_charge && typeof pi.latest_charge === 'object') ? pi.latest_charge : null;
+  const details = charge?.payment_method_details as Stripe.Charge.PaymentMethodDetails | null | undefined;
+  if (!details) return null;
+
+  if (details.type === 'card' && details.card) {
+    const brand = (details.card.brand || 'Card').toUpperCase();
+    const last4 = details.card.last4 ? `•••• ${details.card.last4}` : '';
+    const wallet = details.card.wallet?.type ? ` (${details.card.wallet.type})` : '';
+    return `${brand} ${last4}${wallet}`.trim();
+  }
+
+  return details.type ? details.type.replace(/_/g, ' ') : null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { orderId, email } = await req.json();
@@ -29,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch the session to get order details
     const session = await stripe.checkout.sessions.retrieve(orderId, {
-      expand: ['line_items', 'customer_details', 'payment_intent'],
+      expand: ['line_items', 'customer_details', 'payment_intent', 'payment_intent.latest_charge'],
     });
 
     if (!session) {
@@ -46,6 +62,9 @@ export async function POST(req: NextRequest) {
       amount: item.amount_total || 0,
     }));
 
+    const pi = session.payment_intent && typeof session.payment_intent === 'object' ? (session.payment_intent as Stripe.PaymentIntent) : null;
+    const paymentMethod = formatPaymentMethod(pi);
+
     await sendOrderConfirmationEmail({
       to: email,
       customerName,
@@ -53,6 +72,7 @@ export async function POST(req: NextRequest) {
       amount: session.amount_total || 0,
       currency: session.currency || 'usd',
       items,
+      paymentMethod: paymentMethod || undefined,
     });
 
     return NextResponse.json({ ok: true });
