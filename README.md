@@ -61,6 +61,34 @@ This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
 - `EBAY_ORDER_API_ENABLED`: set to `1` to enable the **Order API** checkout endpoints in the dashboard (gated / limited release)
 - `EBAY_ACCOUNT_DELETION_VERIFICATION_TOKEN`: required only if you configure eBay “Marketplace account deletion notification endpoint” verification (see below)
 
+## Shipping labels (Shippo)
+
+The Orders page supports a **Create USPS label** button powered by Shippo. When a label is created, the order is marked **Shipped** (label created) and the label + tracking are saved in **Vercel KV**.
+
+### Required env vars
+
+- `SHIPPO_API_TOKEN`
+- `SHIP_FROM_NAME`
+- `SHIP_FROM_STREET1`
+- `SHIP_FROM_CITY`
+- `SHIP_FROM_STATE`
+- `SHIP_FROM_ZIP`
+
+### Optional env vars
+
+- `SHIP_FROM_COMPANY`
+- `SHIP_FROM_STREET2`
+- `SHIP_FROM_COUNTRY` (default `US`)
+- `SHIP_FROM_PHONE`
+- `SHIP_FROM_EMAIL`
+
+Parcel defaults (used to rate-shop and buy the cheapest USPS label):
+
+- `SHIP_PARCEL_LENGTH_IN` (default 8)
+- `SHIP_PARCEL_WIDTH_IN` (default 6)
+- `SHIP_PARCEL_HEIGHT_IN` (default 4)
+- `SHIP_PARCEL_WEIGHT_OZ` (default 16)
+
 ### Notes
 
 - Best Offer + Bid use a **user OAuth** token (stored server-side in KV when configured). If KV is not configured, tokens will be ephemeral in dev.

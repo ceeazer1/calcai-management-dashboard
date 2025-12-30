@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp, Truck, FileText } from "lucide-react";
 
 interface OrderItem {
   description: string;
@@ -28,6 +28,15 @@ interface Order {
   items: OrderItem[];
   paymentStatus: string;
   receiptUrl?: string;
+  shipment?: {
+    status: string;
+    shippedAt?: number;
+    carrier?: string;
+    service?: string;
+    labelUrl?: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+  } | null;
 }
 
 export default function OrdersPage() {
@@ -37,6 +46,8 @@ export default function OrdersPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [emailResult, setEmailResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
+  const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -79,8 +90,35 @@ export default function OrdersPage() {
     }
   };
 
+  const createLabel = async (orderId: string) => {
+    setShippingOrderId(orderId);
+    setShipResult(null);
+    try {
+      const r = await fetch("/api/orders/ship-label", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setShipResult({ id: orderId, ok: true, msg: "Label created" });
+        await fetchOrders();
+      } else {
+        setShipResult({ id: orderId, ok: false, msg: data.error || "Failed to create label" });
+      }
+    } catch {
+      setShipResult({ id: orderId, ok: false, msg: "Network error" });
+    } finally {
+      setShippingOrderId(null);
+    }
+  };
+
   const formatDate = (ts: number) => {
     return new Date(ts * 1000).toLocaleString();
+  };
+  const formatDateMs = (ms?: number) => {
+    if (!ms || !Number.isFinite(ms)) return "—";
+    return new Date(ms).toLocaleString();
   };
 
   const formatCurrency = (amount: number, currency: string) => {
@@ -169,6 +207,11 @@ export default function OrdersPage() {
                     >
                       {order.status}
                     </span>
+                    {order.shipment?.status === "label_created" ? (
+                      <span className="px-2 py-0.5 rounded text-xs border bg-blue-900/30 text-blue-300 border-blue-700/30">
+                        Shipped
+                      </span>
+                    ) : null}
                   </div>
                   <div className="flex items-center gap-6">
                     <span className="text-neutral-400 text-sm">
@@ -227,6 +270,82 @@ export default function OrdersPage() {
                       ) : (
                         <p className="text-neutral-500 text-sm">No shipping address</p>
                       )}
+                    </div>
+                  </div>
+
+                  {/* Shipping */}
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-neutral-400 mb-2">Shipping</h4>
+                    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-3 text-sm">
+                      {order.shipment?.status === "label_created" ? (
+                        <div className="space-y-1">
+                          <div className="text-neutral-200">
+                            <span className="text-neutral-400">Status:</span> Shipped (label created)
+                          </div>
+                          <div className="text-neutral-300">
+                            <span className="text-neutral-400">Created:</span> {formatDateMs(order.shipment.shippedAt)}
+                          </div>
+                          {order.shipment.carrier || order.shipment.service ? (
+                            <div className="text-neutral-300">
+                              <span className="text-neutral-400">Service:</span>{" "}
+                              {[order.shipment.carrier, order.shipment.service].filter(Boolean).join(" • ")}
+                            </div>
+                          ) : null}
+                          {order.shipment.trackingNumber ? (
+                            <div className="text-neutral-300">
+                              <span className="text-neutral-400">Tracking:</span>{" "}
+                              {order.shipment.trackingUrl ? (
+                                <a
+                                  href={order.shipment.trackingUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-400 hover:text-blue-300 underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {order.shipment.trackingNumber}
+                                </a>
+                              ) : (
+                                order.shipment.trackingNumber
+                              )}
+                            </div>
+                          ) : null}
+                          {order.shipment.labelUrl ? (
+                            <div>
+                              <a
+                                href={order.shipment.labelUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors mt-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <FileText className="h-4 w-4" />
+                                Download label (PDF)
+                              </a>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-neutral-400">No label yet</div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              createLabel(order.id);
+                            }}
+                            disabled={shippingOrderId === order.id || !order.shippingAddress}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:bg-green-900/40 disabled:text-neutral-500 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+                            title={!order.shippingAddress ? "Order has no shipping address" : "Buy USPS label (cheapest rate) via Shippo"}
+                          >
+                            <Truck className="h-4 w-4" />
+                            {shippingOrderId === order.id ? "Creating…" : "Create USPS label"}
+                          </button>
+                        </div>
+                      )}
+                      {shipResult && shipResult.id === order.id ? (
+                        <div className={`mt-2 text-sm ${shipResult.ok ? "text-green-400" : "text-red-400"}`}>
+                          {shipResult.msg}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
