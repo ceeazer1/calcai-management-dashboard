@@ -78,11 +78,19 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     .map(
       (item) =>
         `<tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid #262626; color: #e5e5e5;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid #262626; text-align: right; color: #a3a3a3;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #262626; color:#e5e5e5; font-size:16px; line-height:1.4; word-break:break-word;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #262626; text-align:right; color:#a3a3a3; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
         </tr>`
     )
     .join('');
+
+  const shippingRowHtml =
+    shippingMethod && typeof shippingAmount === 'number'
+      ? `<tr>
+          <td style="padding:14px 0; border-bottom:1px solid #262626; color:#e5e5e5; font-size:16px; line-height:1.4; word-break:break-word;">Shipping — ${escapeHtml(shippingMethod)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #262626; text-align:right; color:#a3a3a3; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(shippingAmount, shippingCurrency || currency)}</td>
+        </tr>`
+      : '';
 
   const html = `
 <!DOCTYPE html>
@@ -91,74 +99,76 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
+  <style>
+    @media screen and (max-width: 600px) {
+      .container { width: 100% !important; }
+      .px { padding-left: 16px !important; padding-right: 16px !important; }
+      .title { font-size: 30px !important; }
+      .greeting { font-size: 20px !important; }
+      .bodycopy { font-size: 16px !important; }
+      .tot { font-size: 22px !important; }
+      .stepLabel { font-size: 11px !important; }
+    }
+  </style>
 </head>
 <body style="margin:0; padding:0; background-color:#0a0a0a; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;">
     <tr>
       <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" style="width:100%; max-width:600px;">
           <tr>
             <td style="background-color:#171717; border:1px solid #262626; border-radius:20px; overflow:hidden;">
 
-              <!-- Header (logo + title) -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td align="center" style="padding:28px 28px 14px;">
+                  <td align="center" class="px" style="padding:28px 28px 14px;">
                     <img src="${escapeHtml(logoUrl)}" width="120" alt="CalcAI" style="display:block; width:120px; max-width:120px; height:auto; border:0; outline:none; text-decoration:none;" />
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
-                    <h1 style="margin:0; color:#ffffff; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
+                  <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
+                    <h1 class="title" style="margin:0; color:#ffffff; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
                   </td>
                 </tr>
               </table>
 
-              <!-- Horizontal progress (static, icons not numbers) -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-bottom:1px solid #262626;">
                 <tr>
-                  <td style="padding:18px 22px;">
+                  <td class="px" style="padding:18px 22px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
                       <tr>
-                        <!-- Step 1 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#22c55e; border-radius:999px; display:inline-block; text-align:center;">
                             <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:700;">✓</span>
                           </div>
-                          <div style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Order Placed</div>
+                          <div class="stepLabel" style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Order Placed</div>
                         </td>
-                        <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
                           <div style="height:3px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
                         </td>
-                        <!-- Step 2 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Processing</div>
+                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Processing</div>
                         </td>
-                        <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
                           <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
                         </td>
-                        <!-- Step 3 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Shipped</div>
+                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Shipped</div>
                         </td>
-                        <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
                           <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
                         </td>
-                        <!-- Step 4 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Delivered</div>
+                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Delivered</div>
                         </td>
                       </tr>
                     </table>
@@ -166,20 +176,17 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <!-- Content -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding:26px 28px 10px;">
-                    <p style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
-                    <p style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
+                  <td class="px" style="padding:26px 28px 10px;">
+                    <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
+                    <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
-                    <!-- Order ID -->
                     <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
                       <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
                       <div style="margin-top:6px; color:#e5e5e5; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
                     </div>
 
-                    <!-- Payment method -->
                     ${
                       paymentMethod
                         ? `<div style="margin:0 0 18px; color:#e5e5e5; font-size:16px; line-height:1.6;">
@@ -189,16 +196,6 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         : ""
                     }
 
-                    ${
-                      shippingMethod && typeof shippingAmount === "number" && (shippingCurrency || currency)
-                        ? `<div style="margin:0 0 18px; color:#e5e5e5; font-size:16px; line-height:1.6;">
-                            <span style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Shipping:</span>
-                            <span style="color:#e5e5e5; font-weight:700;"> ${escapeHtml(shippingMethod)} (${formatCurrency(shippingAmount, shippingCurrency || currency)})</span>
-                          </div>`
-                        : ""
-                    }
-
-                    <!-- Items -->
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
                       <thead>
                         <tr style="border-bottom:1px solid #262626;">
@@ -208,11 +205,12 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </thead>
                       <tbody>
                         ${itemsHtml}
+                        ${shippingRowHtml}
                       </tbody>
                       <tfoot>
                         <tr style="border-top:1px solid #262626;">
                           <td style="padding:16px 0; font-weight:800; color:#ffffff; font-size:16px;">Total</td>
-                          <td align="right" style="padding:16px 0; font-weight:900; color:#ffffff; font-size:24px;">${formatCurrency(amount, currency)}</td>
+                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#ffffff; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -220,7 +218,6 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <!-- Footer: social icons -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-top:1px solid #262626;">
                 <tr>
                   <td align="center" style="padding:18px 18px 10px;">
@@ -281,10 +278,10 @@ ORDER STATUS:
 Order ID: ${orderId}
 
 ${paymentMethod ? `Payment method: ${paymentMethod}\n` : ''}
-${shippingMethod && typeof shippingAmount === 'number' ? `Shipping: ${shippingMethod} (${formatCurrency(shippingAmount, shippingCurrency || currency)})\n` : ''}
 
 Items:
 ${items.map((item) => `- ${item.quantity}x ${item.description}: ${formatCurrency(item.amount, currency)}`).join('\n')}
+${shippingMethod && typeof shippingAmount === 'number' ? `- Shipping — ${shippingMethod}: ${formatCurrency(shippingAmount, shippingCurrency || currency)}\n` : ''}
 
 Total: ${formatCurrency(amount, currency)}
 
