@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Cpu,
   ShoppingBag,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -37,6 +38,11 @@ const links = [
     label: "Website",
     href: "/website",
     icon: <Globe className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: "Orders",
+    href: "/orders",
+    icon: <Package className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
   },
   {
     label: "eBay",
