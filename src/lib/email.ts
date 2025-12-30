@@ -100,6 +100,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
   <style>
+    .stepLabel { text-transform: none !important; letter-spacing: 0 !important; }
+    .labelFull { display: inline; }
+    .labelShort { display: none; }
     @media screen and (max-width: 600px) {
       .container { width: 100% !important; }
       .px { padding-left: 16px !important; padding-right: 16px !important; }
@@ -108,6 +111,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
       .bodycopy { font-size: 16px !important; }
       .tot { font-size: 22px !important; }
       .stepLabel { font-size: 11px !important; }
+      .labelFull { display: none !important; }
+      .labelShort { display: inline !important; }
     }
   </style>
 </head>
@@ -136,49 +141,46 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 <tr>
                   <td class="px" style="padding:18px 22px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
+                      <!-- Icons row -->
                       <tr>
                         <td width="25%" align="center" valign="top">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#22c55e; border-radius:999px;">
-                                <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:800;">✓</span>
+                                <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:900;">✓</span>
                               </td>
                             </tr>
                           </table>
-                          <div class="stepLabel" style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800;">Order Placed</div>
                         </td>
                         <td width="25%" align="center" valign="top">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
-                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Processing</div>
                         </td>
                         <td width="25%" align="center" valign="top">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
-                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Shipped</div>
                         </td>
                         <td width="25%" align="center" valign="top">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
-                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Delivered</div>
                         </td>
                       </tr>
-                      <!-- Connector line (separate row so it doesn't squash spacing) -->
+                      <!-- Connector -->
                       <tr>
                         <td colspan="4" style="padding:10px 0 0;">
                           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
@@ -192,6 +194,25 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           </table>
                         </td>
                       </tr>
+                      <!-- Labels row -->
+                      <tr>
+                        <td width="25%" align="center" style="padding-top:10px;">
+                          <div class="stepLabel" style="color:#22c55e; font-size:13px; font-weight:800;">Order Placed</div>
+                        </td>
+                        <td width="25%" align="center" style="padding-top:10px;">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
+                            <span class="labelFull">Processing</span><span class="labelShort">Process</span>
+                          </div>
+                        </td>
+                        <td width="25%" align="center" style="padding-top:10px;">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">Shipped</div>
+                        </td>
+                        <td width="25%" align="center" style="padding-top:10px;">
+                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
+                            <span class="labelFull">Delivered</span><span class="labelShort">Deliv.</span>
+                          </div>
+                        </td>
+                      </tr>
                     </table>
                   </td>
                 </tr>
@@ -202,6 +223,33 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                   <td class="px" style="padding:26px 28px 10px;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
+
+                    <!-- Social links moved near the top so they don't get hidden behind trimmed-content "..." -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
+                      <tr>
+                        <td style="padding:0 10px 0 0;">
+                          <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                            </span>
+                          </a>
+                        </td>
+                        <td style="padding:0 10px 0 0;">
+                          <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                            </span>
+                          </a>
+                        </td>
+                        <td style="padding:0;">
+                          <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                            </span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
 
                     <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
                       <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
@@ -236,35 +284,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </tfoot>
                     </table>
 
-                    <!-- Follow CalcAI (moved up so it doesn't get hidden behind "..." in some clients) -->
-                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px;">
-                      <div style="margin:0 0 12px; color:#737373; font-size:13px; font-weight:800;">Follow CalcAI</div>
-                      <table role="presentation" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="padding:0 10px 0 0;">
-                            <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                                <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                              </span>
-                            </a>
-                          </td>
-                          <td style="padding:0 10px 0 0;">
-                            <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                                <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                              </span>
-                            </a>
-                          </td>
-                          <td style="padding:0;">
-                            <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                                <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                              </span>
-                            </a>
-                          </td>
-                        </tr>
-                      </table>
-                      <div style="margin-top:14px; color:#525252; font-size:13px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px; color:#525252; font-size:13px;">
+                      ${new Date().getFullYear()} CalcAI. All rights reserved.
                     </div>
                   </td>
                 </tr>
