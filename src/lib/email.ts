@@ -137,38 +137,59 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                   <td class="px" style="padding:18px 22px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
                       <tr>
-                        <td align="center" valign="top" style="width:22%;">
-                          <div style="width:34px; height:34px; background-color:#22c55e; border-radius:999px; display:inline-block; text-align:center;">
-                            <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:700;">✓</span>
-                          </div>
-                          <div class="stepLabel" style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Order Placed</div>
+                        <td width="25%" align="center" valign="top">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#22c55e; border-radius:999px;">
+                                <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:800;">✓</span>
+                              </td>
+                            </tr>
+                          </table>
+                          <div class="stepLabel" style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800;">Order Placed</div>
                         </td>
-                        <td style="width:4%; padding-top:17px;">
-                          <div style="height:3px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
+                        <td width="25%" align="center" valign="top">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                              </td>
+                            </tr>
+                          </table>
+                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Processing</div>
                         </td>
-                        <td align="center" valign="top" style="width:22%;">
-                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
-                          </div>
-                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Processing</div>
+                        <td width="25%" align="center" valign="top">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                              </td>
+                            </tr>
+                          </table>
+                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Shipped</div>
                         </td>
-                        <td style="width:4%; padding-top:17px;">
-                          <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                        <td width="25%" align="center" valign="top">
+                          <table role="presentation" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.85;" />
+                              </td>
+                            </tr>
+                          </table>
+                          <div class="stepLabel" style="margin-top:10px; color:#b3b3b3; font-size:13px; font-weight:800;">Delivered</div>
                         </td>
-                        <td align="center" valign="top" style="width:22%;">
-                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
-                          </div>
-                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Shipped</div>
-                        </td>
-                        <td style="width:4%; padding-top:17px;">
-                          <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
-                        </td>
-                        <td align="center" valign="top" style="width:22%;">
-                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
-                          </div>
-                          <div class="stepLabel" style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Delivered</div>
+                      </tr>
+                      <!-- Connector line (separate row so it doesn't squash spacing) -->
+                      <tr>
+                        <td colspan="4" style="padding:10px 0 0;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td width="12.5%"></td>
+                              <td width="25%" style="height:3px; background-color:#22c55e; border-radius:999px;">&nbsp;</td>
+                              <td width="25%" style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</td>
+                              <td width="25%" style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</td>
+                              <td width="12.5%"></td>
+                            </tr>
+                          </table>
                         </td>
                       </tr>
                     </table>
@@ -214,43 +235,37 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         </tr>
                       </tfoot>
                     </table>
-                  </td>
-                </tr>
-              </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-top:1px solid #262626;">
-                <tr>
-                  <td align="center" style="padding:18px 18px 10px;">
-                    <table role="presentation" cellpadding="0" cellspacing="0">
-                      <tr>
-                        <td style="padding:0 8px;">
-                          <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(discordIconUrl)}" width="18" height="18" alt="Discord" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                        <td style="padding:0 8px;">
-                          <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(tiktokIconUrl)}" width="18" height="18" alt="TikTok" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                        <td style="padding:0 8px;">
-                          <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(instagramIconUrl)}" width="18" height="18" alt="Instagram" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding:0 18px 18px;">
-                    <div style="color:#525252; font-size:13px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                    <!-- Follow CalcAI (moved up so it doesn't get hidden behind "..." in some clients) -->
+                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px;">
+                      <div style="margin:0 0 12px; color:#737373; font-size:13px; font-weight:800;">Follow CalcAI</div>
+                      <table role="presentation" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding:0 10px 0 0;">
+                            <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                          <td style="padding:0 10px 0 0;">
+                            <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                          <td style="padding:0;">
+                            <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                      <div style="margin-top:14px; color:#525252; font-size:13px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                    </div>
                   </td>
                 </tr>
               </table>
