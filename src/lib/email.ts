@@ -106,7 +106,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
                 <tr>
                   <td align="center" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
-                    <h1 style="margin:0; color:#ffffff; font-size:28px; font-weight:700; letter-spacing:0.2px;">Order Confirmed</h1>
+                    <h1 style="margin:0; color:#ffffff; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
                   </td>
                 </tr>
               </table>
@@ -122,7 +122,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <div style="width:34px; height:34px; background-color:#22c55e; border-radius:999px; display:inline-block; text-align:center;">
                             <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:700;">✓</span>
                           </div>
-                          <div style="margin-top:10px; color:#22c55e; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.45px;">Order Placed</div>
+                          <div style="margin-top:10px; color:#22c55e; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Order Placed</div>
                         </td>
                         <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
@@ -133,7 +133,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.45px;">Processing</div>
+                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Processing</div>
                         </td>
                         <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
@@ -144,7 +144,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.45px;">Shipped</div>
+                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Shipped</div>
                         </td>
                         <!-- Connector -->
                         <td style="width:4%; padding-top:17px;">
@@ -155,7 +155,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
                             <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; margin:7px auto; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                           </div>
-                          <div style="margin-top:10px; color:#737373; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.45px;">Delivered</div>
+                          <div style="margin-top:10px; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">Delivered</div>
                         </td>
                       </tr>
                     </table>
@@ -167,21 +167,21 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="padding:26px 28px 10px;">
-                    <p style="margin:0 0 14px; color:#e5e5e5; font-size:18px; line-height:1.6;">Hi ${escapeHtml(customerName)},</p>
-                    <p style="margin:0 0 18px; color:#a3a3a3; font-size:16px; line-height:1.7;">Thank you for your order. We’re getting it ready now.</p>
+                    <p style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
+                    <p style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
                     <!-- Order ID -->
                     <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
-                      <div style="color:#737373; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">Order ID</div>
-                      <div style="margin-top:6px; color:#e5e5e5; font-size:14px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
+                      <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
+                      <div style="margin-top:6px; color:#e5e5e5; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
                     </div>
 
                     <!-- Payment method -->
                     ${
                       paymentMethod
-                        ? `<div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
-                            <div style="color:#737373; font-size:12px; text-transform:uppercase; letter-spacing:0.5px;">Payment method</div>
-                            <div style="margin-top:6px; color:#e5e5e5; font-size:14px;">${escapeHtml(paymentMethod)}</div>
+                        ? `<div style="margin:0 0 18px; color:#e5e5e5; font-size:16px; line-height:1.6;">
+                            <span style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Payment method:</span>
+                            <span style="color:#e5e5e5; font-weight:700;"> ${escapeHtml(paymentMethod)}</span>
                           </div>`
                         : ""
                     }
@@ -190,8 +190,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
                       <thead>
                         <tr style="border-bottom:1px solid #262626;">
-                          <th align="left" style="padding:10px 0; color:#737373; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Item</th>
-                          <th align="right" style="padding:10px 0; color:#737373; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">Amount</th>
+                          <th align="left" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Item</th>
+                          <th align="right" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Amount</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -199,19 +199,11 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </tbody>
                       <tfoot>
                         <tr style="border-top:1px solid #262626;">
-                          <td style="padding:14px 0; font-weight:700; color:#ffffff;">Total</td>
-                          <td align="right" style="padding:14px 0; font-weight:800; color:#ffffff; font-size:20px;">${formatCurrency(amount, currency)}</td>
+                          <td style="padding:16px 0; font-weight:800; color:#ffffff; font-size:16px;">Total</td>
+                          <td align="right" style="padding:16px 0; font-weight:900; color:#ffffff; font-size:24px;">${formatCurrency(amount, currency)}</td>
                         </tr>
                       </tfoot>
                     </table>
-
-                    <!-- What's next -->
-                    <div style="border-top:1px solid #262626; padding-top:16px; color:#a3a3a3; font-size:14px; line-height:1.85;">
-                      <div style="margin:0 0 10px; color:#ffffff; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">What’s Next</div>
-                      <div style="margin:0 0 8px; padding-left:14px; border-left:2px solid #3b82f6;">We’ll process your order within 1–2 business days</div>
-                      <div style="margin:0 0 8px; padding-left:14px; border-left:2px solid #262626;">You’ll receive a shipping confirmation with tracking</div>
-                      <div style="margin:0; padding-left:14px; border-left:2px solid #262626;">Estimated delivery: 3–7 business days after shipping</div>
-                    </div>
                   </td>
                 </tr>
               </table>
@@ -249,7 +241,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
                 <tr>
                   <td align="center" style="padding:0 18px 18px;">
-                    <div style="color:#525252; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                    <div style="color:#525252; font-size:13px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
                   </td>
                 </tr>
               </table>
@@ -269,22 +261,19 @@ Order Confirmed
 
 Hi ${customerName},
 
-Thank you for your order. We're excited to get your CalcAI on its way to you.
+Thank you for your order. We Will start processing in 1-2 days.
 
 ORDER STATUS:
 [✓] Order Placed  ->  [ ] Processing  ->  [ ] Shipped  ->  [ ] Delivered
 
 Order ID: ${orderId}
 
+${paymentMethod ? `Payment method: ${paymentMethod}\n` : ''}
+
 Items:
 ${items.map((item) => `- ${item.quantity}x ${item.description}: ${formatCurrency(item.amount, currency)}`).join('\n')}
 
 Total: ${formatCurrency(amount, currency)}
-
-What's Next:
-1. We'll process your order within 1-2 business days
-2. You'll receive a shipping confirmation with tracking
-3. Estimated delivery: 3-7 business days after shipping
 
 Discord: https://discord.gg/calcai
 TikTok: https://www.tiktok.com/@calc_ai
