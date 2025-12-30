@@ -137,13 +137,15 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
+              <!-- Tracking -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-bottom:1px solid #262626;">
                 <tr>
                   <td class="px" style="padding:18px 22px;">
-                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
-                      <!-- Icons row -->
+                    <!-- Progress line BETWEEN icons (single row) -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                       <tr>
-                        <td width="25%" align="center" valign="top">
+                        <!-- Icon 1 -->
+                        <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#22c55e; border-radius:999px;">
@@ -152,7 +154,12 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                             </tr>
                           </table>
                         </td>
-                        <td width="25%" align="center" valign="top">
+                        <!-- Line 1 -->
+                        <td align="center" valign="middle">
+                          <div style="height:4px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Icon 2 -->
+                        <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
@@ -161,7 +168,12 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                             </tr>
                           </table>
                         </td>
-                        <td width="25%" align="center" valign="top">
+                        <!-- Line 2 -->
+                        <td align="center" valign="middle">
+                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Icon 3 -->
+                        <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
@@ -170,7 +182,12 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                             </tr>
                           </table>
                         </td>
-                        <td width="25%" align="center" valign="top">
+                        <!-- Line 3 -->
+                        <td align="center" valign="middle">
+                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Icon 4 -->
+                        <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
@@ -180,34 +197,23 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           </table>
                         </td>
                       </tr>
-                      <!-- Connector -->
+                    </table>
+
+                    <!-- Labels (separate row, will wrap nicely on mobile) -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px; table-layout:fixed;">
                       <tr>
-                        <td colspan="4" style="padding:10px 0 0;">
-                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                            <tr>
-                              <td width="12.5%"></td>
-                              <td width="25%" style="height:3px; background-color:#22c55e; border-radius:999px;">&nbsp;</td>
-                              <td width="25%" style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</td>
-                              <td width="25%" style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</td>
-                              <td width="12.5%"></td>
-                            </tr>
-                          </table>
-                        </td>
-                      </tr>
-                      <!-- Labels row -->
-                      <tr>
-                        <td width="25%" align="center" style="padding-top:10px;">
+                        <td width="25%" align="center">
                           <div class="stepLabel" style="color:#22c55e; font-size:13px; font-weight:800;">Order Placed</div>
                         </td>
-                        <td width="25%" align="center" style="padding-top:10px;">
+                        <td width="25%" align="center">
                           <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
                             <span class="labelFull">Processing</span><span class="labelShort">Process</span>
                           </div>
                         </td>
-                        <td width="25%" align="center" style="padding-top:10px;">
+                        <td width="25%" align="center">
                           <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">Shipped</div>
                         </td>
-                        <td width="25%" align="center" style="padding-top:10px;">
+                        <td width="25%" align="center">
                           <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800;">
                             <span class="labelFull">Delivered</span><span class="labelShort">Deliv.</span>
                           </div>
@@ -223,33 +229,6 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                   <td class="px" style="padding:26px 28px 10px;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
-
-                    <!-- Social links moved near the top so they don't get hidden behind trimmed-content "..." -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 18px;">
-                      <tr>
-                        <td style="padding:0 10px 0 0;">
-                          <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                        <td style="padding:0 10px 0 0;">
-                          <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                        <td style="padding:0;">
-                          <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                            <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
-                            </span>
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
 
                     <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
                       <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
@@ -284,8 +263,34 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </tfoot>
                     </table>
 
-                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px; color:#525252; font-size:13px;">
-                      ${new Date().getFullYear()} CalcAI. All rights reserved.
+                    <!-- Social icons at bottom -->
+                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" align="center">
+                        <tr>
+                          <td style="padding:0 10px 0 0;">
+                            <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                          <td style="padding:0 10px 0 0;">
+                            <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                          <td style="padding:0;">
+                            <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                                <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
+                              </span>
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                      <div style="margin-top:14px; text-align:center; color:#525252; font-size:13px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
                     </div>
                   </td>
                 </tr>
