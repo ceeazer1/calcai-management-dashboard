@@ -30,7 +30,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     return;
   }
 
-  const fromEmail = process.env.ORDER_FROM_EMAIL || 'order@updates.calcai.cc';
+  const fromEmail = process.env.ORDER_FROM_EMAIL || 'orders@calcai.cc';
   const fromName = process.env.ORDER_FROM_NAME || 'CalcAI';
 
   const itemsHtml = items
