@@ -122,7 +122,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
       <td align="center" style="padding:24px 12px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" style="width:100%; max-width:600px;">
           <tr>
-            <td style="background-color:#171717; border:1px solid #262626; border-radius:20px; overflow:hidden;">
+            <td style="background-color:#171717; border:1px solid #262626; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -333,6 +333,14 @@ Instagram: https://instagram.com/calc.ai
 ${new Date().getFullYear()} CalcAI. All rights reserved.
 `;
 
+  // Some email clients behave poorly with `overflow:hidden` and/or large amounts of whitespace in HTML.
+  // Compacting helps reduce client-side clipping / "trimmed content" behaviors.
+  const htmlOut = html
+    .replace(/\r?\n/g, '')
+    .replace(/>\s+</g, '><')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -343,7 +351,7 @@ ${new Date().getFullYear()} CalcAI. All rights reserved.
       from: `${fromName} <${fromEmail}>`,
       to: [to],
       subject: `Order Confirmed - CalcAI #${orderId.slice(-8).toUpperCase()}`,
-      html,
+      html: htmlOut,
       text: textContent,
     }),
   });
