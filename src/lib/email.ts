@@ -43,16 +43,21 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const fromName = process.env.ORDER_FROM_NAME || 'CalcAI';
 
   // Email clients require absolute URLs for images.
-  // Set ORDER_LOGO_URL to your uploaded logo (recommended). Fallbacks:
-  // - EMAIL_ASSET_BASE_URL + /logo.png
-  // - https://www.calcai.cc/logo.png
-  const assetBase =
-    (process.env.EMAIL_ASSET_BASE_URL || '').trim().replace(/\/+$/, '') ||
-    'https://calcai-management-dashboard.vercel.app';
-  const logoUrl =
-    (process.env.ORDER_LOGO_URL || '').trim() ||
-    `${assetBase}/logo.png` ||
-    'https://www.calcai.cc/logo.png';
+  // Set ORDER_LOGO_URL to your uploaded logo (recommended).
+  // Default: website logo (known-good).
+  // Note: previous fallback used the dashboard /logo.png which is 404 in production.
+  const logoUrl = (process.env.ORDER_LOGO_URL || '').trim() || 'https://www.calcai.cc/logo.png';
+  // Social icon image URLs (PNG recommended for email clients; many block SVG).
+  // You can override via env if you host your own icons.
+  const discordIconUrl =
+    (process.env.ORDER_ICON_DISCORD_URL || '').trim() ||
+    'https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png';
+  const tiktokIconUrl =
+    (process.env.ORDER_ICON_TIKTOK_URL || '').trim() ||
+    'https://img.icons8.com/ios-filled/50/ffffff/tiktok.png';
+  const instagramIconUrl =
+    (process.env.ORDER_ICON_INSTAGRAM_URL || '').trim() ||
+    'https://img.icons8.com/ios-filled/50/ffffff/instagram-new--v1.png';
 
   const itemsHtml = items
     .map(
@@ -114,7 +119,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <!-- Step 2 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">⟳</span>
+                            <span style="color:#a3a3a3; font-size:13px; line-height:30px; font-weight:800; letter-spacing:0.4px;">P</span>
                           </div>
                           <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Processing</div>
                         </td>
@@ -125,7 +130,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <!-- Step 3 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">➜</span>
+                            <span style="color:#a3a3a3; font-size:13px; line-height:30px; font-weight:800; letter-spacing:0.4px;">S</span>
                           </div>
                           <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Shipped</div>
                         </td>
@@ -136,7 +141,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <!-- Step 4 -->
                         <td align="center" valign="top" style="width:22%;">
                           <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
-                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">⌂</span>
+                            <span style="color:#a3a3a3; font-size:13px; line-height:30px; font-weight:800; letter-spacing:0.4px;">D</span>
                           </div>
                           <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Delivered</div>
                         </td>
@@ -198,21 +203,21 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <td style="padding:0 8px;">
                           <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                             <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">D</span>
+                              <img src="${escapeHtml(discordIconUrl)}" width="18" height="18" alt="Discord" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
                             </span>
                           </a>
                         </td>
                         <td style="padding:0 8px;">
                           <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                             <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">TT</span>
+                              <img src="${escapeHtml(tiktokIconUrl)}" width="18" height="18" alt="TikTok" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
                             </span>
                           </a>
                         </td>
                         <td style="padding:0 8px;">
                           <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
                             <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
-                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">IG</span>
+                              <img src="${escapeHtml(instagramIconUrl)}" width="18" height="18" alt="Instagram" style="display:block; width:18px; height:18px; margin:9px auto; border:0; outline:none; text-decoration:none;" />
                             </span>
                           </a>
                         </td>
