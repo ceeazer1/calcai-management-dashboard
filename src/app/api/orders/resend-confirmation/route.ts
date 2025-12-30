@@ -24,6 +24,18 @@ function formatPaymentMethod(pi: Stripe.PaymentIntent | null | undefined): strin
   return details.type ? details.type.replace(/_/g, ' ') : null;
 }
 
+function getShippingSummary(session: Stripe.Checkout.Session): { method: string | null; amount: number | null; currency: string | null } {
+  const sc = session.shipping_cost || null;
+  const amount = typeof sc?.amount_total === 'number' ? sc.amount_total : null;
+  const currency = session.currency || null;
+
+  const sr = (sc?.shipping_rate && typeof sc.shipping_rate === 'object')
+    ? (sc.shipping_rate as Stripe.ShippingRate)
+    : null;
+  const method = sr?.display_name || (sc?.shipping_rate ? String(sc.shipping_rate) : null);
+  return { method, amount, currency };
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { orderId, email } = await req.json();
@@ -45,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // Fetch the session to get order details
     const session = await stripe.checkout.sessions.retrieve(orderId, {
-      expand: ['line_items', 'customer_details', 'payment_intent', 'payment_intent.latest_charge'],
+      expand: ['line_items', 'customer_details', 'payment_intent', 'payment_intent.latest_charge', 'shipping_cost.shipping_rate'],
     });
 
     if (!session) {
@@ -64,6 +76,7 @@ export async function POST(req: NextRequest) {
 
     const pi = session.payment_intent && typeof session.payment_intent === 'object' ? (session.payment_intent as Stripe.PaymentIntent) : null;
     const paymentMethod = formatPaymentMethod(pi);
+    const ship = getShippingSummary(session);
 
     await sendOrderConfirmationEmail({
       to: email,
@@ -73,6 +86,9 @@ export async function POST(req: NextRequest) {
       currency: session.currency || 'usd',
       items,
       paymentMethod: paymentMethod || undefined,
+      shippingMethod: ship.method || undefined,
+      shippingAmount: ship.amount ?? undefined,
+      shippingCurrency: ship.currency || undefined,
     });
 
     return NextResponse.json({ ok: true });

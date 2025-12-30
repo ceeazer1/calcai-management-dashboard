@@ -12,6 +12,9 @@ interface OrderConfirmationParams {
   currency: string;
   items: OrderItem[];
   paymentMethod?: string;
+  shippingMethod?: string;
+  shippingAmount?: number; // cents
+  shippingCurrency?: string;
 }
 
 function escapeHtml(input: string): string {
@@ -31,7 +34,7 @@ function formatCurrency(amount: number, currency: string): string {
 }
 
 export async function sendOrderConfirmationEmail(params: OrderConfirmationParams): Promise<void> {
-  const { to, customerName, orderId, amount, currency, items, paymentMethod } = params;
+  const { to, customerName, orderId, amount, currency, items, paymentMethod, shippingMethod, shippingAmount, shippingCurrency } = params;
 
   // Use Resend for email sending
   const resendKey = process.env.RESEND_API_KEY;
@@ -186,6 +189,15 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         : ""
                     }
 
+                    ${
+                      shippingMethod && typeof shippingAmount === "number" && (shippingCurrency || currency)
+                        ? `<div style="margin:0 0 18px; color:#e5e5e5; font-size:16px; line-height:1.6;">
+                            <span style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Shipping:</span>
+                            <span style="color:#e5e5e5; font-weight:700;"> ${escapeHtml(shippingMethod)} (${formatCurrency(shippingAmount, shippingCurrency || currency)})</span>
+                          </div>`
+                        : ""
+                    }
+
                     <!-- Items -->
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
                       <thead>
@@ -269,6 +281,7 @@ ORDER STATUS:
 Order ID: ${orderId}
 
 ${paymentMethod ? `Payment method: ${paymentMethod}\n` : ''}
+${shippingMethod && typeof shippingAmount === 'number' ? `Shipping: ${shippingMethod} (${formatCurrency(shippingAmount, shippingCurrency || currency)})\n` : ''}
 
 Items:
 ${items.map((item) => `- ${item.quantity}x ${item.description}: ${formatCurrency(item.amount, currency)}`).join('\n')}

@@ -25,6 +25,18 @@ function formatPaymentMethod(pi: Stripe.PaymentIntent | null | undefined): strin
   return details.type ? details.type.replace(/_/g, ' ') : null;
 }
 
+function getShippingSummary(session: Stripe.Checkout.Session): { method: string | null; amount: number | null; currency: string | null } {
+  const sc = session.shipping_cost || null;
+  const amount = typeof sc?.amount_total === 'number' ? sc.amount_total : null;
+  const currency = session.currency || null;
+
+  const sr = (sc?.shipping_rate && typeof sc.shipping_rate === 'object')
+    ? (sc.shipping_rate as Stripe.ShippingRate)
+    : null;
+  const method = sr?.display_name || (sc?.shipping_rate ? String(sc.shipping_rate) : null);
+  return { method, amount, currency };
+}
+
 // Stripe sends raw body, we need to handle it properly
 export async function POST(req: NextRequest) {
   const stripe = getStripe();
@@ -66,10 +78,11 @@ export async function POST(req: NextRequest) {
           try {
             // Retrieve session with expanded payment intent + latest charge so we can show payment method
             const full = await stripe.checkout.sessions.retrieve(session.id, {
-              expand: ['payment_intent', 'payment_intent.latest_charge'],
+              expand: ['payment_intent', 'payment_intent.latest_charge', 'shipping_cost.shipping_rate'],
             });
             const pi = full.payment_intent && typeof full.payment_intent === 'object' ? (full.payment_intent as Stripe.PaymentIntent) : null;
             const paymentMethod = formatPaymentMethod(pi);
+            const ship = getShippingSummary(full);
 
             // Fetch line items separately
             const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
@@ -87,6 +100,9 @@ export async function POST(req: NextRequest) {
               currency: session.currency || 'usd',
               items,
               paymentMethod: paymentMethod || undefined,
+              shippingMethod: ship.method || undefined,
+              shippingAmount: ship.amount ?? undefined,
+              shippingCurrency: ship.currency || undefined,
             });
 
             console.log(`[webhook] Confirmation email sent to ${email} for order ${session.id}`);
