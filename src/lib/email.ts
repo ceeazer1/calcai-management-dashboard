@@ -13,6 +13,15 @@ interface OrderConfirmationParams {
   items: OrderItem[];
 }
 
+function escapeHtml(input: string): string {
+  return String(input || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -33,12 +42,24 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const fromEmail = process.env.ORDER_FROM_EMAIL || 'orders@calcai.cc';
   const fromName = process.env.ORDER_FROM_NAME || 'CalcAI';
 
+  // Email clients require absolute URLs for images.
+  // Set ORDER_LOGO_URL to your uploaded logo (recommended). Fallbacks:
+  // - EMAIL_ASSET_BASE_URL + /logo.png
+  // - https://www.calcai.cc/logo.png
+  const assetBase =
+    (process.env.EMAIL_ASSET_BASE_URL || '').trim().replace(/\/+$/, '') ||
+    'https://calcai-management-dashboard.vercel.app';
+  const logoUrl =
+    (process.env.ORDER_LOGO_URL || '').trim() ||
+    `${assetBase}/logo.png` ||
+    'https://www.calcai.cc/logo.png';
+
   const itemsHtml = items
     .map(
       (item) =>
         `<tr>
-          <td style="padding: 12px 0; border-bottom: 1px solid #262626; color: #e5e5e5;">${item.quantity}× ${item.description}</td>
-          <td style="padding: 12px 0; border-bottom: 1px solid #262626; text-align: right; color: #a3a3a3;">${formatCurrency(item.amount, currency)}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #262626; color: #e5e5e5;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
+          <td style="padding: 12px 0; border-bottom: 1px solid #262626; text-align: right; color: #a3a3a3;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
         </tr>`
     )
     .join('');
@@ -51,132 +72,167 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0a0a0a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-    <div style="background-color: #171717; border-radius: 12px; border: 1px solid #262626; overflow: hidden;">
-      <!-- Header -->
-      <div style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #262626;">
-        <h1 style="margin: 0 0 8px; color: #ffffff; font-size: 24px; font-weight: 600;">Order Confirmed</h1>
-        <p style="margin: 0; color: #a3a3a3; font-size: 14px;">Thank you for your purchase</p>
-      </div>
-      
-      <!-- Order Progress Timeline -->
-      <div style="padding: 32px; background-color: #0f0f0f; border-bottom: 1px solid #262626;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="table-layout: fixed;">
+<body style="margin:0; padding:0; background-color:#0a0a0a; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px; max-width:600px;">
           <tr>
-            <!-- Step 1: Order Placed (Completed) -->
-            <td width="25%" style="text-align: center; vertical-align: top;">
-              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #22c55e; border-radius: 50%; display: inline-block;">
-                <span style="color: #ffffff; font-size: 14px; line-height: 32px;">&#10003;</span>
-              </div>
-            </td>
-            <!-- Step 2: Processing (Pending) -->
-            <td width="25%" style="text-align: center; vertical-align: top;">
-              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
-                <span style="color: #525252; font-size: 12px; line-height: 28px;">2</span>
-              </div>
-            </td>
-            <!-- Step 3: Shipped (Pending) -->
-            <td width="25%" style="text-align: center; vertical-align: top;">
-              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
-                <span style="color: #525252; font-size: 12px; line-height: 28px;">3</span>
-              </div>
-            </td>
-            <!-- Step 4: Delivered (Pending) -->
-            <td width="25%" style="text-align: center; vertical-align: top;">
-              <div style="width: 32px; height: 32px; margin: 0 auto; background-color: #262626; border-radius: 50%; border: 2px solid #404040; display: inline-block;">
-                <span style="color: #525252; font-size: 12px; line-height: 28px;">4</span>
-              </div>
-            </td>
-          </tr>
-          <!-- Connecting Lines -->
-          <tr>
-            <td colspan="4" style="padding: 8px 0;">
-              <table width="100%" cellpadding="0" cellspacing="0">
+            <td style="background-color:#171717; border:1px solid #262626; border-radius:20px; overflow:hidden;">
+
+              <!-- Header (logo + title) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td width="12.5%"></td>
-                  <td width="25%" style="height: 3px; background: linear-gradient(90deg, #22c55e 0%, #404040 100%);"></td>
-                  <td width="25%" style="height: 3px; background-color: #404040;"></td>
-                  <td width="25%" style="height: 3px; background-color: #404040;"></td>
-                  <td width="12.5%"></td>
+                  <td align="center" style="padding:28px 28px 14px;">
+                    <img src="${escapeHtml(logoUrl)}" width="120" alt="CalcAI" style="display:block; width:120px; max-width:120px; height:auto; border:0; outline:none; text-decoration:none;" />
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
+                    <h1 style="margin:0; color:#ffffff; font-size:22px; font-weight:600; letter-spacing:0.2px;">Order Confirmed</h1>
+                  </td>
                 </tr>
               </table>
-            </td>
-          </tr>
-          <!-- Labels -->
-          <tr>
-            <td width="25%" style="text-align: center; padding-top: 8px;">
-              <p style="margin: 0; color: #22c55e; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;">Order Placed</p>
-            </td>
-            <td width="25%" style="text-align: center; padding-top: 8px;">
-              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Processing</p>
-            </td>
-            <td width="25%" style="text-align: center; padding-top: 8px;">
-              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Shipped</p>
-            </td>
-            <td width="25%" style="text-align: center; padding-top: 8px;">
-              <p style="margin: 0; color: #525252; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px;">Delivered</p>
+
+              <!-- Horizontal progress (static, icons not numbers) -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-bottom:1px solid #262626;">
+                <tr>
+                  <td style="padding:18px 22px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed;">
+                      <tr>
+                        <!-- Step 1 -->
+                        <td align="center" valign="top" style="width:22%;">
+                          <div style="width:34px; height:34px; background-color:#22c55e; border-radius:999px; display:inline-block; text-align:center;">
+                            <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:700;">✓</span>
+                          </div>
+                          <div style="margin-top:8px; color:#22c55e; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Order Placed</div>
+                        </td>
+                        <!-- Connector -->
+                        <td style="width:4%; padding-top:17px;">
+                          <div style="height:3px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Step 2 -->
+                        <td align="center" valign="top" style="width:22%;">
+                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
+                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">⟳</span>
+                          </div>
+                          <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Processing</div>
+                        </td>
+                        <!-- Connector -->
+                        <td style="width:4%; padding-top:17px;">
+                          <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Step 3 -->
+                        <td align="center" valign="top" style="width:22%;">
+                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
+                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">➜</span>
+                          </div>
+                          <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Shipped</div>
+                        </td>
+                        <!-- Connector -->
+                        <td style="width:4%; padding-top:17px;">
+                          <div style="height:3px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                        </td>
+                        <!-- Step 4 -->
+                        <td align="center" valign="top" style="width:22%;">
+                          <div style="width:34px; height:34px; background-color:#262626; border:2px solid #404040; border-radius:999px; display:inline-block; text-align:center;">
+                            <span style="color:#a3a3a3; font-size:16px; line-height:30px; font-weight:600;">⌂</span>
+                          </div>
+                          <div style="margin-top:8px; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.35px;">Delivered</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Content -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding:26px 28px 10px;">
+                    <p style="margin:0 0 14px; color:#e5e5e5; font-size:16px; line-height:1.6;">Hi ${escapeHtml(customerName)},</p>
+                    <p style="margin:0 0 18px; color:#a3a3a3; font-size:14px; line-height:1.7;">Thank you for your order. We’re getting it ready now.</p>
+
+                    <!-- Order ID -->
+                    <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
+                      <div style="color:#737373; font-size:11px; text-transform:uppercase; letter-spacing:0.45px;">Order ID</div>
+                      <div style="margin-top:6px; color:#e5e5e5; font-size:13px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
+                    </div>
+
+                    <!-- Items -->
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
+                      <thead>
+                        <tr style="border-bottom:1px solid #262626;">
+                          <th align="left" style="padding:10px 0; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.45px;">Item</th>
+                          <th align="right" style="padding:10px 0; color:#737373; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.45px;">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${itemsHtml}
+                      </tbody>
+                      <tfoot>
+                        <tr style="border-top:1px solid #262626;">
+                          <td style="padding:14px 0; font-weight:700; color:#ffffff;">Total</td>
+                          <td align="right" style="padding:14px 0; font-weight:700; color:#ffffff; font-size:18px;">${formatCurrency(amount, currency)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    <!-- What's next -->
+                    <div style="border-top:1px solid #262626; padding-top:16px; color:#a3a3a3; font-size:13px; line-height:1.8;">
+                      <div style="margin:0 0 10px; color:#ffffff; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.45px;">What’s Next</div>
+                      <div style="margin:0 0 8px; padding-left:14px; border-left:2px solid #3b82f6;">We’ll process your order within 1–2 business days</div>
+                      <div style="margin:0 0 8px; padding-left:14px; border-left:2px solid #262626;">You’ll receive a shipping confirmation with tracking</div>
+                      <div style="margin:0; padding-left:14px; border-left:2px solid #262626;">Estimated delivery: 3–7 business days after shipping</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Footer: social icons -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-top:1px solid #262626;">
+                <tr>
+                  <td align="center" style="padding:18px 18px 10px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:0 8px;">
+                          <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">D</span>
+                            </span>
+                          </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                          <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">TT</span>
+                            </span>
+                          </a>
+                        </td>
+                        <td style="padding:0 8px;">
+                          <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+                            <span style="display:inline-block; width:36px; height:36px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="color:#e5e5e5; font-size:12px; line-height:36px; font-weight:700;">IG</span>
+                            </span>
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:0 18px 18px;">
+                    <div style="color:#525252; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                  </td>
+                </tr>
+              </table>
+
             </td>
           </tr>
         </table>
-      </div>
-      
-      <!-- Content -->
-      <div style="padding: 32px;">
-        <p style="margin: 0 0 20px; color: #e5e5e5; font-size: 16px; line-height: 1.6;">
-          Hi ${customerName},
-        </p>
-        <p style="margin: 0 0 24px; color: #a3a3a3; font-size: 15px; line-height: 1.6;">
-          Thank you for your order. We're excited to get your CalcAI on its way to you.
-        </p>
-        
-        <!-- Order ID -->
-        <div style="background-color: #0f0f0f; border: 1px solid #262626; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
-          <p style="margin: 0; color: #737373; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Order ID</p>
-          <p style="margin: 6px 0 0; color: #e5e5e5; font-size: 14px; font-family: monospace;">${orderId}</p>
-        </div>
-        
-        <!-- Items Table -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr style="border-bottom: 1px solid #262626;">
-              <th style="padding: 12px 0; text-align: left; color: #737373; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Item</th>
-              <th style="padding: 12px 0; text-align: right; color: #737373; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-          <tfoot>
-            <tr style="border-top: 1px solid #262626;">
-              <td style="padding: 16px 0; font-weight: 600; color: #ffffff;">Total</td>
-              <td style="padding: 16px 0; text-align: right; font-weight: 600; color: #ffffff; font-size: 18px;">${formatCurrency(amount, currency)}</td>
-            </tr>
-          </tfoot>
-        </table>
-        
-        <!-- What's Next -->
-        <div style="border-top: 1px solid #262626; padding-top: 24px;">
-          <h3 style="margin: 0 0 16px; color: #ffffff; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">What's Next</h3>
-          <div style="color: #a3a3a3; font-size: 14px; line-height: 1.8;">
-            <p style="margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #3b82f6;">We'll process your order within 1-2 business days</p>
-            <p style="margin: 0 0 8px; padding-left: 16px; border-left: 2px solid #262626;">You'll receive a shipping confirmation with tracking</p>
-            <p style="margin: 0; padding-left: 16px; border-left: 2px solid #262626;">Estimated delivery: 3-7 business days after shipping</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Footer -->
-      <div style="background-color: #0f0f0f; padding: 24px; text-align: center; border-top: 1px solid #262626;">
-        <p style="margin: 0 0 8px; color: #737373; font-size: 14px;">
-          Questions? Reply to this email or visit <a href="https://calcai.cc/faq" style="color: #3b82f6; text-decoration: none;">calcai.cc/faq</a>
-        </p>
-        <p style="margin: 0; color: #525252; font-size: 12px;">
-          ${new Date().getFullYear()} CalcAI. All rights reserved.
-        </p>
-      </div>
-    </div>
-  </div>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `;
@@ -189,7 +245,7 @@ Hi ${customerName},
 Thank you for your order. We're excited to get your CalcAI on its way to you.
 
 ORDER STATUS:
-[✓] Order Placed  →  [ ] Processing  →  [ ] Shipped  →  [ ] Delivered
+[✓] Order Placed  ->  [ ] Processing  ->  [ ] Shipped  ->  [ ] Delivered
 
 Order ID: ${orderId}
 
@@ -203,7 +259,9 @@ What's Next:
 2. You'll receive a shipping confirmation with tracking
 3. Estimated delivery: 3-7 business days after shipping
 
-Questions? Reply to this email or visit https://calcai.cc/faq
+Discord: https://discord.gg/calcai
+TikTok: https://www.tiktok.com/@calc_ai
+Instagram: https://instagram.com/calc.ai
 
 ${new Date().getFullYear()} CalcAI. All rights reserved.
 `;
