@@ -116,15 +116,15 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#000000; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <!--[if mso]><table role="presentation" width="100%" bgcolor="#000000"><tr><td><![endif]-->
-  <div style="background-color:#000000; max-width:100%; margin:0 auto;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color:#000000;">
+<body style="margin:0; padding:0; background-color:#111111; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <!--[if mso]><table role="presentation" width="100%" bgcolor="#111111"><tr><td><![endif]-->
+  <div style="background-color:#111111; max-width:100%; margin:0 auto;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111111" style="background-color:#111111;">
     <tr>
-      <td align="center" bgcolor="#000000" style="padding:24px 12px; background-color:#000000;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#000000" style="width:100%; max-width:600px; background-color:#000000;">
+      <td align="center" bgcolor="#111111" style="padding:24px 12px; background-color:#111111;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#111111" style="width:100%; max-width:600px; background-color:#111111;">
           <tr>
-            <td bgcolor="#000000" style="background-color:#000000; border:0; border-radius:20px;">
+            <td bgcolor="#111111" style="background-color:#111111; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -134,7 +134,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
                 <tr>
                   <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
-                    <h1 class="title" style="margin:0; color:#ffffff; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
+                    <h1 class="title" style="margin:0; color:#fefefe; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
                   </td>
                 </tr>
               </table>
@@ -151,7 +151,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#22c55e; border-radius:999px;">
-                                <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:900;">✓</span>
+                                <span style="color:#fefefe; font-size:16px; line-height:34px; font-weight:900;">✓</span>
                               </td>
                             </tr>
                           </table>
@@ -236,9 +236,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color:#000000;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111111" style="background-color:#111111;">
                 <tr>
-                  <td class="px" bgcolor="#000000" style="padding:26px 28px 10px; background-color:#000000;">
+                  <td class="px" bgcolor="#111111" style="padding:26px 28px 10px; background-color:#111111;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
@@ -269,8 +269,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                       </tbody>
                       <tfoot>
                         <tr style="border-top:1px solid #262626;">
-                          <td style="padding:16px 0; font-weight:800; color:#ffffff; font-size:16px;">Total</td>
-                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#ffffff; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
+                          <td style="padding:16px 0; font-weight:800; color:#fefefe; font-size:16px;">Total</td>
+                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#fefefe; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
                         </tr>
                       </tfoot>
                     </table>
