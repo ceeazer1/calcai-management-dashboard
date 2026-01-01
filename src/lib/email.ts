@@ -99,16 +99,13 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
-  <meta name="color-scheme" content="dark">
-  <meta name="supported-color-schemes" content="dark">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
   <style>
-    :root { color-scheme: dark; }
+    :root { color-scheme: dark only; }
     .stepLabel { text-transform: none !important; letter-spacing: 0 !important; }
     .labelFull { display: inline; }
     .labelShort { display: none; }
-    @media (prefers-color-scheme: dark) {
-      body, table, td, div, p, a, span, h1 { background-color: #000000 !important; }
-    }
     @media screen and (max-width: 600px) {
       .container { width: 100% !important; }
       .px { padding-left: 16px !important; padding-right: 16px !important; }
@@ -120,17 +117,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
       .labelFull { display: none !important; }
       .labelShort { display: inline !important; }
     }
-    /* Prevent email client dark mode from inverting colors */
-    [data-ogsc] body, [data-ogsc] table, [data-ogsc] td { background-color: #000000 !important; }
-    u + .body, u + .body table, u + .body td { background-color: #000000 !important; }
   </style>
-  <!--[if mso]>
-  <style type="text/css">
-    body, table, td { background-color: #000000 !important; }
-  </style>
-  <![endif]-->
 </head>
-<body class="body" style="margin:0; padding:0; background-color:#000000 !important; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+<body style="margin:0; padding:0; background-color:#000000; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#000000;">
     <tr>
       <td align="center" style="padding:24px 12px;">
