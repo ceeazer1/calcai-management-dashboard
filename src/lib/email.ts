@@ -122,9 +122,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:transparent;">
     <tr>
       <td align="center" style="padding:24px 12px; background-color:transparent;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" style="width:100%; max-width:600px; background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wnwEAAP8BfoFvHZYAAAAASUVORK5CYII='); background-color:#1a1a1a; border-radius:20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" style="width:100%; max-width:600px; background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a; border-radius:20px;">
           <tr>
-            <td style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wnwEAAP8BfoFvHZYAAAAASUVORK5CYII='); background-color:#1a1a1a; border:0; border-radius:20px;">
+            <td style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -140,7 +140,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
               </table>
 
               <!-- Tracking -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wnwEAAP8BfoFvHZYAAAAASUVORK5CYII='); background-color:#0f0f0f; border-bottom:1px solid #262626;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#0f0f0f; border-bottom:1px solid #262626;">
                 <tr>
                   <td class="px" style="padding:18px 22px;">
                     <!-- Progress line BETWEEN icons (single row) -->
@@ -236,9 +236,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wnwEAAP8BfoFvHZYAAAAASUVORK5CYII='); background-color:#1a1a1a;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a;">
                 <tr>
-                  <td class="px" style="padding:26px 28px 10px; background-image:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wnwEAAP8BfoFvHZYAAAAASUVORK5CYII='); background-color:#1a1a1a;">
+                  <td class="px" style="padding:26px 28px 10px; background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
