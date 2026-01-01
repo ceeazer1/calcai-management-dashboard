@@ -46,37 +46,37 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const fromEmail = process.env.ORDER_FROM_EMAIL || 'orders@calcai.cc';
   const fromName = process.env.ORDER_FROM_NAME || 'CalcAI';
 
-  // Logo - use dark version for light email background
+  // Logo
   const logoUrl = (process.env.ORDER_LOGO_URL || '').trim() || 'https://www.calcai.cc/logo.png';
   
-  // Social icon image URLs - dark icons for light background
+  // Social icon image URLs - white icons for dark background
   const discordIconUrl =
     (process.env.ORDER_ICON_DISCORD_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/discord-logo.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png';
   const tiktokIconUrl =
     (process.env.ORDER_ICON_TIKTOK_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/tiktok.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/tiktok.png';
   const instagramIconUrl =
     (process.env.ORDER_ICON_INSTAGRAM_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/instagram-new--v1.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/instagram-new--v1.png';
 
-  // Progress step icons - dark icons for light background
+  // Progress step icons - white icons for dark background
   const iconProcessingUrl =
     (process.env.ORDER_ICON_PROGRESS_PROCESSING_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/gear.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/gear.png';
   const iconShippedUrl =
     (process.env.ORDER_ICON_PROGRESS_SHIPPED_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/delivery.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/delivery.png';
   const iconDeliveredUrl =
     (process.env.ORDER_ICON_PROGRESS_DELIVERED_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/1a1a1a/home.png';
+    'https://img.icons8.com/ios-filled/50/ffffff/home.png';
 
   const itemsHtml = items
     .map(
       (item) =>
         `<tr>
-          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; color:#1a1a1a; font-size:16px; line-height:1.4; word-break:break-word;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
-          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; text-align:right; color:#525252; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #333333; color:#e0e0e0; font-size:16px; line-height:1.4; word-break:break-word;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #333333; text-align:right; color:#a0a0a0; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
         </tr>`
     )
     .join('');
@@ -84,25 +84,45 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const shippingRowHtml =
     shippingMethod && typeof shippingAmount === 'number'
       ? `<tr>
-          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; color:#1a1a1a; font-size:16px; line-height:1.4; word-break:break-word;">Shipping — ${escapeHtml(shippingMethod)}</td>
-          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; text-align:right; color:#525252; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(shippingAmount, shippingCurrency || currency)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #333333; color:#e0e0e0; font-size:16px; line-height:1.4; word-break:break-word;">Shipping — ${escapeHtml(shippingMethod)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #333333; text-align:right; color:#a0a0a0; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(shippingAmount, shippingCurrency || currency)}</td>
         </tr>`
       : '';
 
-  // LIGHT THEME EMAIL - Gmail mobile dark mode will invert this to dark
+  // DARK THEME with color-scheme meta tags to prevent Gmail inversion
   const html = `
 <!DOCTYPE html>
-<html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
   <title>Order Confirmation</title>
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
   <style>
+    :root { color-scheme: dark only; supported-color-schemes: dark only; }
+    body, .body { background-color: #121212 !important; }
+    .darkmode { background-color: #121212 !important; }
+    [data-ogsc] .darkmode { background-color: #121212 !important; }
+    [data-ogsb] .darkmode { background-color: #121212 !important; }
     .stepLabel { text-transform: none !important; letter-spacing: 0 !important; }
     .labelFull { display: inline; }
     .labelShort { display: none; }
+    @media (prefers-color-scheme: dark) {
+      body, .body, .darkmode { background-color: #121212 !important; }
+      .card { background-color: #1e1e1e !important; }
+    }
     @media screen and (max-width: 600px) {
       .container { width: 100% !important; }
       .px { padding-left: 16px !important; padding-right: 16px !important; }
@@ -116,14 +136,15 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <!--[if mso]><table role="presentation" width="100%" bgcolor="#f5f5f5"><tr><td><![endif]-->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f5" style="background-color:#f5f5f5;">
+<body class="body darkmode" style="margin:0; padding:0; background-color:#121212; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;">
+  <div class="darkmode" style="background-color:#121212;">
+  <!--[if mso]><table role="presentation" width="100%" bgcolor="#121212"><tr><td><![endif]-->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="darkmode" bgcolor="#121212" style="background-color:#121212;">
     <tr>
-      <td align="center" bgcolor="#f5f5f5" style="padding:24px 12px; background-color:#f5f5f5;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#ffffff" style="width:100%; max-width:600px; background-color:#ffffff; border-radius:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+      <td align="center" class="darkmode" bgcolor="#121212" style="padding:24px 12px; background-color:#121212;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container card" bgcolor="#1e1e1e" style="width:100%; max-width:600px; background-color:#1e1e1e; border-radius:20px;">
           <tr>
-            <td bgcolor="#ffffff" style="background-color:#ffffff; border:0; border-radius:20px;">
+            <td class="card" bgcolor="#1e1e1e" style="background-color:#1e1e1e; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -132,14 +153,14 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #e5e5e5;">
-                    <h1 class="title" style="margin:0; color:#1a1a1a; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
+                  <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #333333;">
+                    <h1 class="title" style="margin:0; color:#f5f5f5; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
                   </td>
                 </tr>
               </table>
 
               <!-- Tracking -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#fafafa" style="background-color:#fafafa; border-bottom:1px solid #e5e5e5;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#171717" style="background-color:#171717; border-bottom:1px solid #333333;">
                 <tr>
                   <td class="px" style="padding:18px 22px;">
                     <!-- Progress line BETWEEN icons (single row) -->
@@ -157,42 +178,42 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         </td>
                         <!-- Line 1 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background:linear-gradient(90deg,#22c55e 0%,#d4d4d4 100%); border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 2 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
-                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#2a2a2a; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
                         </td>
                         <!-- Line 2 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background-color:#d4d4d4; border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 3 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
-                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#2a2a2a; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
                         </td>
                         <!-- Line 3 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background-color:#d4d4d4; border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 4 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
-                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#2a2a2a; border:2px solid #404040; border-radius:999px;">
+                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
                               </td>
                             </tr>
                           </table>
@@ -211,7 +232,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <td>&nbsp;</td>
                         <!-- Label 2 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">
+                          <div class="stepLabel" style="color:#b0b0b0; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Processing</span><span class="labelShort">Process</span>
                           </div>
                         </td>
@@ -219,13 +240,13 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <td>&nbsp;</td>
                         <!-- Label 3 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">Shipped</div>
+                          <div class="stepLabel" style="color:#b0b0b0; font-size:13px; font-weight:800; text-align:center;">Shipped</div>
                         </td>
                         <!-- Spacer under line -->
                         <td>&nbsp;</td>
                         <!-- Label 4 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">
+                          <div class="stepLabel" style="color:#b0b0b0; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Delivered</span><span class="labelShort">Deliv.</span>
                           </div>
                         </td>
@@ -235,31 +256,31 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="background-color:#ffffff;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="card" bgcolor="#1e1e1e" style="background-color:#1e1e1e;">
                 <tr>
-                  <td class="px" bgcolor="#ffffff" style="padding:26px 28px 10px; background-color:#ffffff;">
-                    <p class="greeting" style="margin:0 0 16px; color:#1a1a1a; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
-                    <p class="bodycopy" style="margin:0 0 18px; color:#525252; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
+                  <td class="px card" bgcolor="#1e1e1e" style="padding:26px 28px 10px; background-color:#1e1e1e;">
+                    <p class="greeting" style="margin:0 0 16px; color:#e0e0e0; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
+                    <p class="bodycopy" style="margin:0 0 18px; color:#a0a0a0; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
-                    <div style="background-color:#fafafa; border:1px solid #e5e5e5; border-radius:14px; padding:14px; margin:0 0 18px;">
-                      <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
-                      <div style="margin-top:6px; color:#1a1a1a; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
+                    <div style="background-color:#171717; border:1px solid #333333; border-radius:14px; padding:14px; margin:0 0 18px;">
+                      <div style="color:#808080; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
+                      <div style="margin-top:6px; color:#e0e0e0; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
                     </div>
 
                     ${
                       paymentMethod
-                        ? `<div style="margin:0 0 18px; color:#1a1a1a; font-size:16px; line-height:1.6;">
-                            <span style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Payment method:</span>
-                            <span style="color:#1a1a1a; font-weight:700;"> ${escapeHtml(paymentMethod)}</span>
+                        ? `<div style="margin:0 0 18px; color:#e0e0e0; font-size:16px; line-height:1.6;">
+                            <span style="color:#808080; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Payment method:</span>
+                            <span style="color:#e0e0e0; font-weight:700;"> ${escapeHtml(paymentMethod)}</span>
                           </div>`
                         : ""
                     }
 
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
                       <thead>
-                        <tr style="border-bottom:1px solid #e5e5e5;">
-                          <th align="left" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Item</th>
-                          <th align="right" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Amount</th>
+                        <tr style="border-bottom:1px solid #333333;">
+                          <th align="left" style="padding:12px 0; color:#808080; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Item</th>
+                          <th align="right" style="padding:12px 0; color:#808080; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Amount</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -267,34 +288,34 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         ${shippingRowHtml}
                       </tbody>
                       <tfoot>
-                        <tr style="border-top:1px solid #e5e5e5;">
-                          <td style="padding:16px 0; font-weight:800; color:#1a1a1a; font-size:16px;">Total</td>
-                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#1a1a1a; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
+                        <tr style="border-top:1px solid #333333;">
+                          <td style="padding:16px 0; font-weight:800; color:#f5f5f5; font-size:16px;">Total</td>
+                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#f5f5f5; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
                         </tr>
                       </tfoot>
                     </table>
 
                     <!-- Social icons at bottom -->
-                    <div style="border-top:1px solid #e5e5e5; padding-top:16px; margin-top:10px;">
+                    <div style="border-top:1px solid #333333; padding-top:16px; margin-top:10px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" align="center">
                         <tr>
                           <td style="padding:0 10px 0 0;">
                             <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#252525; border:1px solid #333333; text-align:center;">
                                 <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
                           </td>
                           <td style="padding:0 10px 0 0;">
                             <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#252525; border:1px solid #333333; text-align:center;">
                                 <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
                           </td>
                           <td style="padding:0;">
                             <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#252525; border:1px solid #333333; text-align:center;">
                                 <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
@@ -302,9 +323,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         </tr>
                       </table>
                       <div style="margin-top:14px; text-align:center;">
-                        <a href="https://calcai.cc" target="_blank" rel="noopener noreferrer" style="color:#a3a3a3; font-size:12px; text-decoration:none;">calcai.cc</a>
+                        <a href="https://calcai.cc" target="_blank" rel="noopener noreferrer" style="color:#606060; font-size:12px; text-decoration:none;">calcai.cc</a>
                       </div>
-                      <div style="margin-top:8px; text-align:center; color:#a3a3a3; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                      <div style="margin-top:8px; text-align:center; color:#606060; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
                     </div>
                   </td>
                 </tr>
@@ -317,6 +338,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     </tr>
   </table>
   <!--[if mso]></td></tr></table><![endif]-->
+  </div>
 </body>
 </html>
 `;
@@ -349,8 +371,7 @@ calcai.cc
 ${new Date().getFullYear()} CalcAI. All rights reserved.
 `;
 
-  // Some email clients behave poorly with `overflow:hidden` and/or large amounts of whitespace in HTML.
-  // Compacting helps reduce client-side clipping / "trimmed content" behaviors.
+  // Compact the HTML to reduce Gmail clipping
   const htmlOut = html
     .replace(/\r?\n/g, '')
     .replace(/>\s+</g, '><')
