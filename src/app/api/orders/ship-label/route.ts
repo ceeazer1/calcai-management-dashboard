@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
 
     console.log("[ship-label] Purchasing label with rate:", best.object_id, "service:", best?.servicelevel?.name);
     
-    const tx = await shippoFetch("/transactions/", {
+    let tx = await shippoFetch("/transactions/", {
       method: "POST",
       body: JSON.stringify({
         rate: best.object_id,
@@ -189,7 +189,28 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    console.log("[ship-label] Transaction response:", JSON.stringify(tx, null, 2));
+    console.log("[ship-label] Initial transaction response:", tx?.status, tx?.object_id);
+
+    // Poll if status is QUEUED (common in test mode)
+    if (tx?.status === "QUEUED" && tx?.object_id) {
+      const maxAttempts = 10;
+      const delay = 1000; // 1 second between polls
+      
+      for (let i = 0; i < maxAttempts; i++) {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        console.log(`[ship-label] Polling transaction ${tx.object_id}, attempt ${i + 1}/${maxAttempts}`);
+        
+        tx = await shippoFetch(`/transactions/${tx.object_id}`, {
+          method: "GET",
+        });
+        
+        if (tx?.status === "SUCCESS" || tx?.status === "ERROR") {
+          break;
+        }
+      }
+    }
+
+    console.log("[ship-label] Final transaction response:", JSON.stringify(tx, null, 2));
 
     if (!tx?.status || tx.status !== "SUCCESS") {
       // Get detailed error messages from Shippo
@@ -199,7 +220,7 @@ export async function POST(req: NextRequest) {
       } else if (tx?.message) {
         msg = tx.message;
       } else if (tx?.status) {
-        msg = `Label status: ${tx.status}`;
+        msg = `Label status: ${tx.status} (still processing, try again in a moment)`;
       }
       console.error("[ship-label] Shippo transaction failed:", JSON.stringify(tx, null, 2));
       throw new Error(msg);
