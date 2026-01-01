@@ -57,7 +57,7 @@ function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
       state: "NJ",
       zip: "08879",
       country: "US",
-      phone: process.env.SHIP_FROM_PHONE || "0000000000",
+      phone: "7324051352",
       email: "info@calcai.cc",
     };
   }
