@@ -47,6 +47,7 @@ function numEnv(name: string, fallback: number) {
 function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
   if (from) {
     // Hardcoded return address for CalcAI
+    // USPS requires email and phone for the seller
     return {
       name: "CalcAI",
       company: "",
@@ -56,8 +57,8 @@ function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
       state: "NJ",
       zip: "08879",
       country: "US",
-      phone: "",
-      email: "",
+      phone: process.env.SHIP_FROM_PHONE || "0000000000",
+      email: "info@calcai.cc",
     };
   }
 
