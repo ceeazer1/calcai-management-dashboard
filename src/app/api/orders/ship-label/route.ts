@@ -46,17 +46,18 @@ function numEnv(name: string, fallback: number) {
 
 function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
   if (from) {
+    // Hardcoded return address for CalcAI
     return {
-      name: process.env.SHIP_FROM_NAME || "CalcAI",
-      company: process.env.SHIP_FROM_COMPANY || "",
-      street1: mustEnv("SHIP_FROM_STREET1"),
-      street2: process.env.SHIP_FROM_STREET2 || "",
-      city: mustEnv("SHIP_FROM_CITY"),
-      state: mustEnv("SHIP_FROM_STATE"),
-      zip: mustEnv("SHIP_FROM_ZIP"),
-      country: process.env.SHIP_FROM_COUNTRY || "US",
-      phone: process.env.SHIP_FROM_PHONE || "",
-      email: process.env.SHIP_FROM_EMAIL || "",
+      name: "CalcAI",
+      company: "",
+      street1: "209 S Broadway",
+      street2: "",
+      city: "South Amboy",
+      state: "NJ",
+      zip: "08879",
+      country: "US",
+      phone: "",
+      email: "",
     };
   }
 
@@ -204,5 +205,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
 
 

@@ -97,9 +97,9 @@ export async function POST(req: NextRequest) {
       if (body.compareAt === null || body.compareAt === '') {
         next.compareAt = null;
       } else {
-        const c = Number(body.compareAt);
-        if (Number.isFinite(c) && c >= 0 && c <= 999999) next.compareAt = Number(c.toFixed(2));
-        else return NextResponse.json({ error: 'Invalid compareAt' }, { status: 400 });
+      const c = Number(body.compareAt);
+      if (Number.isFinite(c) && c >= 0 && c <= 999999) next.compareAt = Number(c.toFixed(2));
+      else return NextResponse.json({ error: 'Invalid compareAt' }, { status: 400 });
       }
     }
 
@@ -116,9 +116,9 @@ export async function POST(req: NextRequest) {
       if (body.stockCount === null || body.stockCount === '') {
         next.stockCount = null;
       } else {
-        const s = Number(body.stockCount);
-        if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
-        else return NextResponse.json({ error: 'Invalid stockCount' }, { status: 400 });
+      const s = Number(body.stockCount);
+      if (Number.isInteger(s) && s >= 0 && s <= 1000000) next.stockCount = s;
+      else return NextResponse.json({ error: 'Invalid stockCount' }, { status: 400 });
       }
     }
 
@@ -135,9 +135,9 @@ export async function POST(req: NextRequest) {
       if (body.preorderPrice === null || body.preorderPrice === '') {
         next.preorderPrice = null;
       } else {
-        const pp = Number(body.preorderPrice);
-        if (Number.isFinite(pp) && pp >= 0 && pp <= 999999) next.preorderPrice = Number(pp.toFixed(2));
-        else return NextResponse.json({ error: 'Invalid preorderPrice' }, { status: 400 });
+      const pp = Number(body.preorderPrice);
+      if (Number.isFinite(pp) && pp >= 0 && pp <= 999999) next.preorderPrice = Number(pp.toFixed(2));
+      else return NextResponse.json({ error: 'Invalid preorderPrice' }, { status: 400 });
       }
     }
 
