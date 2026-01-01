@@ -99,10 +99,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
   <style>
-    :root { color-scheme: light dark; }
     .stepLabel { text-transform: none !important; letter-spacing: 0 !important; }
     .labelFull { display: inline; }
     .labelShort { display: none; }
@@ -117,25 +114,17 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
       .labelFull { display: none !important; }
       .labelShort { display: inline !important; }
     }
-    /* Gmail dark mode fix */
-    u + .body { background-color: #000000 !important; }
-    /* Outlook dark mode */
-    [data-ogsc] .body-wrapper { background-color: #000000 !important; }
-    /* Force dark backgrounds in dark mode */
-    @media (prefers-color-scheme: dark) {
-      .body-wrapper, .dark-bg { background-color: #000000 !important; }
-      .dark-bg-alt { background-color: #0f0f0f !important; }
-    }
   </style>
 </head>
-<body class="body" style="margin:0; padding:0; background:#000000 !important; background-color:#000000 !important; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <div class="body-wrapper" style="background:#000000 !important; background-color:#000000 !important;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="dark-bg" style="background:#000000 !important; background-color:#000000 !important;">
+<body style="margin:0; padding:0; background-color:#000000; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <!--[if mso]><table role="presentation" width="100%" bgcolor="#000000"><tr><td><![endif]-->
+  <div style="background-color:#000000; max-width:100%; margin:0 auto;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color:#000000;">
     <tr>
-      <td align="center" class="dark-bg" style="padding:24px 12px; background:#000000 !important; background-color:#000000 !important;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container dark-bg" style="width:100%; max-width:600px; background:#000000 !important; background-color:#000000 !important;">
+      <td align="center" bgcolor="#000000" style="padding:24px 12px; background-color:#000000;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#000000" style="width:100%; max-width:600px; background-color:#000000;">
           <tr>
-            <td class="dark-bg" style="background:#000000 !important; background-color:#000000 !important; border:0; border-radius:20px;">
+            <td bgcolor="#000000" style="background-color:#000000; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -151,7 +140,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
               </table>
 
               <!-- Tracking -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f0f; border-bottom:1px solid #262626;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#0f0f0f" style="background-color:#0f0f0f; border-bottom:1px solid #262626;">
                 <tr>
                   <td class="px" style="padding:18px 22px;">
                     <!-- Progress line BETWEEN icons (single row) -->
@@ -247,9 +236,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#000000" style="background-color:#000000;">
                 <tr>
-                  <td class="px" style="padding:26px 28px 10px;">
+                  <td class="px" bgcolor="#000000" style="padding:26px 28px 10px; background-color:#000000;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
@@ -329,6 +318,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     </tr>
   </table>
   </div>
+  <!--[if mso]></td></tr></table><![endif]-->
 </body>
 </html>
 `;
