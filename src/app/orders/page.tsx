@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp, Truck, FileText } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp, Truck, FileText, Search, Filter } from "lucide-react";
 
 interface OrderItem {
   description: string;
@@ -39,6 +39,8 @@ interface Order {
   } | null;
 }
 
+type FilterType = "all" | "complete" | "shipped" | "expired";
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +50,8 @@ export default function OrdersPage() {
   const [emailResult, setEmailResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -144,6 +148,34 @@ export default function OrdersPage() {
     }
   };
 
+  // Filter and search orders
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      // Apply status filter
+      if (filter === "complete" && order.status !== "complete") return false;
+      if (filter === "shipped" && order.shipment?.status !== "label_created") return false;
+      if (filter === "expired" && order.status !== "expired") return false;
+
+      // Apply search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesId = order.id.toLowerCase().includes(q);
+        const matchesEmail = order.customerEmail?.toLowerCase().includes(q);
+        const matchesName = order.customerName?.toLowerCase().includes(q);
+        if (!matchesId && !matchesEmail && !matchesName) return false;
+      }
+
+      return true;
+    });
+  }, [orders, filter, searchQuery]);
+
+  const filterButtons: { label: string; value: FilterType }[] = [
+    { label: "All", value: "all" },
+    { label: "Completed", value: "complete" },
+    { label: "Shipped", value: "shipped" },
+    { label: "Expired", value: "expired" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -163,6 +195,38 @@ export default function OrdersPage() {
         </button>
       </div>
 
+      {/* Search and Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+          <input
+            type="text"
+            placeholder="Search by order ID, email, or name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-neutral-600 text-sm"
+          />
+        </div>
+
+        {/* Filter buttons */}
+        <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1">
+          {filterButtons.map((btn) => (
+            <button
+              key={btn.value}
+              onClick={() => setFilter(btn.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                filter === btn.value
+                  ? "bg-neutral-700 text-white"
+                  : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && (
         <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg text-red-300">
           {error}
@@ -176,9 +240,20 @@ export default function OrdersPage() {
           <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p>No orders yet</p>
         </div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="text-center py-12 text-neutral-400">
+          <Filter className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No orders match your filter</p>
+          <button
+            onClick={() => { setFilter("all"); setSearchQuery(""); }}
+            className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
+          >
+            Clear filters
+          </button>
+        </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <div
               key={order.id}
               className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden"
