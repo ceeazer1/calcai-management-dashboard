@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
 
     // Load order from Stripe
     const session = await stripe.checkout.sessions.retrieve(orderId, {
-      expand: ["shipping_cost.shipping_rate", "customer_details", "shipping_details"],
+      expand: ["shipping_cost.shipping_rate"],
     });
 
     if (!session || typeof session !== "object") {
