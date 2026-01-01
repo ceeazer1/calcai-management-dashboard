@@ -46,40 +46,37 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const fromEmail = process.env.ORDER_FROM_EMAIL || 'orders@calcai.cc';
   const fromName = process.env.ORDER_FROM_NAME || 'CalcAI';
 
-  // Email clients require absolute URLs for images.
-  // Set ORDER_LOGO_URL to your uploaded logo (recommended).
-  // Default: website logo (known-good).
-  // Note: previous fallback used the dashboard /logo.png which is 404 in production.
+  // Logo - use dark version for light email background
   const logoUrl = (process.env.ORDER_LOGO_URL || '').trim() || 'https://www.calcai.cc/logo.png';
-  // Social icon image URLs (PNG recommended for email clients; many block SVG).
-  // You can override via env if you host your own icons.
+  
+  // Social icon image URLs - dark icons for light background
   const discordIconUrl =
     (process.env.ORDER_ICON_DISCORD_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/discord-logo.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/discord-logo.png';
   const tiktokIconUrl =
     (process.env.ORDER_ICON_TIKTOK_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/tiktok.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/tiktok.png';
   const instagramIconUrl =
     (process.env.ORDER_ICON_INSTAGRAM_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/instagram-new--v1.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/instagram-new--v1.png';
 
-  // Progress step icons (email-safe PNGs). Override via env if you host your own.
+  // Progress step icons - dark icons for light background
   const iconProcessingUrl =
     (process.env.ORDER_ICON_PROGRESS_PROCESSING_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/gear.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/gear.png';
   const iconShippedUrl =
     (process.env.ORDER_ICON_PROGRESS_SHIPPED_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/delivery.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/delivery.png';
   const iconDeliveredUrl =
     (process.env.ORDER_ICON_PROGRESS_DELIVERED_URL || '').trim() ||
-    'https://img.icons8.com/ios-filled/50/ffffff/home.png';
+    'https://img.icons8.com/ios-filled/50/1a1a1a/home.png';
 
   const itemsHtml = items
     .map(
       (item) =>
         `<tr>
-          <td style="padding:14px 0; border-bottom:1px solid #262626; color:#e5e5e5; font-size:16px; line-height:1.4; word-break:break-word;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
-          <td style="padding:14px 0; border-bottom:1px solid #262626; text-align:right; color:#a3a3a3; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; color:#1a1a1a; font-size:16px; line-height:1.4; word-break:break-word;">${Number(item.quantity) || 1}× ${escapeHtml(item.description || 'Item')}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; text-align:right; color:#525252; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(Number(item.amount) || 0, currency)}</td>
         </tr>`
     )
     .join('');
@@ -87,11 +84,12 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   const shippingRowHtml =
     shippingMethod && typeof shippingAmount === 'number'
       ? `<tr>
-          <td style="padding:14px 0; border-bottom:1px solid #262626; color:#e5e5e5; font-size:16px; line-height:1.4; word-break:break-word;">Shipping — ${escapeHtml(shippingMethod)}</td>
-          <td style="padding:14px 0; border-bottom:1px solid #262626; text-align:right; color:#a3a3a3; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(shippingAmount, shippingCurrency || currency)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; color:#1a1a1a; font-size:16px; line-height:1.4; word-break:break-word;">Shipping — ${escapeHtml(shippingMethod)}</td>
+          <td style="padding:14px 0; border-bottom:1px solid #e5e5e5; text-align:right; color:#525252; font-size:16px; line-height:1.4; white-space:nowrap;">${formatCurrency(shippingAmount, shippingCurrency || currency)}</td>
         </tr>`
       : '';
 
+  // LIGHT THEME EMAIL - Gmail mobile dark mode will invert this to dark
   const html = `
 <!DOCTYPE html>
 <html>
@@ -99,6 +97,8 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Order Confirmation</title>
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <style>
     .stepLabel { text-transform: none !important; letter-spacing: 0 !important; }
     .labelFull { display: inline; }
@@ -116,15 +116,14 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:transparent; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <!--[if mso]><table role="presentation" width="100%" bgcolor="#1a1a1a"><tr><td><![endif]-->
-  <div style="background-color:transparent; max-width:100%; margin:0 auto;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:transparent;">
+<body style="margin:0; padding:0; background-color:#f5f5f5; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <!--[if mso]><table role="presentation" width="100%" bgcolor="#f5f5f5"><tr><td><![endif]-->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#f5f5f5" style="background-color:#f5f5f5;">
     <tr>
-      <td align="center" style="padding:24px 12px; background-color:transparent;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" style="width:100%; max-width:600px; background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a; border-radius:20px;">
+      <td align="center" bgcolor="#f5f5f5" style="padding:24px 12px; background-color:#f5f5f5;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#ffffff" style="width:100%; max-width:600px; background-color:#ffffff; border-radius:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <tr>
-            <td style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a; border:0; border-radius:20px;">
+            <td bgcolor="#ffffff" style="background-color:#ffffff; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -133,14 +132,14 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #262626;">
-                    <h1 class="title" style="margin:0; color:#fefefe; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
+                  <td align="center" class="px" style="padding:0 28px 20px; border-bottom:1px solid #e5e5e5;">
+                    <h1 class="title" style="margin:0; color:#1a1a1a; font-size:34px; font-weight:800; letter-spacing:0.2px;">Order Confirmed</h1>
                   </td>
                 </tr>
               </table>
 
               <!-- Tracking -->
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#0f0f0f; border-bottom:1px solid #262626;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#fafafa" style="background-color:#fafafa; border-bottom:1px solid #e5e5e5;">
                 <tr>
                   <td class="px" style="padding:18px 22px;">
                     <!-- Progress line BETWEEN icons (single row) -->
@@ -151,49 +150,49 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
                               <td width="34" height="34" align="center" valign="middle" style="background-color:#22c55e; border-radius:999px;">
-                                <span style="color:#fefefe; font-size:16px; line-height:34px; font-weight:900;">✓</span>
+                                <span style="color:#ffffff; font-size:16px; line-height:34px; font-weight:900;">✓</span>
                               </td>
                             </tr>
                           </table>
                         </td>
                         <!-- Line 1 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background:linear-gradient(90deg,#22c55e 0%,#404040 100%); border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background:linear-gradient(90deg,#22c55e 0%,#d4d4d4 100%); border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 2 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
+                                <img src="${escapeHtml(iconProcessingUrl)}" width="16" height="16" alt="Processing" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                               </td>
                             </tr>
                           </table>
                         </td>
                         <!-- Line 2 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background-color:#d4d4d4; border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 3 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
+                                <img src="${escapeHtml(iconShippedUrl)}" width="16" height="16" alt="Shipped" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                               </td>
                             </tr>
                           </table>
                         </td>
                         <!-- Line 3 -->
                         <td align="center" valign="middle">
-                          <div style="height:4px; background-color:#404040; border-radius:999px;">&nbsp;</div>
+                          <div style="height:4px; background-color:#d4d4d4; border-radius:999px;">&nbsp;</div>
                         </td>
                         <!-- Icon 4 -->
                         <td width="44" align="center" valign="middle">
                           <table role="presentation" cellpadding="0" cellspacing="0">
                             <tr>
-                              <td width="34" height="34" align="center" valign="middle" style="background-color:#262626; border:2px solid #404040; border-radius:999px;">
-                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.9;" />
+                              <td width="34" height="34" align="center" valign="middle" style="background-color:#e5e5e5; border:2px solid #d4d4d4; border-radius:999px;">
+                                <img src="${escapeHtml(iconDeliveredUrl)}" width="16" height="16" alt="Delivered" style="display:block; width:16px; height:16px; border:0; outline:none; text-decoration:none; opacity:0.7;" />
                               </td>
                             </tr>
                           </table>
@@ -212,7 +211,7 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <td>&nbsp;</td>
                         <!-- Label 2 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">
+                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Processing</span><span class="labelShort">Process</span>
                           </div>
                         </td>
@@ -220,13 +219,13 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         <td>&nbsp;</td>
                         <!-- Label 3 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">Shipped</div>
+                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">Shipped</div>
                         </td>
                         <!-- Spacer under line -->
                         <td>&nbsp;</td>
                         <!-- Label 4 -->
                         <td width="44" align="center" valign="top">
-                          <div class="stepLabel" style="color:#b3b3b3; font-size:13px; font-weight:800; text-align:center;">
+                          <div class="stepLabel" style="color:#737373; font-size:13px; font-weight:800; text-align:center;">
                             <span class="labelFull">Delivered</span><span class="labelShort">Deliv.</span>
                           </div>
                         </td>
@@ -236,29 +235,29 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="background-color:#ffffff;">
                 <tr>
-                  <td class="px" style="padding:26px 28px 10px; background-image:url('https://www.calcai.cc/dark-pixel.png'); background-color:#1a1a1a;">
-                    <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
-                    <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
+                  <td class="px" bgcolor="#ffffff" style="padding:26px 28px 10px; background-color:#ffffff;">
+                    <p class="greeting" style="margin:0 0 16px; color:#1a1a1a; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
+                    <p class="bodycopy" style="margin:0 0 18px; color:#525252; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
-                    <div style="background-color:#0f0f0f; border:1px solid #262626; border-radius:14px; padding:14px; margin:0 0 18px;">
+                    <div style="background-color:#fafafa; border:1px solid #e5e5e5; border-radius:14px; padding:14px; margin:0 0 18px;">
                       <div style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Order ID</div>
-                      <div style="margin-top:6px; color:#e5e5e5; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
+                      <div style="margin-top:6px; color:#1a1a1a; font-size:16px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;">${escapeHtml(orderId)}</div>
                     </div>
 
                     ${
                       paymentMethod
-                        ? `<div style="margin:0 0 18px; color:#e5e5e5; font-size:16px; line-height:1.6;">
+                        ? `<div style="margin:0 0 18px; color:#1a1a1a; font-size:16px; line-height:1.6;">
                             <span style="color:#737373; font-size:13px; text-transform:uppercase; letter-spacing:0.55px; font-weight:700;">Payment method:</span>
-                            <span style="color:#e5e5e5; font-weight:700;"> ${escapeHtml(paymentMethod)}</span>
+                            <span style="color:#1a1a1a; font-weight:700;"> ${escapeHtml(paymentMethod)}</span>
                           </div>`
                         : ""
                     }
 
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse; margin-bottom:14px;">
                       <thead>
-                        <tr style="border-bottom:1px solid #262626;">
+                        <tr style="border-bottom:1px solid #e5e5e5;">
                           <th align="left" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Item</th>
                           <th align="right" style="padding:12px 0; color:#737373; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.55px;">Amount</th>
                         </tr>
@@ -268,34 +267,34 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         ${shippingRowHtml}
                       </tbody>
                       <tfoot>
-                        <tr style="border-top:1px solid #262626;">
-                          <td style="padding:16px 0; font-weight:800; color:#fefefe; font-size:16px;">Total</td>
-                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#fefefe; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
+                        <tr style="border-top:1px solid #e5e5e5;">
+                          <td style="padding:16px 0; font-weight:800; color:#1a1a1a; font-size:16px;">Total</td>
+                          <td align="right" class="tot" style="padding:16px 0; font-weight:900; color:#1a1a1a; font-size:24px; white-space:nowrap;">${formatCurrency(amount, currency)}</td>
                         </tr>
                       </tfoot>
                     </table>
 
                     <!-- Social icons at bottom -->
-                    <div style="border-top:1px solid #262626; padding-top:16px; margin-top:10px;">
+                    <div style="border-top:1px solid #e5e5e5; padding-top:16px; margin-top:10px;">
                       <table role="presentation" cellpadding="0" cellspacing="0" align="center">
                         <tr>
                           <td style="padding:0 10px 0 0;">
                             <a href="https://discord.gg/calcai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
                                 <img src="${escapeHtml(discordIconUrl)}" width="20" height="20" alt="Discord" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
                           </td>
                           <td style="padding:0 10px 0 0;">
                             <a href="https://www.tiktok.com/@calc_ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
                                 <img src="${escapeHtml(tiktokIconUrl)}" width="20" height="20" alt="TikTok" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
                           </td>
                           <td style="padding:0;">
                             <a href="https://instagram.com/calc.ai" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
-                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#171717; border:1px solid #262626; text-align:center;">
+                              <span style="display:inline-block; width:40px; height:40px; border-radius:999px; background-color:#f5f5f5; border:1px solid #e5e5e5; text-align:center;">
                                 <img src="${escapeHtml(instagramIconUrl)}" width="20" height="20" alt="Instagram" style="display:block; width:20px; height:20px; margin:10px auto; border:0; outline:none; text-decoration:none;" />
                               </span>
                             </a>
@@ -303,9 +302,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                         </tr>
                       </table>
                       <div style="margin-top:14px; text-align:center;">
-                        <a href="https://calcai.cc" target="_blank" rel="noopener noreferrer" style="color:#525252; font-size:12px; text-decoration:none;">calcai.cc</a>
+                        <a href="https://calcai.cc" target="_blank" rel="noopener noreferrer" style="color:#a3a3a3; font-size:12px; text-decoration:none;">calcai.cc</a>
                       </div>
-                      <div style="margin-top:8px; text-align:center; color:#525252; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
+                      <div style="margin-top:8px; text-align:center; color:#a3a3a3; font-size:12px;">${new Date().getFullYear()} CalcAI. All rights reserved.</div>
                     </div>
                   </td>
                 </tr>
@@ -317,7 +316,6 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
       </td>
     </tr>
   </table>
-  </div>
   <!--[if mso]></td></tr></table><![endif]-->
 </body>
 </html>
@@ -383,4 +381,3 @@ ${new Date().getFullYear()} CalcAI. All rights reserved.
   const result = await response.json();
   console.log('[email] Sent confirmation email:', result.id);
 }
-
