@@ -137,15 +137,26 @@ export async function POST(req: NextRequest) {
       mass_unit: "oz",
     };
 
+    const addressFrom = toShippoAddress(true, session);
+    const addressTo = toShippoAddress(false, session);
+    
+    console.log("[ship-label] Creating shipment with:", {
+      address_from: addressFrom,
+      address_to: addressTo,
+      parcel,
+    });
+
     const shipment = await shippoFetch("/shipments/", {
       method: "POST",
       body: JSON.stringify({
         async: false,
-        address_from: toShippoAddress(true, session),
-        address_to: toShippoAddress(false, session),
+        address_from: addressFrom,
+        address_to: addressTo,
         parcels: [parcel],
       }),
     });
+    
+    console.log("[ship-label] Shipment response:", JSON.stringify(shipment, null, 2));
 
     const rates: any[] = Array.isArray(shipment?.rates) ? shipment.rates : [];
     if (!rates.length) {
@@ -170,7 +181,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (!tx?.status || tx.status !== "SUCCESS") {
-      const msg = tx?.messages?.[0]?.text || tx?.message || "Label creation failed";
+      // Get detailed error messages from Shippo
+      let msg = "Label creation failed";
+      if (tx?.messages && Array.isArray(tx.messages) && tx.messages.length > 0) {
+        msg = tx.messages.map((m: any) => m?.text || m?.source || JSON.stringify(m)).join("; ");
+      } else if (tx?.message) {
+        msg = tx.message;
+      }
+      console.error("[ship-label] Shippo transaction failed:", JSON.stringify(tx, null, 2));
       throw new Error(msg);
     }
 
