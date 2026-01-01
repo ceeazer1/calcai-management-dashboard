@@ -36,13 +36,11 @@ function getRuName() {
 }
 
 export function getUserOauthScopes(): string {
+  // Note: buy.offer.auction and buy.order scopes require eBay approval
+  // Set EBAY_USER_OAUTH_SCOPES env var to include them once approved
   return (
     process.env.EBAY_USER_OAUTH_SCOPES?.trim() ||
-    [
-      "https://api.ebay.com/oauth/api_scope",
-      "https://api.ebay.com/oauth/api_scope/buy.offer.auction",
-      "https://api.ebay.com/oauth/api_scope/buy.order",
-    ].join(" ")
+    "https://api.ebay.com/oauth/api_scope"
   );
 }
 
