@@ -158,9 +158,15 @@ export async function POST(req: NextRequest) {
     
     console.log("[ship-label] Shipment response:", JSON.stringify(shipment, null, 2));
 
+    // Check for address validation issues
+    if (shipment?.messages && Array.isArray(shipment.messages) && shipment.messages.length > 0) {
+      console.log("[ship-label] Shipment messages:", JSON.stringify(shipment.messages, null, 2));
+    }
+    
     const rates: any[] = Array.isArray(shipment?.rates) ? shipment.rates : [];
     if (!rates.length) {
-      throw new Error("No shipping rates returned");
+      const validationErrors = shipment?.messages?.map((m: any) => m?.text).filter(Boolean).join("; ") || "";
+      throw new Error(`No shipping rates returned. ${validationErrors}`.trim());
     }
 
     // Prefer USPS; otherwise fall back to the overall cheapest.
@@ -172,13 +178,18 @@ export async function POST(req: NextRequest) {
       throw new Error("Unable to select rate");
     }
 
+    console.log("[ship-label] Purchasing label with rate:", best.object_id, "service:", best?.servicelevel?.name);
+    
     const tx = await shippoFetch("/transactions/", {
       method: "POST",
       body: JSON.stringify({
         rate: best.object_id,
         label_file_type: "PDF",
+        async: false,
       }),
     });
+
+    console.log("[ship-label] Transaction response:", JSON.stringify(tx, null, 2));
 
     if (!tx?.status || tx.status !== "SUCCESS") {
       // Get detailed error messages from Shippo
@@ -187,6 +198,8 @@ export async function POST(req: NextRequest) {
         msg = tx.messages.map((m: any) => m?.text || m?.source || JSON.stringify(m)).join("; ");
       } else if (tx?.message) {
         msg = tx.message;
+      } else if (tx?.status) {
+        msg = `Label status: ${tx.status}`;
       }
       console.error("[ship-label] Shippo transaction failed:", JSON.stringify(tx, null, 2));
       throw new Error(msg);
