@@ -116,15 +116,15 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
     }
   </style>
 </head>
-<body style="margin:0; padding:0; background-color:#111111; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
-  <!--[if mso]><table role="presentation" width="100%" bgcolor="#111111"><tr><td><![endif]-->
-  <div style="background-color:#111111; max-width:100%; margin:0 auto;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111111" style="background-color:#111111;">
+<body style="margin:0; padding:0; background-color:transparent; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <!--[if mso]><table role="presentation" width="100%" bgcolor="#1a1a1a"><tr><td><![endif]-->
+  <div style="background-color:transparent; max-width:100%; margin:0 auto;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:transparent;">
     <tr>
-      <td align="center" bgcolor="#111111" style="padding:24px 12px; background-color:#111111;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#111111" style="width:100%; max-width:600px; background-color:#111111;">
+      <td align="center" style="padding:24px 12px; background-color:transparent;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="container" bgcolor="#1a1a1a" style="width:100%; max-width:600px; background-color:#1a1a1a; border-radius:20px;">
           <tr>
-            <td bgcolor="#111111" style="background-color:#111111; border:0; border-radius:20px;">
+            <td bgcolor="#1a1a1a" style="background-color:#1a1a1a; border:0; border-radius:20px;">
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
@@ -236,9 +236,9 @@ export async function sendOrderConfirmationEmail(params: OrderConfirmationParams
                 </tr>
               </table>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#111111" style="background-color:#111111;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="#1a1a1a" style="background-color:#1a1a1a;">
                 <tr>
-                  <td class="px" bgcolor="#111111" style="padding:26px 28px 10px; background-color:#111111;">
+                  <td class="px" bgcolor="#1a1a1a" style="padding:26px 28px 10px; background-color:#1a1a1a;">
                     <p class="greeting" style="margin:0 0 16px; color:#e5e5e5; font-size:22px; line-height:1.55; font-weight:700;">Hi ${escapeHtml(customerName)},</p>
                     <p class="bodycopy" style="margin:0 0 18px; color:#a3a3a3; font-size:18px; line-height:1.7;">Thank you for your order. We Will start processing in 1-2 days.</p>
 
