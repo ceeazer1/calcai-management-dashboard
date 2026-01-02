@@ -48,6 +48,8 @@ export default function OrdersPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [emailResult, setEmailResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [resendingShipped, setResendingShipped] = useState<string | null>(null);
+  const [shippedEmailResult, setShippedEmailResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
@@ -91,6 +93,28 @@ export default function OrdersPage() {
       setEmailResult({ id: orderId, ok: false, msg: "Network error" });
     } finally {
       setResendingEmail(null);
+    }
+  };
+
+  const resendShippedEmail = async (orderId: string, email: string) => {
+    setResendingShipped(orderId);
+    setShippedEmailResult(null);
+    try {
+      const r = await fetch("/api/orders/resend-shipped", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, email }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setShippedEmailResult({ id: orderId, ok: true, msg: "Shipped email sent!" });
+      } else {
+        setShippedEmailResult({ id: orderId, ok: false, msg: data.error || "Failed to send" });
+      }
+    } catch {
+      setShippedEmailResult({ id: orderId, ok: false, msg: "Network error" });
+    } finally {
+      setResendingShipped(null);
     }
   };
 
@@ -425,7 +449,7 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-4 pt-4 border-t border-neutral-800 flex items-center gap-3">
+                  <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-wrap items-center gap-3">
                     {order.customerEmail && (
                       <button
                         onClick={(e) => {
@@ -437,6 +461,19 @@ export default function OrdersPage() {
                       >
                         <Mail className="h-4 w-4" />
                         {resendingEmail === order.id ? "Sending..." : "Resend Confirmation"}
+                      </button>
+                    )}
+                    {order.customerEmail && order.shipment?.status === "label_created" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resendShippedEmail(order.id, order.customerEmail);
+                        }}
+                        disabled={resendingShipped === order.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 rounded-lg text-sm text-white transition-colors"
+                      >
+                        <Truck className="h-4 w-4" />
+                        {resendingShipped === order.id ? "Sending..." : "Resend Shipped Email"}
                       </button>
                     )}
                     {order.receiptUrl && (
@@ -452,12 +489,13 @@ export default function OrdersPage() {
                       </a>
                     )}
                     {emailResult && emailResult.id === order.id && (
-                      <span
-                        className={`text-sm ${
-                          emailResult.ok ? "text-green-400" : "text-red-400"
-                        }`}
-                      >
+                      <span className={`text-sm ${emailResult.ok ? "text-green-400" : "text-red-400"}`}>
                         {emailResult.msg}
+                      </span>
+                    )}
+                    {shippedEmailResult && shippedEmailResult.id === order.id && (
+                      <span className={`text-sm ${shippedEmailResult.ok ? "text-green-400" : "text-red-400"}`}>
+                        {shippedEmailResult.msg}
                       </span>
                     )}
                   </div>

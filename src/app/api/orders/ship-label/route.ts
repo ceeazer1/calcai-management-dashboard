@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getKvClient } from "@/lib/kv";
+import { sendShippedEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -250,6 +251,26 @@ export async function POST(req: NextRequest) {
 
     const kv = getKvClient();
     await kv.set(kvKey(orderId), record);
+
+    // Send shipped email to customer
+    try {
+      const customerEmail = session.customer_details?.email;
+      const customerName = session.customer_details?.name || session.shipping_details?.name || "Customer";
+      if (customerEmail) {
+        await sendShippedEmail({
+          to: customerEmail,
+          customerName,
+          orderId,
+          trackingNumber: record.trackingNumber,
+          trackingUrl: record.trackingUrl,
+          carrier: record.carrier,
+          service: record.service,
+        });
+        console.log("[ship-label] Shipped email sent to", customerEmail);
+      }
+    } catch (emailErr) {
+      console.error("[ship-label] Failed to send shipped email:", emailErr);
+    }
 
     return NextResponse.json({ ok: true, shipment: record });
   } catch (e: any) {
