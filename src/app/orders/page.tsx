@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp, Truck, FileText, Search, Filter } from "lucide-react";
+import { RefreshCw, Package, Mail, ExternalLink, ChevronDown, ChevronUp, Truck, FileText, Search, Filter, Plus, X, Trash2 } from "lucide-react";
 
 interface OrderItem {
   description: string;
@@ -11,6 +11,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  type?: "stripe" | "custom";
   created: number;
   amount: number;
   currency: string;
@@ -28,6 +29,7 @@ interface Order {
   items: OrderItem[];
   paymentStatus: string;
   receiptUrl?: string;
+  notes?: string;
   shipment?: {
     status: string;
     shippedAt?: number;
@@ -39,7 +41,7 @@ interface Order {
   } | null;
 }
 
-type FilterType = "all" | "complete" | "shipped" | "expired";
+type FilterType = "all" | "complete" | "shipped" | "expired" | "custom";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -54,6 +56,23 @@ export default function OrdersPage() {
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customOrderLoading, setCustomOrderLoading] = useState(false);
+  const [customForm, setCustomForm] = useState({
+    customerName: "",
+    customerEmail: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "US",
+    itemDescription: "CalcAI - TI-84 Plus with ChatGPT",
+    itemQuantity: 1,
+    itemPrice: 89.99,
+    notes: "",
+  });
+  const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -141,6 +160,78 @@ export default function OrdersPage() {
     }
   };
 
+  const createCustomOrder = async () => {
+    setCustomOrderLoading(true);
+    try {
+      const r = await fetch("/api/orders/custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: customForm.customerName,
+          customerEmail: customForm.customerEmail,
+          address: customForm.line1 ? {
+            line1: customForm.line1,
+            line2: customForm.line2,
+            city: customForm.city,
+            state: customForm.state,
+            postal_code: customForm.postal_code,
+            country: customForm.country,
+          } : null,
+          items: [{
+            description: customForm.itemDescription,
+            quantity: customForm.itemQuantity,
+            price: customForm.itemPrice,
+          }],
+          notes: customForm.notes,
+        }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setShowCustomModal(false);
+        setCustomForm({
+          customerName: "",
+          customerEmail: "",
+          line1: "",
+          line2: "",
+          city: "",
+          state: "",
+          postal_code: "",
+          country: "US",
+          itemDescription: "CalcAI - TI-84 Plus with ChatGPT",
+          itemQuantity: 1,
+          itemPrice: 89.99,
+          notes: "",
+        });
+        await fetchOrders();
+      } else {
+        alert(data.error || "Failed to create order");
+      }
+    } catch {
+      alert("Network error");
+    } finally {
+      setCustomOrderLoading(false);
+    }
+  };
+
+  const deleteCustomOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to delete this custom order?")) return;
+    setDeletingOrder(orderId);
+    try {
+      const r = await fetch("/api/orders/custom", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      if (r.ok) {
+        await fetchOrders();
+      }
+    } catch {
+      alert("Failed to delete order");
+    } finally {
+      setDeletingOrder(null);
+    }
+  };
+
   const formatDate = (ts: number) => {
     return new Date(ts * 1000).toLocaleString();
   };
@@ -179,6 +270,7 @@ export default function OrdersPage() {
       if (filter === "complete" && order.status !== "complete") return false;
       if (filter === "shipped" && order.shipment?.status !== "label_created") return false;
       if (filter === "expired" && order.status !== "expired") return false;
+      if (filter === "custom" && order.type !== "custom") return false;
 
       // Apply search filter
       if (searchQuery.trim()) {
@@ -198,6 +290,7 @@ export default function OrdersPage() {
     { label: "Completed", value: "complete" },
     { label: "Shipped", value: "shipped" },
     { label: "Expired", value: "expired" },
+    { label: "Custom", value: "custom" },
   ];
 
   return (
@@ -209,14 +302,23 @@ export default function OrdersPage() {
             View and manage orders from Stripe
           </p>
         </div>
-        <button
-          onClick={fetchOrders}
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCustomModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+            Create Custom Order
+          </button>
+          <button
+            onClick={fetchOrders}
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Search and Filters */}
@@ -306,6 +408,11 @@ export default function OrdersPage() {
                     >
                       {order.status}
                     </span>
+                    {order.type === "custom" && (
+                      <span className="px-2 py-0.5 rounded text-xs border bg-orange-900/30 text-orange-300 border-orange-700/30">
+                        Custom
+                      </span>
+                    )}
                     {order.shipment?.status === "label_created" ? (
                       <span className="px-2 py-0.5 rounded text-xs border bg-blue-900/30 text-blue-300 border-blue-700/30">
                         Shipped
@@ -498,11 +605,191 @@ export default function OrdersPage() {
                         {shippedEmailResult.msg}
                       </span>
                     )}
+                    {order.type === "custom" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCustomOrder(order.id);
+                        }}
+                        disabled={deletingOrder === order.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-800 rounded-lg text-sm text-white transition-colors ml-auto"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {deletingOrder === order.id ? "Deleting..." : "Delete"}
+                      </button>
+                    )}
                   </div>
+                  {order.notes && (
+                    <div className="mt-3 pt-3 border-t border-neutral-800">
+                      <h4 className="text-sm font-medium text-neutral-400 mb-1">Notes</h4>
+                      <p className="text-sm text-neutral-300">{order.notes}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Custom Order Modal */}
+      {showCustomModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+              <h2 className="text-lg font-semibold text-white">Create Custom Order</h2>
+              <button
+                onClick={() => setShowCustomModal(false)}
+                className="p-1 hover:bg-neutral-800 rounded"
+              >
+                <X className="h-5 w-5 text-neutral-400" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Customer Name *</label>
+                  <input
+                    type="text"
+                    value={customForm.customerName}
+                    onChange={(e) => setCustomForm({ ...customForm, customerName: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                    placeholder="John Doe"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    value={customForm.customerEmail}
+                    onChange={(e) => setCustomForm({ ...customForm, customerEmail: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                    placeholder="john@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="border-t border-neutral-800 pt-4">
+                <h3 className="text-sm font-medium text-neutral-300 mb-3">Shipping Address</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={customForm.line1}
+                    onChange={(e) => setCustomForm({ ...customForm, line1: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                    placeholder="Street Address"
+                  />
+                  <input
+                    type="text"
+                    value={customForm.line2}
+                    onChange={(e) => setCustomForm({ ...customForm, line2: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                    placeholder="Apt, Suite, etc. (optional)"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={customForm.city}
+                      onChange={(e) => setCustomForm({ ...customForm, city: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="City"
+                    />
+                    <input
+                      type="text"
+                      value={customForm.state}
+                      onChange={(e) => setCustomForm({ ...customForm, state: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="State"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      value={customForm.postal_code}
+                      onChange={(e) => setCustomForm({ ...customForm, postal_code: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="ZIP Code"
+                    />
+                    <input
+                      type="text"
+                      value={customForm.country}
+                      onChange={(e) => setCustomForm({ ...customForm, country: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="Country"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-neutral-800 pt-4">
+                <h3 className="text-sm font-medium text-neutral-300 mb-3">Item</h3>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={customForm.itemDescription}
+                    onChange={(e) => setCustomForm({ ...customForm, itemDescription: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                    placeholder="Item description"
+                  />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">Quantity</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={customForm.itemQuantity}
+                        onChange={(e) => setCustomForm({ ...customForm, itemQuantity: parseInt(e.target.value) || 1 })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">Price ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={customForm.itemPrice}
+                        onChange={(e) => setCustomForm({ ...customForm, itemPrice: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-neutral-800 pt-4">
+                <label className="block text-sm text-neutral-400 mb-1">Notes (optional)</label>
+                <textarea
+                  value={customForm.notes}
+                  onChange={(e) => setCustomForm({ ...customForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500 resize-none"
+                  rows={2}
+                  placeholder="Internal notes about this order..."
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-neutral-300">
+                  Total: <span className="font-semibold text-white">${(customForm.itemPrice * customForm.itemQuantity).toFixed(2)}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCustomModal(false)}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createCustomOrder}
+                    disabled={customOrderLoading || !customForm.customerName || !customForm.customerEmail}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+                  >
+                    {customOrderLoading ? "Creating..." : "Create Order"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
