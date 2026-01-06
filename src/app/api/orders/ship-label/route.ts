@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getKvClient } from "@/lib/kv";
 import { sendShippedEmail } from "@/lib/email";
+import { getHoodpayClient } from "@/lib/hoodpay";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,11 +9,11 @@ export const dynamic = "force-dynamic";
 type ShipmentRecord = {
   provider: "shippo";
   status: "label_created";
-  shippedAt: number; // ms since epoch
+  shippedAt: number;
   carrier: string;
   service: string;
   rate: {
-    amount: number; // cents
+    amount: number;
     currency: string;
   };
   labelUrl: string;
@@ -22,12 +22,6 @@ type ShipmentRecord = {
   transactionId: string;
   rateId: string;
 };
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
 
 function kvKey(orderId: string) {
   return `orders:shipment:${orderId}`;
@@ -45,10 +39,19 @@ function numEnv(name: string, fallback: number) {
   return Number.isFinite(n) && n > 0 ? n : fallback;
 }
 
-function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
+interface AddressData {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  email?: string;
+}
+
+function toShippoAddress(from: boolean, address?: AddressData | null) {
   if (from) {
-    // Hardcoded return address for CalcAI
-    // USPS requires email and phone for the seller
     return {
       name: "CalcAI",
       company: "",
@@ -63,17 +66,18 @@ function toShippoAddress(from: boolean, session: Stripe.Checkout.Session) {
     };
   }
 
-  const addr = session.shipping_details?.address || session.customer_details?.address;
-  const name = session.shipping_details?.name || session.customer_details?.name || "";
-  if (!addr) throw new Error("Order missing shipping address");
+  if (!address || !address.line1) {
+    throw new Error("Order missing shipping address");
+  }
+
   return {
-    name: name || "Customer",
-    street1: addr.line1 || "",
-    street2: addr.line2 || "",
-    city: addr.city || "",
-    state: addr.state || "",
-    zip: addr.postal_code || "",
-    country: addr.country || "US",
+    name: address.name || "Customer",
+    street1: address.line1 || "",
+    street2: address.line2 || "",
+    city: address.city || "",
+    state: address.state || "",
+    zip: address.postal_code || "",
+    country: address.country || "US",
   };
 }
 
@@ -115,18 +119,61 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "orderId required" }, { status: 400 });
     }
 
-    const stripe = getStripe();
-    if (!stripe) {
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
+    const kv = getKvClient();
+
+    // Get shipping address from KV
+    let address: AddressData | null = null;
+    let customerEmail: string | undefined;
+    let customerName: string | undefined;
+
+    // Check if custom order
+    if (orderId.startsWith("custom_")) {
+      const customOrders = await kv.get<any[]>("orders:custom:list") || [];
+      const order = customOrders.find(o => o.id === orderId);
+      
+      if (!order) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+      
+      if (order.shippingAddress) {
+        address = {
+          name: order.customerName,
+          line1: order.shippingAddress.line1,
+          line2: order.shippingAddress.line2,
+          city: order.shippingAddress.city,
+          state: order.shippingAddress.state,
+          postal_code: order.shippingAddress.postal_code,
+          country: order.shippingAddress.country,
+        };
+      }
+      customerEmail = order.customerEmail;
+      customerName = order.customerName;
+    } else {
+      // Hoodpay order - get address from KV
+      address = await kv.get<AddressData>(`orders:address:${orderId}`);
+      
+      if (!address) {
+        // Try to get email from Hoodpay
+        try {
+          const hoodpay = getHoodpayClient();
+          if (hoodpay) {
+            const response = await hoodpay.payments.get(orderId);
+            if (response.data) {
+              customerEmail = response.data.customerEmail || response.data.customer?.email;
+              customerName = response.data.name;
+            }
+          }
+        } catch (e) {
+          console.log("[ship-label] Could not fetch Hoodpay payment:", e);
+        }
+      } else {
+        customerEmail = address.email;
+        customerName = address.name;
+      }
     }
 
-    // Load order from Stripe
-    const session = await stripe.checkout.sessions.retrieve(orderId, {
-      expand: ["shipping_cost.shipping_rate"],
-    });
-
-    if (!session || typeof session !== "object") {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!address || !address.line1) {
+      return NextResponse.json({ error: "No shipping address found for this order" }, { status: 400 });
     }
 
     // Build Shippo shipment
@@ -139,8 +186,8 @@ export async function POST(req: NextRequest) {
       mass_unit: "oz",
     };
 
-    const addressFrom = toShippoAddress(true, session);
-    const addressTo = toShippoAddress(false, session);
+    const addressFrom = toShippoAddress(true, null);
+    const addressTo = toShippoAddress(false, address);
     
     console.log("[ship-label] Creating shipment with:", {
       address_from: addressFrom,
@@ -160,7 +207,6 @@ export async function POST(req: NextRequest) {
     
     console.log("[ship-label] Shipment response:", JSON.stringify(shipment, null, 2));
 
-    // Check for address validation issues
     if (shipment?.messages && Array.isArray(shipment.messages) && shipment.messages.length > 0) {
       console.log("[ship-label] Shipment messages:", JSON.stringify(shipment.messages, null, 2));
     }
@@ -196,7 +242,7 @@ export async function POST(req: NextRequest) {
     // Poll if status is QUEUED (common in test mode)
     if (tx?.status === "QUEUED" && tx?.object_id) {
       const maxAttempts = 10;
-      const delay = 1000; // 1 second between polls
+      const delay = 1000;
       
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -215,7 +261,6 @@ export async function POST(req: NextRequest) {
     console.log("[ship-label] Final transaction response:", JSON.stringify(tx, null, 2));
 
     if (!tx?.status || tx.status !== "SUCCESS") {
-      // Get detailed error messages from Shippo
       let msg = "Label creation failed";
       if (tx?.messages && Array.isArray(tx.messages) && tx.messages.length > 0) {
         msg = tx.messages.map((m: any) => m?.text || m?.source || JSON.stringify(m)).join("; ");
@@ -249,17 +294,14 @@ export async function POST(req: NextRequest) {
       throw new Error("Label created but missing labelUrl/trackingNumber");
     }
 
-    const kv = getKvClient();
     await kv.set(kvKey(orderId), record);
 
     // Send shipped email to customer
     try {
-      const customerEmail = session.customer_details?.email;
-      const customerName = session.customer_details?.name || session.shipping_details?.name || "Customer";
       if (customerEmail) {
         await sendShippedEmail({
           to: customerEmail,
-          customerName,
+          customerName: customerName || "Customer",
           orderId,
           trackingNumber: record.trackingNumber,
           trackingUrl: record.trackingUrl,
@@ -279,6 +321,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
-
-
-

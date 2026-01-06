@@ -11,7 +11,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  type?: "stripe" | "custom";
+  type?: "stripe" | "custom" | "hoodpay";
   created: number;
   amount: number;
   currency: string;

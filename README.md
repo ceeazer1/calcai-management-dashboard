@@ -61,6 +61,56 @@ This dashboard includes an `/ebay` section that uses eBay's **Browse API** for:
 - `EBAY_ORDER_API_ENABLED`: set to `1` to enable the **Order API** checkout endpoints in the dashboard (gated / limited release)
 - `EBAY_ACCOUNT_DELETION_VERIFICATION_TOKEN`: required only if you configure eBay “Marketplace account deletion notification endpoint” verification (see below)
 
+## Email (Resend)
+
+Order confirmation and shipped emails are sent via Resend.
+
+### Required env vars
+
+- `RESEND_API_KEY` - Your Resend API key
+
+### Optional env vars
+
+- `ORDER_FROM_NAME` - Sender name (default: "CalcAI")
+- `ORDER_FROM_EMAIL` - Sender email (default: "orders@calcai.cc")
+
+## Hoodpay (Payments)
+
+The Orders page fetches payments from Hoodpay and supports order confirmation emails.
+
+### Required env vars
+
+- `HOODPAY_API_KEY` - Your Hoodpay API key (from Settings > Developer)
+- `HOODPAY_BUSINESS_ID` - Your Hoodpay Business ID
+
+### Webhook setup
+
+Configure your Hoodpay webhook to point to:
+- `https://<your-dashboard-domain>/api/orders/webhook`
+
+This will automatically send confirmation emails when payments complete.
+
+### Storing shipping addresses
+
+Since Hoodpay doesn't store shipping addresses, your website checkout should call:
+```
+POST /api/orders/address
+{
+  "paymentId": "hoodpay-payment-id",
+  "address": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "line1": "123 Main St",
+    "city": "New York",
+    "state": "NY",
+    "postal_code": "10001",
+    "country": "US",
+    "shippingMethod": "USPS Priority",
+    "shippingAmount": 5.99
+  }
+}
+```
+
 ## Shipping labels (Shippo)
 
 The Orders page supports a **Create USPS label** button powered by Shippo. When a label is created, the order is marked **Shipped** (label created) and the label + tracking are saved in **Vercel KV**.
@@ -68,19 +118,9 @@ The Orders page supports a **Create USPS label** button powered by Shippo. When 
 ### Required env vars
 
 - `SHIPPO_API_TOKEN`
-- `SHIP_FROM_NAME`
-- `SHIP_FROM_STREET1`
-- `SHIP_FROM_CITY`
-- `SHIP_FROM_STATE`
-- `SHIP_FROM_ZIP`
+- `SHIPPO_API_TOKEN`
 
-### Optional env vars
-
-- `SHIP_FROM_COMPANY`
-- `SHIP_FROM_STREET2`
-- `SHIP_FROM_COUNTRY` (default `US`)
-- `SHIP_FROM_PHONE`
-- `SHIP_FROM_EMAIL`
+The return address is hardcoded in the ship-label route (CalcAI address).
 
 Parcel defaults (used to rate-shop and buy the cheapest USPS label):
 

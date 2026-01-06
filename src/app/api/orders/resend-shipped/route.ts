@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { getKvClient } from "@/lib/kv";
 import { sendShippedEmail } from "@/lib/email";
+import { getHoodpayClient } from "@/lib/hoodpay";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
 
 function kvKey(orderId: string) {
   return `orders:shipment:${orderId}`;
@@ -23,13 +17,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "orderId and email required" }, { status: 400 });
     }
 
-    const stripe = getStripe();
-    if (!stripe) {
-      return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
-    }
-
-    // Get shipment record from KV
     const kv = getKvClient();
+    
+    // Get shipment record from KV
     const shipment = await kv.get<{
       trackingNumber?: string;
       trackingUrl?: string;
@@ -41,9 +31,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No shipment found for this order" }, { status: 404 });
     }
 
-    // Get customer name from Stripe
-    const session = await stripe.checkout.sessions.retrieve(orderId);
-    const customerName = session.customer_details?.name || session.shipping_details?.name || "Customer";
+    let customerName = "Customer";
+
+    // Check if this is a custom order
+    if (orderId.startsWith("custom_")) {
+      const customOrders = await kv.get<any[]>("orders:custom:list") || [];
+      const order = customOrders.find(o => o.id === orderId);
+      if (order) {
+        customerName = order.customerName || "Customer";
+      }
+    } else {
+      // Get customer name from Hoodpay or address storage
+      const address = await kv.get<any>(`orders:address:${orderId}`);
+      if (address?.name) {
+        customerName = address.name;
+      } else {
+        try {
+          const hoodpay = getHoodpayClient();
+          if (hoodpay) {
+            const response = await hoodpay.payments.get(orderId);
+            if (response.data?.name) {
+              customerName = response.data.name;
+            }
+          }
+        } catch (e) {
+          // Ignore - use default
+        }
+      }
+    }
 
     await sendShippedEmail({
       to: email,
@@ -61,6 +76,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message || "server_error" }, { status: 500 });
   }
 }
-
-
-

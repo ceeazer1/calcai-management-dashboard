@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { getKvClient } from '@/lib/kv';
-
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) return null;
-  return new Stripe(key);
-}
+import { getHoodpayClient } from '@/lib/hoodpay';
 
 type CustomOrder = {
   id: string;
@@ -33,10 +27,10 @@ type CustomOrder = {
 const CUSTOM_ORDERS_KEY = "orders:custom:list";
 
 export async function GET() {
-  const stripe = getStripe();
-  if (!stripe) {
+  const hoodpay = getHoodpayClient();
+  if (!hoodpay) {
     return NextResponse.json(
-      { error: 'Stripe not configured' },
+      { error: 'Hoodpay not configured. Set HOODPAY_API_KEY and HOODPAY_BUSINESS_ID.' },
       { status: 500 }
     );
   }
@@ -44,47 +38,56 @@ export async function GET() {
   try {
     const kv = getKvClient();
 
-    // Fetch recent checkout sessions (completed ones = orders)
-    const sessions = await stripe.checkout.sessions.list({
-      limit: 100,
-      expand: ['data.line_items', 'data.customer_details', 'data.payment_intent'],
+    // Fetch payments from Hoodpay
+    const paymentsResponse = await hoodpay.payments.list({
+      pageSize: 100,
+      pageNumber: 1,
     });
 
-    const shipmentKeys = sessions.data.map((s) => `orders:shipment:${s.id}`);
+    const payments = paymentsResponse.data || [];
+    
+    // Get shipment records for all payments
+    const shipmentKeys = payments.map((p) => `orders:shipment:${p.id}`);
     const shipments = await Promise.all(shipmentKeys.map((k) => kv.get<any>(k)));
 
-    const stripeOrders = sessions.data.map((session, idx) => {
-      const pi = session.payment_intent as Stripe.PaymentIntent | null;
-      const shipping = session.shipping_details?.address || session.customer_details?.address;
+    // Get shipping addresses from KV (stored when order is placed)
+    const addressKeys = payments.map((p) => `orders:address:${p.id}`);
+    const addresses = await Promise.all(addressKeys.map((k) => kv.get<any>(k)));
+
+    const hoodpayOrders = payments.map((payment, idx) => {
+      // Map Hoodpay status to our status
+      const status = payment.status?.toLowerCase() || 'unknown';
+      let mappedStatus = status;
+      if (status === 'completed' || status === 'complete') mappedStatus = 'complete';
+      if (status === 'cancelled' || status === 'canceled') mappedStatus = 'expired';
+      if (status === 'expired') mappedStatus = 'expired';
+
+      const address = addresses[idx];
       
       return {
-        id: session.id,
-        type: "stripe" as const,
-        created: session.created,
-        amount: session.amount_total || 0,
-        currency: session.currency || 'usd',
-        status: session.status || 'unknown',
-        paymentStatus: session.payment_status,
-        customerEmail: session.customer_details?.email || '',
-        customerName: session.customer_details?.name || session.shipping_details?.name || '',
-        shippingAddress: shipping
-          ? {
-              line1: shipping.line1 || '',
-              line2: shipping.line2 || undefined,
-              city: shipping.city || '',
-              state: shipping.state || '',
-              postal_code: shipping.postal_code || '',
-              country: shipping.country || '',
-            }
-          : null,
-        items: (session.line_items?.data || []).map((item) => ({
-          description: item.description || 'Item',
-          quantity: item.quantity || 1,
-          amount: item.amount_total || 0,
-        })),
-        receiptUrl: pi?.latest_charge
-          ? `https://dashboard.stripe.com/payments/${typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge.id}`
-          : undefined,
+        id: payment.id,
+        type: "hoodpay" as const,
+        created: Math.floor(new Date(payment.createdAt).getTime() / 1000),
+        amount: Math.round((payment.endAmount || 0) * 100), // Convert to cents
+        currency: payment.currency || 'usd',
+        status: mappedStatus,
+        paymentStatus: status,
+        customerEmail: payment.customerEmail || payment.customer?.email || '',
+        customerName: payment.name || '',
+        shippingAddress: address ? {
+          line1: address.line1 || '',
+          line2: address.line2 || undefined,
+          city: address.city || '',
+          state: address.state || '',
+          postal_code: address.postal_code || '',
+          country: address.country || '',
+        } : null,
+        items: [{
+          description: payment.description || payment.name || 'CalcAI Product',
+          quantity: 1,
+          amount: Math.round((payment.endAmount || 0) * 100),
+        }],
+        paymentMethod: payment.selectedPaymentMethod || payment.paymentMethod || 'Crypto',
         shipment: shipments[idx] || null,
       };
     });
@@ -102,7 +105,7 @@ export async function GET() {
     }));
 
     // Combine and sort by created date (newest first)
-    const allOrders = [...stripeOrders, ...customOrdersWithShipments].sort((a, b) => b.created - a.created);
+    const allOrders = [...hoodpayOrders, ...customOrdersWithShipments].sort((a, b) => b.created - a.created);
 
     return NextResponse.json({ orders: allOrders });
   } catch (e) {
@@ -113,5 +116,3 @@ export async function GET() {
     );
   }
 }
-
-
