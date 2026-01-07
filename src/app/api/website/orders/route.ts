@@ -52,9 +52,11 @@ export async function POST(req: NextRequest) {
             console.log(`[api/website/orders] Attempting Square payment. Location: ${locationId}, Amount: ${amountCents}`);
 
             // Create the payment using the token as sourceId
+            // The token itself (order.id) is unique and makes a great idempotency key.
+            // Square limits idempotency keys to 45 chars.
             const squareResponse = await square.payments.create({
                 sourceId: order.id,
-                idempotencyKey: order.id + "_charge_" + Date.now(),
+                idempotencyKey: order.id, // Use the token as the key (it's unique and < 45 chars)
                 locationId: locationId,
                 amountMoney: {
                     amount: amountCents,
