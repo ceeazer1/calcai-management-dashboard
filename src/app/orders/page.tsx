@@ -42,7 +42,7 @@ interface Order {
   } | null;
 }
 
-type FilterType = "all" | "complete" | "shipped" | "expired" | "custom" | "square";
+type FilterType = "all" | "complete" | "shipped" | "expired" | "custom";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -74,8 +74,6 @@ export default function OrdersPage() {
     notes: "",
   });
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
-  const [importingSquare, setImportingSquare] = useState(false);
-  const [squareImportResult, setSquareImportResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -92,26 +90,6 @@ export default function OrdersPage() {
     }
   };
 
-  const importSquareOrders = async () => {
-    setImportingSquare(true);
-    setSquareImportResult(null);
-    try {
-      const r = await fetch("/api/orders/square/import", {
-        method: "POST",
-      });
-      const data = await r.json();
-      if (r.ok && data.ok) {
-        setSquareImportResult({ ok: true, msg: `Imported ${data.count} orders from Square` });
-        await fetchOrders();
-      } else {
-        setSquareImportResult({ ok: false, msg: data.error || "Failed to import" });
-      }
-    } catch {
-      setSquareImportResult({ ok: false, msg: "Network error" });
-    } finally {
-      setImportingSquare(false);
-    }
-  };
 
   useEffect(() => {
     fetchOrders();
@@ -237,17 +215,20 @@ export default function OrdersPage() {
     }
   };
 
-  const deleteCustomOrder = async (orderId: string) => {
-    if (!confirm("Are you sure you want to delete this custom order?")) return;
+  const deleteGeneralOrder = async (orderId: string) => {
+    if (!confirm("Are you sure you want to delete this order? This cannot be undone.")) return;
     setDeletingOrder(orderId);
     try {
-      const r = await fetch("/api/orders/custom", {
+      const r = await fetch("/api/orders/delete", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId }),
       });
       if (r.ok) {
         await fetchOrders();
+      } else {
+        const data = await r.json();
+        alert(data.error || "Failed to delete order");
       }
     } catch {
       alert("Failed to delete order");
@@ -295,7 +276,6 @@ export default function OrdersPage() {
       if (filter === "shipped" && order.shipment?.status !== "label_created") return false;
       if (filter === "expired" && order.status !== "expired") return false;
       if (filter === "custom" && order.type !== "custom") return false;
-      if (filter === "square" && order.type !== "square") return false;
 
       // Apply search filter
       if (searchQuery.trim()) {
@@ -316,7 +296,6 @@ export default function OrdersPage() {
     { label: "Shipped", value: "shipped" },
     { label: "Expired", value: "expired" },
     { label: "Custom", value: "custom" },
-    { label: "Square", value: "square" },
   ];
 
   return (
@@ -325,18 +304,10 @@ export default function OrdersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Orders</h1>
           <p className="text-neutral-400 text-sm mt-1">
-            View and manage orders from Square and custom sources
+            View and manage all customer orders
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={importSquareOrders}
-            disabled={importingSquare}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 rounded-lg text-sm text-white transition-colors"
-          >
-            <Download className={`h-4 w-4 ${importingSquare ? "animate-bounce" : ""}`} />
-            {importingSquare ? "Importing..." : "Import from Square"}
-          </button>
           <button
             onClick={() => setShowCustomModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white transition-colors"
@@ -392,11 +363,6 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {squareImportResult && (
-        <div className={`p-4 rounded-lg ${squareImportResult.ok ? "bg-green-900/30 border border-green-700/50 text-green-300" : "bg-red-900/30 border border-red-700/50 text-red-300"}`}>
-          {squareImportResult.msg}
-        </div>
-      )}
 
       {loading && orders.length === 0 ? (
         <div className="text-center py-12 text-neutral-400">Loading orders...</div>
@@ -450,11 +416,6 @@ export default function OrdersPage() {
                     {order.type === "custom" && (
                       <span className="px-2 py-0.5 rounded text-xs border bg-orange-900/30 text-orange-300 border-orange-700/30">
                         Custom
-                      </span>
-                    )}
-                    {order.type === "square" && (
-                      <span className="px-2 py-0.5 rounded text-xs border bg-purple-900/30 text-purple-300 border-purple-700/30">
-                        Square
                       </span>
                     )}
                     {order.shipment?.status === "label_created" ? (
@@ -650,19 +611,17 @@ export default function OrdersPage() {
                         {shippedEmailResult.msg}
                       </span>
                     )}
-                    {order.type === "custom" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteCustomOrder(order.id);
-                        }}
-                        disabled={deletingOrder === order.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-800 rounded-lg text-sm text-white transition-colors ml-auto"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        {deletingOrder === order.id ? "Deleting..." : "Delete"}
-                      </button>
-                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteGeneralOrder(order.id);
+                      }}
+                      disabled={deletingOrder === order.id}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 disabled:bg-red-800 rounded-lg text-sm text-white transition-colors ml-auto"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      {deletingOrder === order.id ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                   {order.notes && (
                     <div className="mt-3 pt-3 border-t border-neutral-800">

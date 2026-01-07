@@ -3,7 +3,7 @@ import { createClient } from "@vercel/kv";
 export type KvClientLike = {
   get: <T>(key: string) => Promise<T | null>;
   set: (key: string, value: unknown) => Promise<unknown>;
-  del?: (key: string) => Promise<unknown>;
+  del: (key: string) => Promise<unknown>;
 };
 
 let memStore: Map<string, unknown> | null = null;
