@@ -5,20 +5,28 @@ import { getSquareClient } from "@/lib/square";
 
 const SQUARE_ORDERS_KEY = "orders:square:imported";
 
+function corsResponse(data: any, status: number = 200) {
+    const response = NextResponse.json(data, { status });
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, x-api-key");
+    return response;
+}
+
 export async function POST(req: NextRequest) {
     try {
         const authHeader = req.headers.get("x-api-key");
         const secureKey = process.env.WEBSITE_API_KEY || "CALCAI_SECURE_PUSH_2026";
 
         if (!authHeader || authHeader !== secureKey) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return corsResponse({ error: "Unauthorized" }, 401);
         }
 
         const body = await req.json();
         const { order } = body;
 
         if (!order || !order.id) {
-            return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
+            return corsResponse({ error: "Invalid order data" }, 400);
         }
 
         const kv = getKvClient();
@@ -26,44 +34,46 @@ export async function POST(req: NextRequest) {
         // 1. Actually process the payment with Square
         const square = getSquareClient();
         if (!square) {
-            return NextResponse.json({ error: "Square not configured" }, { status: 500 });
+            return corsResponse({ error: "Square not configured" }, 500);
         }
 
         try {
+            const amountStr = String(order.amount || "0");
+            const amountCents = BigInt(amountStr);
+
             // Create the payment using the token as sourceId
             const response = await square.payments.create({
-                sourceId: order.id, // This is the token from the frontend
+                sourceId: order.id,
                 idempotencyKey: order.id + "_charge",
                 amountMoney: {
-                    amount: BigInt(order.amount),
+                    amount: amountCents,
                     currency: (order.currency || 'USD').toUpperCase()
                 },
                 note: `CalcAI Order: ${order.customerEmail}`
             });
 
-            const payment = response.payment;
+            // Handle different possible SDK response structures
+            const payment = (response as any).result?.payment || (response as any).payment;
 
-            // Check if payment was successful
-            if (payment?.status !== 'COMPLETED' && payment?.status !== 'APPROVED') {
-                return NextResponse.json({
-                    error: "Payment declined or failed",
+            if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
+                console.error("[api/website/orders] Square payment not completed:", payment?.status);
+                return corsResponse({
+                    error: "Payment declined or skipped",
                     status: payment?.status
-                }, { status: 400 });
+                }, 400);
             }
 
             console.log(`[api/website/orders] Square payment successful: ${payment.id}`);
-
-            // Update the order ID and status
             order.squarePaymentId = payment.id;
             order.paymentStatus = payment.status;
 
         } catch (squareErr: any) {
-            const error = squareErr.errors ? squareErr.errors[0] : squareErr;
-            console.error("[api/website/orders] Square Payment Error:", error);
-            return NextResponse.json({
-                error: error.detail || "Payment failed",
-                code: error.code
-            }, { status: 400 });
+            console.error("[api/website/orders] Square Payment Error:", squareErr);
+            const errorDetail = squareErr.errors?.[0]?.detail || squareErr.message || "Payment failed";
+            return corsResponse({
+                error: errorDetail,
+                code: squareErr.errors?.[0]?.code
+            }, 400);
         }
 
         // 2. Save to KV and send email
@@ -108,17 +118,10 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const response = NextResponse.json({ ok: true, orderId: order.id });
-
-        // Add CORS headers for the website domain
-        response.headers.set("Access-Control-Allow-Origin", "*");
-        response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-        response.headers.set("Access-Control-Allow-Headers", "Content-Type, x-api-key");
-
-        return response;
+        return corsResponse({ ok: true, orderId: order.id });
     } catch (e) {
         console.error("[api/website/orders] POST error:", e);
-        return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+        return corsResponse({ error: "Failed to save order" }, 500);
     }
 }
 
