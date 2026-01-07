@@ -34,18 +34,28 @@ export async function POST(req: NextRequest) {
         // 1. Actually process the payment with Square
         const square = getSquareClient();
         if (!square) {
-            return corsResponse({ error: "Square not configured" }, 500);
+            console.error("[api/website/orders] Square client initialization failed - check Access Token");
+            return corsResponse({ error: "Square not configured on server" }, 500);
         }
 
         try {
-            // Ensure amount is a whole number before BigInt conversion
+            // Ensure amount is a whole number (cents)
             const rawAmount = Number(order.amount || 0);
             const amountCents = BigInt(Math.round(rawAmount));
+            const locationId = process.env.SQUARE_LOCATION_ID || process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
+
+            if (!locationId) {
+                console.error("[api/website/orders] Missing Location ID");
+                return corsResponse({ error: "Server Configuration Error: Missing Location ID" }, 500);
+            }
+
+            console.log(`[api/website/orders] Attempting Square payment. Location: ${locationId}, Amount: ${amountCents}`);
 
             // Create the payment using the token as sourceId
             const squareResponse = await square.payments.create({
                 sourceId: order.id,
                 idempotencyKey: order.id + "_charge_" + Date.now(),
+                locationId: locationId,
                 amountMoney: {
                     amount: amountCents,
                     currency: (order.currency || 'USD').toUpperCase()
@@ -53,11 +63,12 @@ export async function POST(req: NextRequest) {
                 note: `CalcAI Order: ${order.customerEmail}`
             });
 
-            // Handle different possible SDK response structures
-            const payment = (squareResponse as any).result?.payment || (squareResponse as any).payment;
+            // The Square SDK returns a 'result' object in newer versions
+            const result = (squareResponse as any).result || squareResponse;
+            const payment = result.payment;
 
             if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
-                console.error("[api/website/orders] Square payment not completed:", payment?.status);
+                console.error("[api/website/orders] Square payment check failed. Status:", payment?.status);
                 return corsResponse({
                     error: "Payment declined or skipped by Square",
                     status: payment?.status
@@ -65,16 +76,20 @@ export async function POST(req: NextRequest) {
             }
 
             console.log(`[api/website/orders] Square payment successful: ${payment.id}`);
-            order.squarePaymentId = payment.id;
-            order.paymentStatus = payment.status;
+
+            // Store strings only to avoid BigInt serialization errors with KV/JSON
+            order.squarePaymentId = String(payment.id);
+            order.paymentStatus = String(payment.status);
 
         } catch (squareErr: any) {
-            console.error("[api/website/orders] Square Payment Error Exception:", squareErr);
-            // Extract the most useful error message
-            const errorDetail = squareErr.errors?.[0]?.detail || squareErr.message || "Payment processing failed";
+            console.error("[api/website/orders] Square SDK Exception:", squareErr);
+            // Extract specific error if available
+            const squareErrors = squareErr.errors || (squareErr.result?.errors);
+            const errorDetail = squareErrors?.[0]?.detail || squareErr.message || "Payment processing failed";
+
             return corsResponse({
                 error: errorDetail,
-                code: squareErr.errors?.[0]?.code
+                code: squareErrors?.[0]?.code
             }, 400);
         }
 
