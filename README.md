@@ -84,6 +84,18 @@ Set `WEBSITE_API_KEY` in your environment variables. This must match the key use
 ### Endpoint
 - `POST /api/website/orders` - Pushes order, customer, and shipping details instantly.
 
+## Square (Orders & Processing)
+
+The dashboard and website interact with Square for payments and order tracking.
+
+### Required Dashboard Env Vars
+- `SQUARE_ACCESS_TOKEN` - Your Square personal access token.
+- `SQUARE_ENVIRONMENT` - Set to `production` or `sandbox`.
+
+### Required Website Env Vars
+- `NEXT_PUBLIC_SQUARE_APPLICATION_ID` - The Application ID from your Square project.
+- `NEXT_PUBLIC_SQUARE_LOCATION_ID` - The Location ID from your Square project.
+
 ## Shipping labels (Shippo)
 
 The Orders page supports a **Create USPS label** button powered by Shippo. When a label is created, the order is marked **Shipped** (label created) and the label + tracking are saved in **Vercel KV**.
