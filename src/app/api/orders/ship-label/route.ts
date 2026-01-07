@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendShippedEmail } from "@/lib/email";
-import { getHoodpayClient } from "@/lib/hoodpay";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -121,58 +120,43 @@ export async function POST(req: NextRequest) {
 
     const kv = getKvClient();
 
-    // Get shipping address from KV
-    let address: AddressData | null = null;
-    let customerEmail: string | undefined;
-    let customerName: string | undefined;
+    // 1. Try Custom Order
+    const customOrders = await kv.get<any[]>("orders:custom:list") || [];
+    let orderFound = customOrders.find(o => o.id === orderId);
 
-    // Check if custom order
-    if (orderId.startsWith("custom_")) {
-      const customOrders = await kv.get<any[]>("orders:custom:list") || [];
-      const order = customOrders.find(o => o.id === orderId);
-      
-      if (!order) {
-        return NextResponse.json({ error: "Order not found" }, { status: 404 });
-      }
-      
-      if (order.shippingAddress) {
-        address = {
-          name: order.customerName,
-          line1: order.shippingAddress.line1,
-          line2: order.shippingAddress.line2,
-          city: order.shippingAddress.city,
-          state: order.shippingAddress.state,
-          postal_code: order.shippingAddress.postal_code,
-          country: order.shippingAddress.country,
+    // 2. Try Square Order
+    if (!orderFound) {
+      const squareOrders = await kv.get<any[]>("orders:square:imported") || [];
+      orderFound = squareOrders.find(o => o.id === orderId);
+    }
+
+    if (!orderFound) {
+      // Fallback for older orders or manual address storage
+      const legacyAddress = await kv.get<AddressData>(`orders:address:${orderId}`);
+      if (legacyAddress) {
+        orderFound = {
+          customerName: legacyAddress.name,
+          customerEmail: legacyAddress.email,
+          shippingAddress: legacyAddress
         };
-      }
-      customerEmail = order.customerEmail;
-      customerName = order.customerName;
-    } else {
-      // Hoodpay order - get address from KV
-      address = await kv.get<AddressData>(`orders:address:${orderId}`);
-      
-      if (!address) {
-        // Try to get email from Hoodpay
-        try {
-          const hoodpay = getHoodpayClient();
-          if (hoodpay) {
-            const response = await hoodpay.payments.get(orderId);
-            if (response.data) {
-              customerEmail = response.data.customerEmail || response.data.customer?.email;
-              customerName = response.data.name;
-            }
-          }
-        } catch (e) {
-          console.log("[ship-label] Could not fetch Hoodpay payment:", e);
-        }
-      } else {
-        customerEmail = address.email;
-        customerName = address.name;
       }
     }
 
-    if (!address || !address.line1) {
+    if (!orderFound) {
+      return NextResponse.json({ error: "Order not found in records" }, { status: 404 });
+    }
+
+    const address: AddressData = {
+      name: orderFound.customerName,
+      line1: orderFound.shippingAddress?.line1,
+      line2: orderFound.shippingAddress?.line2,
+      city: orderFound.shippingAddress?.city,
+      state: orderFound.shippingAddress?.state,
+      postal_code: orderFound.shippingAddress?.postal_code || orderFound.shippingAddress?.postalCode,
+      country: orderFound.shippingAddress?.country || "US",
+    };
+
+    if (!address.line1) {
       return NextResponse.json({ error: "No shipping address found for this order" }, { status: 400 });
     }
 
@@ -188,12 +172,6 @@ export async function POST(req: NextRequest) {
 
     const addressFrom = toShippoAddress(true, null);
     const addressTo = toShippoAddress(false, address);
-    
-    console.log("[ship-label] Creating shipment with:", {
-      address_from: addressFrom,
-      address_to: addressTo,
-      parcel,
-    });
 
     const shipment = await shippoFetch("/shipments/", {
       method: "POST",
@@ -204,13 +182,7 @@ export async function POST(req: NextRequest) {
         parcels: [parcel],
       }),
     });
-    
-    console.log("[ship-label] Shipment response:", JSON.stringify(shipment, null, 2));
 
-    if (shipment?.messages && Array.isArray(shipment.messages) && shipment.messages.length > 0) {
-      console.log("[ship-label] Shipment messages:", JSON.stringify(shipment.messages, null, 2));
-    }
-    
     const rates: any[] = Array.isArray(shipment?.rates) ? shipment.rates : [];
     if (!rates.length) {
       const validationErrors = shipment?.messages?.map((m: any) => m?.text).filter(Boolean).join("; ") || "";
@@ -226,8 +198,6 @@ export async function POST(req: NextRequest) {
       throw new Error("Unable to select rate");
     }
 
-    console.log("[ship-label] Purchasing label with rate:", best.object_id, "service:", best?.servicelevel?.name);
-    
     let tx = await shippoFetch("/transactions/", {
       method: "POST",
       body: JSON.stringify({
@@ -237,28 +207,16 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    console.log("[ship-label] Initial transaction response:", tx?.status, tx?.object_id);
-
-    // Poll if status is QUEUED (common in test mode)
+    // Poll if status is QUEUED
     if (tx?.status === "QUEUED" && tx?.object_id) {
       const maxAttempts = 10;
       const delay = 1000;
-      
       for (let i = 0; i < maxAttempts; i++) {
         await new Promise((resolve) => setTimeout(resolve, delay));
-        console.log(`[ship-label] Polling transaction ${tx.object_id}, attempt ${i + 1}/${maxAttempts}`);
-        
-        tx = await shippoFetch(`/transactions/${tx.object_id}`, {
-          method: "GET",
-        });
-        
-        if (tx?.status === "SUCCESS" || tx?.status === "ERROR") {
-          break;
-        }
+        tx = await shippoFetch(`/transactions/${tx.object_id}`, { method: "GET" });
+        if (tx?.status === "SUCCESS" || tx?.status === "ERROR") break;
       }
     }
-
-    console.log("[ship-label] Final transaction response:", JSON.stringify(tx, null, 2));
 
     if (!tx?.status || tx.status !== "SUCCESS") {
       let msg = "Label creation failed";
@@ -266,10 +224,7 @@ export async function POST(req: NextRequest) {
         msg = tx.messages.map((m: any) => m?.text || m?.source || JSON.stringify(m)).join("; ");
       } else if (tx?.message) {
         msg = tx.message;
-      } else if (tx?.status) {
-        msg = `Label status: ${tx.status} (still processing, try again in a moment)`;
       }
-      console.error("[ship-label] Shippo transaction failed:", JSON.stringify(tx, null, 2));
       throw new Error(msg);
     }
 
@@ -290,28 +245,23 @@ export async function POST(req: NextRequest) {
       rateId: String(best?.object_id || ""),
     };
 
-    if (!record.labelUrl || !record.trackingNumber) {
-      throw new Error("Label created but missing labelUrl/trackingNumber");
-    }
-
     await kv.set(kvKey(orderId), record);
 
-    // Send shipped email to customer
-    try {
-      if (customerEmail) {
+    // Send shipped email
+    if (orderFound.customerEmail) {
+      try {
         await sendShippedEmail({
-          to: customerEmail,
-          customerName: customerName || "Customer",
+          to: orderFound.customerEmail,
+          customerName: orderFound.customerName || "Customer",
           orderId,
           trackingNumber: record.trackingNumber,
           trackingUrl: record.trackingUrl,
           carrier: record.carrier,
           service: record.service,
         });
-        console.log("[ship-label] Shipped email sent to", customerEmail);
+      } catch (emailErr) {
+        console.error("[ship-label] Failed to send email:", emailErr);
       }
-    } catch (emailErr) {
-      console.error("[ship-label] Failed to send shipped email:", emailErr);
     }
 
     return NextResponse.json({ ok: true, shipment: record });

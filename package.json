@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@internal-labs/hoodpay": "^0.1.6",
     "@vercel/kv": "^3.0.0",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.26",
@@ -18,7 +17,6 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "square": "^43.2.1",
-    "stripe": "^17.5.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

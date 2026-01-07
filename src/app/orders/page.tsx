@@ -11,7 +11,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  type?: "stripe" | "custom" | "hoodpay" | "square";
+  type?: "custom" | "square";
   created: number;
   amount: number;
   currency: string;
@@ -325,7 +325,7 @@ export default function OrdersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Orders</h1>
           <p className="text-neutral-400 text-sm mt-1">
-            View and manage orders from Stripe, Square, and custom sources
+            View and manage orders from Square and custom sources
           </p>
         </div>
         <div className="flex items-center gap-2">

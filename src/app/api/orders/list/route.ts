@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getKvClient } from '@/lib/kv';
-import { getHoodpayClient } from '@/lib/hoodpay';
 
 type CustomOrder = {
   id: string;
-  type: "custom";
+  type: "custom" | "square";
   created: number;
   amount: number;
   currency: string;
@@ -28,72 +27,9 @@ const CUSTOM_ORDERS_KEY = "orders:custom:list";
 const SQUARE_ORDERS_KEY = "orders:square:imported";
 
 export async function GET() {
-  const hoodpay = getHoodpayClient();
   const kv = getKvClient();
-  let hoodpayOrders: any[] = [];
 
   try {
-    if (hoodpay) {
-      // Fetch payments from Hoodpay
-      const paymentsResponse = await hoodpay.payments.list({
-        pageSize: 100,
-        pageNumber: 1,
-      });
-
-      const payments = paymentsResponse.data || [];
-
-      // Get shipment records for all payments
-      const shipmentKeys = payments.map((p) => `orders:shipment:${p.id}`);
-      const shipments = await Promise.all(shipmentKeys.map((k) => kv.get<any>(k)));
-
-      // Get shipping addresses from KV (stored when order is placed)
-      const addressKeys = payments.map((p) => `orders:address:${p.id}`);
-      const addresses = await Promise.all(addressKeys.map((k) => kv.get<any>(k)));
-
-      hoodpayOrders = payments.map((payment, idx) => {
-        // Map Hoodpay status to our status
-        const status = payment.status?.toLowerCase() || 'unknown';
-        let mappedStatus = status;
-        if (status === 'completed' || status === 'complete') mappedStatus = 'complete';
-        if (status === 'cancelled' || status === 'canceled') mappedStatus = 'expired';
-        if (status === 'expired') mappedStatus = 'expired';
-
-        const address = addresses[idx];
-
-        return {
-          id: payment.id,
-          type: "hoodpay" as const,
-          created: Math.floor(new Date(payment.createdAt).getTime() / 1000),
-          amount: Math.round((payment.endAmount || 0) * 100), // Convert to cents
-          currency: payment.currency || 'usd',
-          status: mappedStatus,
-          paymentStatus: status,
-          customerEmail: payment.customerEmail || payment.customer?.email || '',
-          customerName: payment.name || '',
-          shippingAddress: address ? {
-            line1: address.line1 || '',
-            line2: address.line2 || undefined,
-            city: address.city || '',
-            state: address.state || '',
-            postal_code: address.postal_code || '',
-            country: address.country || '',
-          } : null,
-          items: [{
-            description: payment.description || payment.name || 'CalcAI Product',
-            quantity: 1,
-            amount: Math.round((payment.endAmount || 0) * 100),
-          }],
-          paymentMethod: payment.selectedPaymentMethod || payment.paymentMethod || 'Crypto',
-          shipment: shipments[idx] || null,
-        };
-      });
-    }
-  } catch (e) {
-    console.error('[orders/list] Hoodpay fetch error:', e);
-  }
-
-  try {
-
     // Fetch custom orders from KV
     const customOrders = await kv.get<CustomOrder[]>(CUSTOM_ORDERS_KEY) || [];
 
@@ -119,12 +55,12 @@ export async function GET() {
     }));
 
     // Combine and sort by created date (newest first)
-    const allOrders = [...hoodpayOrders, ...customOrdersWithShipments, ...squareOrdersWithShipments].sort((a, b) => b.created - a.created);
+    const allOrders = [...customOrdersWithShipments, ...squareOrdersWithShipments].sort((a, b) => b.created - a.created);
 
     return NextResponse.json({ orders: allOrders });
 
   } catch (e) {
-    console.error('[orders/list] KV/Square fetch error:', e);
+    console.error('[orders/list] KV fetch error:', e);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }

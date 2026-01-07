@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendShippedEmail } from "@/lib/email";
-import { getHoodpayClient } from "@/lib/hoodpay";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const kv = getKvClient();
-    
+
     // Get shipment record from KV
     const shipment = await kv.get<{
       trackingNumber?: string;
@@ -33,31 +32,18 @@ export async function POST(req: NextRequest) {
 
     let customerName = "Customer";
 
-    // Check if this is a custom order
-    if (orderId.startsWith("custom_")) {
-      const customOrders = await kv.get<any[]>("orders:custom:list") || [];
-      const order = customOrders.find(o => o.id === orderId);
-      if (order) {
-        customerName = order.customerName || "Customer";
-      }
-    } else {
-      // Get customer name from Hoodpay or address storage
-      const address = await kv.get<any>(`orders:address:${orderId}`);
-      if (address?.name) {
-        customerName = address.name;
-      } else {
-        try {
-          const hoodpay = getHoodpayClient();
-          if (hoodpay) {
-            const response = await hoodpay.payments.get(orderId);
-            if (response.data?.name) {
-              customerName = response.data.name;
-            }
-          }
-        } catch (e) {
-          // Ignore - use default
-        }
-      }
+    // 1. Try Custom Order
+    const customOrders = await kv.get<any[]>("orders:custom:list") || [];
+    let order = customOrders.find(o => o.id === orderId);
+
+    // 2. Try Square Order
+    if (!order) {
+      const squareOrders = await kv.get<any[]>("orders:square:imported") || [];
+      order = squareOrders.find(o => o.id === orderId);
+    }
+
+    if (order) {
+      customerName = order.customerName || "Customer";
     }
 
     await sendShippedEmail({

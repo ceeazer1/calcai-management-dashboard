@@ -74,62 +74,15 @@ Order confirmation and shipped emails are sent via Resend.
 - `ORDER_FROM_NAME` - Sender name (default: "CalcAI")
 - `ORDER_FROM_EMAIL` - Sender email (default: "orders@calcai.cc")
 
-## Hoodpay (Payments)
+## Website Orders (Real-time)
 
-The Orders page fetches payments from Hoodpay and supports order confirmation emails.
+The main website pushes orders directly to the dashboard upon successful payment.
 
-### Required env vars
+### Security
+Set `WEBSITE_API_KEY` in your environment variables. This must match the key used by the website's checkout page for authentication.
 
-- `HOODPAY_API_KEY` - Your Hoodpay API key (from Settings > Developer)
-- `HOODPAY_BUSINESS_ID` - Your Hoodpay Business ID
-
-### Webhook setup
-
-Configure your Hoodpay webhook to point to:
-- `https://<your-dashboard-domain>/api/orders/webhook`
-
-This will automatically send confirmation emails when payments complete.
-
-## Square (Order Import)
-
-The Orders page includes an **Import from Square** button to fetch orders from Square POS.
-
-### Required env vars
-
-- `SQUARE_ACCESS_TOKEN` - Your Square access token (from [Square Developer Dashboard](https://developer.squareup.com/))
-
-### Optional env vars
-
-- `SQUARE_ENVIRONMENT` - `production` (default) or `sandbox`
-- `SQUARE_LOCATION_IDS` - Comma-separated list of location IDs to filter orders (optional, fetches from all locations if not set)
-
-### Usage
-
-1. Click **Import from Square** in the Orders page
-2. Orders are imported and cached for 5 minutes
-3. Square orders appear with a purple "Square" badge
-4. Use the "Square" filter to view only Square orders
-
-### Storing shipping addresses
-
-Since Hoodpay doesn't store shipping addresses, your website checkout should call:
-```
-POST /api/orders/address
-{
-  "paymentId": "hoodpay-payment-id",
-  "address": {
-    "name": "John Doe",
-    "email": "john@example.com",
-    "line1": "123 Main St",
-    "city": "New York",
-    "state": "NY",
-    "postal_code": "10001",
-    "country": "US",
-    "shippingMethod": "USPS Priority",
-    "shippingAmount": 5.99
-  }
-}
-```
+### Endpoint
+- `POST /api/website/orders` - Pushes order, customer, and shipping details instantly.
 
 ## Shipping labels (Shippo)
 
