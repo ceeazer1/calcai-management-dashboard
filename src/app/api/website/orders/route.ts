@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 const SQUARE_ORDERS_KEY = "orders:square:imported";
 
@@ -29,15 +30,37 @@ export async function POST(req: NextRequest) {
 
         if (!exists) {
             // Prepend the new order so it shows at the top
-            existing.unshift({
+            const newOrder = {
                 ...order,
                 type: "square", // Categorize as square for filtering
                 created: order.created || Math.floor(Date.now() / 1000),
                 paymentStatus: order.paymentStatus || "COMPLETED",
                 status: order.status || "complete"
-            });
+            };
 
+            existing.unshift(newOrder);
             await kv.set(SQUARE_ORDERS_KEY, existing);
+
+            // Send confirmation email automatically
+            try {
+                const shippingMethod = order.notes?.includes("Shipping via")
+                    ? order.notes.split("Shipping via ")[1]
+                    : undefined;
+
+                await sendOrderConfirmationEmail({
+                    to: order.customerEmail,
+                    customerName: order.customerName || "Customer",
+                    orderId: order.id,
+                    amount: order.amount,
+                    currency: order.currency || "usd",
+                    items: order.items || [],
+                    paymentMethod: order.paymentMethod,
+                    shippingMethod: shippingMethod
+                });
+                console.log(`[api/website/orders] Confirmation email sent to ${order.customerEmail}`);
+            } catch (emailErr) {
+                console.error("[api/website/orders] Failed to send confirmation email:", emailErr);
+            }
         }
 
         const response = NextResponse.json({ ok: true, orderId: order.id });
