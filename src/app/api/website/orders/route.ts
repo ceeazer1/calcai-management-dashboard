@@ -38,13 +38,14 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-            const amountStr = String(order.amount || "0");
-            const amountCents = BigInt(amountStr);
+            // Ensure amount is a whole number before BigInt conversion
+            const rawAmount = Number(order.amount || 0);
+            const amountCents = BigInt(Math.round(rawAmount));
 
             // Create the payment using the token as sourceId
-            const response = await square.payments.create({
+            const squareResponse = await square.payments.create({
                 sourceId: order.id,
-                idempotencyKey: order.id + "_charge",
+                idempotencyKey: order.id + "_charge_" + Date.now(),
                 amountMoney: {
                     amount: amountCents,
                     currency: (order.currency || 'USD').toUpperCase()
@@ -53,12 +54,12 @@ export async function POST(req: NextRequest) {
             });
 
             // Handle different possible SDK response structures
-            const payment = (response as any).result?.payment || (response as any).payment;
+            const payment = (squareResponse as any).result?.payment || (squareResponse as any).payment;
 
             if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
                 console.error("[api/website/orders] Square payment not completed:", payment?.status);
                 return corsResponse({
-                    error: "Payment declined or skipped",
+                    error: "Payment declined or skipped by Square",
                     status: payment?.status
                 }, 400);
             }
@@ -68,8 +69,9 @@ export async function POST(req: NextRequest) {
             order.paymentStatus = payment.status;
 
         } catch (squareErr: any) {
-            console.error("[api/website/orders] Square Payment Error:", squareErr);
-            const errorDetail = squareErr.errors?.[0]?.detail || squareErr.message || "Payment failed";
+            console.error("[api/website/orders] Square Payment Error Exception:", squareErr);
+            // Extract the most useful error message
+            const errorDetail = squareErr.errors?.[0]?.detail || squareErr.message || "Payment processing failed";
             return corsResponse({
                 error: errorDetail,
                 code: squareErr.errors?.[0]?.code
@@ -119,9 +121,12 @@ export async function POST(req: NextRequest) {
         }
 
         return corsResponse({ ok: true, orderId: order.id });
-    } catch (e) {
-        console.error("[api/website/orders] POST error:", e);
-        return corsResponse({ error: "Failed to save order" }, 500);
+    } catch (e: any) {
+        console.error("[api/website/orders] fatal error:", e);
+        return corsResponse({
+            error: "Internal Server Error",
+            message: e.message || String(e)
+        }, 500);
     }
 }
 
