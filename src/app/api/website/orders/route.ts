@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { getSquareClient } from "@/lib/square";
 
 const SQUARE_ORDERS_KEY = "orders:square:imported";
 
@@ -22,11 +23,55 @@ export async function POST(req: NextRequest) {
 
         const kv = getKvClient();
 
+        // 1. Actually process the payment with Square
+        const square = getSquareClient();
+        if (!square) {
+            return NextResponse.json({ error: "Square not configured" }, { status: 500 });
+        }
+
+        try {
+            // Create the payment using the token as sourceId
+            const response = await square.payments.create({
+                sourceId: order.id, // This is the token from the frontend
+                idempotencyKey: order.id + "_charge",
+                amountMoney: {
+                    amount: BigInt(order.amount),
+                    currency: (order.currency || 'USD').toUpperCase()
+                },
+                note: `CalcAI Order: ${order.customerEmail}`
+            });
+
+            const payment = response.payment;
+
+            // Check if payment was successful
+            if (payment?.status !== 'COMPLETED' && payment?.status !== 'APPROVED') {
+                return NextResponse.json({
+                    error: "Payment declined or failed",
+                    status: payment?.status
+                }, { status: 400 });
+            }
+
+            console.log(`[api/website/orders] Square payment successful: ${payment.id}`);
+
+            // Update the order ID and status
+            order.squarePaymentId = payment.id;
+            order.paymentStatus = payment.status;
+
+        } catch (squareErr: any) {
+            const error = squareErr.errors ? squareErr.errors[0] : squareErr;
+            console.error("[api/website/orders] Square Payment Error:", error);
+            return NextResponse.json({
+                error: error.detail || "Payment failed",
+                code: error.code
+            }, { status: 400 });
+        }
+
+        // 2. Save to KV and send email
         // Load current cached orders
         const existing = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
 
         // Check if the order already exists to avoid duplicates
-        const exists = existing.some(o => o.id === order.id);
+        const exists = existing.some(o => o.id === order.id || (o.squarePaymentId && o.squarePaymentId === order.squarePaymentId));
 
         if (!exists) {
             // Prepend the new order so it shows at the top
