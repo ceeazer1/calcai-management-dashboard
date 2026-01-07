@@ -90,6 +90,26 @@ Configure your Hoodpay webhook to point to:
 
 This will automatically send confirmation emails when payments complete.
 
+## Square (Order Import)
+
+The Orders page includes an **Import from Square** button to fetch orders from Square POS.
+
+### Required env vars
+
+- `SQUARE_ACCESS_TOKEN` - Your Square access token (from [Square Developer Dashboard](https://developer.squareup.com/))
+
+### Optional env vars
+
+- `SQUARE_ENVIRONMENT` - `production` (default) or `sandbox`
+- `SQUARE_LOCATION_IDS` - Comma-separated list of location IDs to filter orders (optional, fetches from all locations if not set)
+
+### Usage
+
+1. Click **Import from Square** in the Orders page
+2. Orders are imported and cached for 5 minutes
+3. Square orders appear with a purple "Square" badge
+4. Use the "Square" filter to view only Square orders
+
 ### Storing shipping addresses
 
 Since Hoodpay doesn't store shipping addresses, your website checkout should call:

@@ -17,6 +17,7 @@
     "next": "16.0.10",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "square": "^43.2.1",
     "stripe": "^17.5.0",
     "tailwind-merge": "^3.4.0"
   },
