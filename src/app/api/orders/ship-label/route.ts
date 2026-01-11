@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
       width: String(numEnv("SHIP_PARCEL_WIDTH_IN", 6)),
       height: String(numEnv("SHIP_PARCEL_HEIGHT_IN", 4)),
       distance_unit: "in",
-      weight: String(numEnv("SHIP_PARCEL_WEIGHT_OZ", 16)),
+      weight: String(orderFound.weight_oz || numEnv("SHIP_PARCEL_WEIGHT_OZ", 32)),
       mass_unit: "oz",
     };
 
@@ -189,11 +189,23 @@ export async function POST(req: NextRequest) {
       throw new Error(`No shipping rates returned. ${validationErrors}`.trim());
     }
 
-    // Prefer USPS; otherwise fall back to the overall cheapest.
-    const uspsRates = rates.filter((r) => String(r?.provider || "").toUpperCase() === "USPS");
-    const pool = uspsRates.length ? uspsRates : rates;
-    pool.sort((a, b) => centsFromAmount(a?.amount) - centsFromAmount(b?.amount));
-    const best = pool[0];
+    // Rate Selection Logic
+    const selectedMethod = orderFound.shippingMethod; // e.g. 'usps_priority'
+    let best = null;
+
+    if (selectedMethod) {
+      // Try to find exact match for the selected service level token
+      best = rates.find((r) => String(r?.servicelevel?.token || "").toLowerCase() === selectedMethod.toLowerCase());
+    }
+
+    if (!best) {
+      // Prefer USPS; otherwise fall back to the overall cheapest.
+      const uspsRates = rates.filter((r) => String(r?.provider || "").toUpperCase() === "USPS");
+      const pool = uspsRates.length ? uspsRates : rates;
+      pool.sort((a, b) => centsFromAmount(a?.amount) - centsFromAmount(b?.amount));
+      best = pool[0];
+    }
+
     if (!best?.object_id) {
       throw new Error("Unable to select rate");
     }

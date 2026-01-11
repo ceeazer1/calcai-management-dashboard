@@ -31,6 +31,8 @@ interface Order {
   receiptUrl?: string;
   notes?: string;
   customerPhone?: string;
+  shippingMethod?: string;
+  weight_oz?: number;
   shipment?: {
     status: string;
     shippedAt?: number;
@@ -481,6 +483,11 @@ export default function OrdersPage() {
                         </div>
                       ) : (
                         <p className="text-neutral-500 text-sm">No shipping address</p>
+                      )}
+                      {order.shippingMethod && (
+                        <div className="mt-3 text-xs text-neutral-400">
+                          <span className="font-medium">Customer Selected:</span> {order.shippingMethod}
+                        </div>
                       )}
                     </div>
                   </div>
