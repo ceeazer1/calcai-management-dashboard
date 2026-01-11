@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Remove the shipment record from our KV store so the UI shows "No label yet"
-        await kv.delete(key);
+        await kv.del(key);
 
         return NextResponse.json({ ok: true, refund });
     } catch (e: any) {

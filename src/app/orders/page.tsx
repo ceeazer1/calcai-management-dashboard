@@ -611,7 +611,7 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions */}
-                  < div className="mt-4 pt-4 border-t border-neutral-800 flex flex-wrap items-center gap-3" >
+                  <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-wrap items-center gap-3">
                     {
                       order.customerEmail && (
                         <button
