@@ -190,15 +190,44 @@ export async function POST(req: NextRequest) {
     }
 
     // Rate Selection Logic
-    const selectedMethod = orderFound.shippingMethod; // e.g. 'usps_priority'
+    let selectedMethod = orderFound.shippingMethod; // e.g. 'usps_priority'
+
+    // Fallback: Check notes if shippingMethod is missing
+    if (!selectedMethod && orderFound.notes) {
+      const note = orderFound.notes.toLowerCase();
+      if (note.includes('priority mail express')) {
+        selectedMethod = 'usps_priority_express';
+      } else if (note.includes('priority mail')) {
+        selectedMethod = 'usps_priority';
+      } else if (note.includes('ground advantage')) {
+        selectedMethod = 'usps_ground_advantage';
+      }
+    }
+
+    console.log(`[ship-label] Order ${orderId} detected method: ${selectedMethod}`);
+
     let best = null;
 
     if (selectedMethod) {
+      // Log all available rates for debugging if there's a mismatch
+      console.log(`[ship-label] Available rates to match:`, rates.map(r => r.servicelevel?.token));
+
       // Try to find exact match for the selected service level token
-      best = rates.find((r) => String(r?.servicelevel?.token || "").toLowerCase() === selectedMethod.toLowerCase());
+      best = rates.find((r) => {
+        const token = String(r?.servicelevel?.token || "").toLowerCase();
+        const target = selectedMethod.toLowerCase();
+
+        // Exact match or contains (for cases like usps_priority_mail vs usps_priority)
+        return token === target ||
+          (target === 'usps_priority' && token === 'usps_priority_mail') ||
+          (target === 'usps_priority_express' && token === 'usps_priority_mail_express');
+      });
     }
 
-    if (!best) {
+    if (best) {
+      console.log(`[ship-label] Successfully matched rate: ${best.servicelevel?.token}`);
+    } else {
+      console.log(`[ship-label] No exact match for ${selectedMethod}. Falling back to cheapest USPS.`);
       // Prefer USPS; otherwise fall back to the overall cheapest.
       const uspsRates = rates.filter((r) => String(r?.provider || "").toUpperCase() === "USPS");
       const pool = uspsRates.length ? uspsRates : rates;
@@ -209,6 +238,8 @@ export async function POST(req: NextRequest) {
     if (!best?.object_id) {
       throw new Error("Unable to select rate");
     }
+
+    console.log(`[ship-label] Purchasing rate: ${best.servicelevel?.name} (${best.amount} ${best.currency})`);
 
     let tx = await shippoFetch("/transactions/", {
       method: "POST",

@@ -24,6 +24,8 @@ type CustomOrder = {
   } | null;
   items: { description: string; quantity: number; amount: number }[];
   notes?: string;
+  shippingMethod?: string;
+  weight_oz?: number;
 };
 
 const CUSTOM_ORDERS_KEY = "orders:custom:list";
@@ -55,6 +57,8 @@ export async function POST(req: NextRequest) {
       };
       items?: { description: string; quantity: number; price: number }[];
       notes?: string;
+      shippingMethod?: string;
+      weight_oz?: number;
     };
 
     if (!customerName || !customerEmail) {
@@ -69,7 +73,7 @@ export async function POST(req: NextRequest) {
     const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     const orderId = `custom_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    
+
     const newOrder: CustomOrder = {
       id: orderId,
       type: "custom",
@@ -94,6 +98,8 @@ export async function POST(req: NextRequest) {
         amount: Math.round(item.price * 100 * item.quantity),
       })),
       notes,
+      shippingMethod: body.shippingMethod || "usps_priority",
+      weight_oz: body.weight_oz || 32,
     };
 
     const kv = getKvClient();

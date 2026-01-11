@@ -44,7 +44,7 @@ interface Order {
   } | null;
 }
 
-type FilterType = "all" | "complete" | "shipped" | "expired" | "custom";
+type FilterType = "all" | "complete" | "shipped" | "expired" | "custom" | "square";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -74,6 +74,8 @@ export default function OrdersPage() {
     itemQuantity: 1,
     itemPrice: 89.99,
     notes: "",
+    shippingMethod: "usps_priority",
+    weight_oz: 32,
   });
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
 
@@ -187,6 +189,8 @@ export default function OrdersPage() {
             price: customForm.itemPrice,
           }],
           notes: customForm.notes,
+          shippingMethod: customForm.shippingMethod,
+          weight_oz: customForm.weight_oz,
         }),
       });
       const data = await r.json();
@@ -205,6 +209,8 @@ export default function OrdersPage() {
           itemQuantity: 1,
           itemPrice: 89.99,
           notes: "",
+          shippingMethod: "usps_priority",
+          weight_oz: 32,
         });
         await fetchOrders();
       } else {
@@ -777,6 +783,30 @@ export default function OrdersPage() {
                   rows={2}
                   placeholder="Internal notes about this order..."
                 />
+              </div>
+
+              <div className="border-t border-neutral-800 pt-4 grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Shipping Method</label>
+                  <select
+                    value={customForm.shippingMethod}
+                    onChange={(e) => setCustomForm({ ...customForm, shippingMethod: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                  >
+                    <option value="usps_ground_advantage">USPS Ground Advantage</option>
+                    <option value="usps_priority">USPS Priority Mail</option>
+                    <option value="usps_priority_express">USPS Priority Mail Express</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-neutral-400 mb-1">Weight (oz)</label>
+                  <input
+                    type="number"
+                    value={customForm.weight_oz}
+                    onChange={(e) => setCustomForm({ ...customForm, weight_oz: parseInt(e.target.value) || 32 })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2">
