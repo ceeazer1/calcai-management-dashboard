@@ -57,6 +57,7 @@ export default function OrdersPage() {
   const [shippedEmailResult, setShippedEmailResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
+  const [voidingLabel, setVoidingLabel] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -163,6 +164,30 @@ export default function OrdersPage() {
       setShipResult({ id: orderId, ok: false, msg: "Network error" });
     } finally {
       setShippingOrderId(null);
+    }
+  };
+
+  const voidLabel = async (orderId: string) => {
+    if (!confirm("Are you sure you want to void this label? This will request a refund from Shippo and remove the tracking information.")) return;
+    setVoidingLabel(orderId);
+    setShipResult(null);
+    try {
+      const r = await fetch("/api/orders/ship-refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      });
+      const data = await r.json();
+      if (r.ok && data.ok) {
+        setShipResult({ id: orderId, ok: true, msg: "Label voided / Refund pending" });
+        await fetchOrders();
+      } else {
+        setShipResult({ id: orderId, ok: false, msg: data.error || "Failed to void label" });
+      }
+    } catch {
+      setShipResult({ id: orderId, ok: false, msg: "Network error" });
+    } finally {
+      setVoidingLabel(null);
     }
   };
 
@@ -546,6 +571,17 @@ export default function OrdersPage() {
                                 <FileText className="h-4 w-4" />
                                 Download label (PDF)
                               </a>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  voidLabel(order.id);
+                                }}
+                                disabled={voidingLabel === order.id}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-900 border border-red-900/50 hover:bg-red-900/20 rounded-lg text-sm text-red-400 transition-colors mt-2 ml-2"
+                                title="Void label and request refund from Shippo"
+                              >
+                                {voidingLabel === order.id ? "Voiding..." : "Void Label"}
+                              </button>
                             </div>
                           ) : null}
                         </div>
@@ -575,45 +611,51 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-4 pt-4 border-t border-neutral-800 flex flex-wrap items-center gap-3">
-                    {order.customerEmail && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          resendConfirmation(order.id, order.customerEmail);
-                        }}
-                        disabled={resendingEmail === order.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 rounded-lg text-sm text-white transition-colors"
-                      >
-                        <Mail className="h-4 w-4" />
-                        {resendingEmail === order.id ? "Sending..." : "Resend Confirmation"}
-                      </button>
-                    )}
-                    {order.customerEmail && order.shipment?.status === "label_created" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          resendShippedEmail(order.id, order.customerEmail);
-                        }}
-                        disabled={resendingShipped === order.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 rounded-lg text-sm text-white transition-colors"
-                      >
-                        <Truck className="h-4 w-4" />
-                        {resendingShipped === order.id ? "Sending..." : "Resend Shipped Email"}
-                      </button>
-                    )}
-                    {order.receiptUrl && (
-                      <a
-                        href={order.receiptUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        View Receipt
-                      </a>
-                    )}
+                  < div className="mt-4 pt-4 border-t border-neutral-800 flex flex-wrap items-center gap-3" >
+                    {
+                      order.customerEmail && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            resendConfirmation(order.id, order.customerEmail);
+                          }}
+                          disabled={resendingEmail === order.id}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 rounded-lg text-sm text-white transition-colors"
+                        >
+                          <Mail className="h-4 w-4" />
+                          {resendingEmail === order.id ? "Sending..." : "Resend Confirmation"}
+                        </button>
+                      )
+                    }
+                    {
+                      order.customerEmail && order.shipment?.status === "label_created" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            resendShippedEmail(order.id, order.customerEmail);
+                          }}
+                          disabled={resendingShipped === order.id}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 rounded-lg text-sm text-white transition-colors"
+                        >
+                          <Truck className="h-4 w-4" />
+                          {resendingShipped === order.id ? "Sending..." : "Resend Shipped Email"}
+                        </button>
+                      )
+                    }
+                    {
+                      order.receiptUrl && (
+                        <a
+                          href={order.receiptUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View Receipt
+                        </a>
+                      )
+                    }
                     {emailResult && emailResult.id === order.id && (
                       <span className={`text-sm ${emailResult.ok ? "text-green-400" : "text-red-400"}`}>
                         {emailResult.msg}
@@ -643,197 +685,201 @@ export default function OrdersPage() {
                     </div>
                   )}
                 </div>
-              )}
-            </div>
+              )
+              }
+            </div >
           ))}
-        </div>
-      )}
+        </div >
+      )
+      }
 
       {/* Custom Order Modal */}
-      {showCustomModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-neutral-800">
-              <h2 className="text-lg font-semibold text-white">Create Custom Order</h2>
-              <button
-                onClick={() => setShowCustomModal(false)}
-                className="p-1 hover:bg-neutral-800 rounded"
-              >
-                <X className="h-5 w-5 text-neutral-400" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Customer Name *</label>
-                  <input
-                    type="text"
-                    value={customForm.customerName}
-                    onChange={(e) => setCustomForm({ ...customForm, customerName: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    placeholder="John Doe"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    value={customForm.customerEmail}
-                    onChange={(e) => setCustomForm({ ...customForm, customerEmail: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    placeholder="john@example.com"
-                  />
-                </div>
+      {
+        showCustomModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+                <h2 className="text-lg font-semibold text-white">Create Custom Order</h2>
+                <button
+                  onClick={() => setShowCustomModal(false)}
+                  className="p-1 hover:bg-neutral-800 rounded"
+                >
+                  <X className="h-5 w-5 text-neutral-400" />
+                </button>
               </div>
-
-              <div className="border-t border-neutral-800 pt-4">
-                <h3 className="text-sm font-medium text-neutral-300 mb-3">Shipping Address</h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={customForm.line1}
-                    onChange={(e) => setCustomForm({ ...customForm, line1: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    placeholder="Street Address"
-                  />
-                  <input
-                    type="text"
-                    value={customForm.line2}
-                    onChange={(e) => setCustomForm({ ...customForm, line2: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    placeholder="Apt, Suite, etc. (optional)"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
+              <div className="p-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Customer Name *</label>
                     <input
                       type="text"
-                      value={customForm.city}
-                      onChange={(e) => setCustomForm({ ...customForm, city: e.target.value })}
+                      value={customForm.customerName}
+                      onChange={(e) => setCustomForm({ ...customForm, customerName: e.target.value })}
                       className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                      placeholder="City"
-                    />
-                    <input
-                      type="text"
-                      value={customForm.state}
-                      onChange={(e) => setCustomForm({ ...customForm, state: e.target.value })}
-                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                      placeholder="State"
+                      placeholder="John Doe"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Email *</label>
                     <input
-                      type="text"
-                      value={customForm.postal_code}
-                      onChange={(e) => setCustomForm({ ...customForm, postal_code: e.target.value })}
+                      type="email"
+                      value={customForm.customerEmail}
+                      onChange={(e) => setCustomForm({ ...customForm, customerEmail: e.target.value })}
                       className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                      placeholder="ZIP Code"
-                    />
-                    <input
-                      type="text"
-                      value={customForm.country}
-                      onChange={(e) => setCustomForm({ ...customForm, country: e.target.value })}
-                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                      placeholder="Country"
+                      placeholder="john@example.com"
                     />
                   </div>
                 </div>
-              </div>
 
-              <div className="border-t border-neutral-800 pt-4">
-                <h3 className="text-sm font-medium text-neutral-300 mb-3">Item</h3>
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    value={customForm.itemDescription}
-                    onChange={(e) => setCustomForm({ ...customForm, itemDescription: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
-                    placeholder="Item description"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-1">Quantity</label>
+                <div className="border-t border-neutral-800 pt-4">
+                  <h3 className="text-sm font-medium text-neutral-300 mb-3">Shipping Address</h3>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={customForm.line1}
+                      onChange={(e) => setCustomForm({ ...customForm, line1: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="Street Address"
+                    />
+                    <input
+                      type="text"
+                      value={customForm.line2}
+                      onChange={(e) => setCustomForm({ ...customForm, line2: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="Apt, Suite, etc. (optional)"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
                       <input
-                        type="number"
-                        min="1"
-                        value={customForm.itemQuantity}
-                        onChange={(e) => setCustomForm({ ...customForm, itemQuantity: parseInt(e.target.value) || 1 })}
+                        type="text"
+                        value={customForm.city}
+                        onChange={(e) => setCustomForm({ ...customForm, city: e.target.value })}
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        placeholder="City"
+                      />
+                      <input
+                        type="text"
+                        value={customForm.state}
+                        onChange={(e) => setCustomForm({ ...customForm, state: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        placeholder="State"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm text-neutral-400 mb-1">Price ($)</label>
+                    <div className="grid grid-cols-2 gap-3">
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={customForm.itemPrice}
-                        onChange={(e) => setCustomForm({ ...customForm, itemPrice: parseFloat(e.target.value) || 0 })}
+                        type="text"
+                        value={customForm.postal_code}
+                        onChange={(e) => setCustomForm({ ...customForm, postal_code: e.target.value })}
                         className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        placeholder="ZIP Code"
+                      />
+                      <input
+                        type="text"
+                        value={customForm.country}
+                        onChange={(e) => setCustomForm({ ...customForm, country: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        placeholder="Country"
                       />
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="border-t border-neutral-800 pt-4">
-                <label className="block text-sm text-neutral-400 mb-1">Notes (optional)</label>
-                <textarea
-                  value={customForm.notes}
-                  onChange={(e) => setCustomForm({ ...customForm, notes: e.target.value })}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500 resize-none"
-                  rows={2}
-                  placeholder="Internal notes about this order..."
-                />
-              </div>
-
-              <div className="border-t border-neutral-800 pt-4 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Shipping Method</label>
-                  <select
-                    value={customForm.shippingMethod}
-                    onChange={(e) => setCustomForm({ ...customForm, shippingMethod: e.target.value })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
-                  >
-                    <option value="usps_ground_advantage">USPS Ground Advantage</option>
-                    <option value="usps_priority">USPS Priority Mail</option>
-                    <option value="usps_priority_express">USPS Priority Mail Express</option>
-                  </select>
+                <div className="border-t border-neutral-800 pt-4">
+                  <h3 className="text-sm font-medium text-neutral-300 mb-3">Item</h3>
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      value={customForm.itemDescription}
+                      onChange={(e) => setCustomForm({ ...customForm, itemDescription: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                      placeholder="Item description"
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm text-neutral-400 mb-1">Quantity</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={customForm.itemQuantity}
+                          onChange={(e) => setCustomForm({ ...customForm, itemQuantity: parseInt(e.target.value) || 1 })}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-neutral-400 mb-1">Price ($)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={customForm.itemPrice}
+                          onChange={(e) => setCustomForm({ ...customForm, itemPrice: parseFloat(e.target.value) || 0 })}
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-neutral-400 mb-1">Weight (oz)</label>
-                  <input
-                    type="number"
-                    value={customForm.weight_oz}
-                    onChange={(e) => setCustomForm({ ...customForm, weight_oz: parseInt(e.target.value) || 32 })}
-                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+
+                <div className="border-t border-neutral-800 pt-4">
+                  <label className="block text-sm text-neutral-400 mb-1">Notes (optional)</label>
+                  <textarea
+                    value={customForm.notes}
+                    onChange={(e) => setCustomForm({ ...customForm, notes: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none focus:border-neutral-500 resize-none"
+                    rows={2}
+                    placeholder="Internal notes about this order..."
                   />
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-neutral-300">
-                  Total: <span className="font-semibold text-white">${(customForm.itemPrice * customForm.itemQuantity).toFixed(2)}</span>
+                <div className="border-t border-neutral-800 pt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Shipping Method</label>
+                    <select
+                      value={customForm.shippingMethod}
+                      onChange={(e) => setCustomForm({ ...customForm, shippingMethod: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    >
+                      <option value="usps_ground_advantage">USPS Ground Advantage</option>
+                      <option value="usps_priority">USPS Priority Mail</option>
+                      <option value="usps_priority_express">USPS Priority Mail Express</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Weight (oz)</label>
+                    <input
+                      type="number"
+                      value={customForm.weight_oz}
+                      onChange={(e) => setCustomForm({ ...customForm, weight_oz: parseInt(e.target.value) || 32 })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowCustomModal(false)}
-                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={createCustomOrder}
-                    disabled={customOrderLoading || !customForm.customerName || !customForm.customerEmail}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
-                  >
-                    {customOrderLoading ? "Creating..." : "Create Order"}
-                  </button>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div className="text-neutral-300">
+                    Total: <span className="font-semibold text-white">${(customForm.itemPrice * customForm.itemQuantity).toFixed(2)}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCustomModal(false)}
+                      className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={createCustomOrder}
+                      disabled={customOrderLoading || !customForm.customerName || !customForm.customerEmail}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-800 disabled:cursor-not-allowed rounded-lg text-sm text-white transition-colors"
+                    >
+                      {customOrderLoading ? "Creating..." : "Create Order"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 
