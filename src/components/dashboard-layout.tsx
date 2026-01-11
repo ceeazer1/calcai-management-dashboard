@@ -12,6 +12,7 @@ import {
   Cpu,
   ShoppingBag,
   Package,
+  Send,
 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -53,6 +54,11 @@ const links = [
     label: "SMS",
     href: "/sms",
     icon: <MessageSquare className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
+  },
+  {
+    label: "Testing",
+    href: "/testing",
+    icon: <Send className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
   },
   {
     label: "Settings",
