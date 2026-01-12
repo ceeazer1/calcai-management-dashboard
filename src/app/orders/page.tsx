@@ -58,6 +58,7 @@ export default function OrdersPage() {
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [voidingLabel, setVoidingLabel] = useState<string | null>(null);
+  const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -677,6 +678,16 @@ export default function OrdersPage() {
                       <Trash2 className="h-4 w-4" />
                       {deletingOrder === order.id ? "Deleting..." : "Delete"}
                     </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInvoiceOrder(order);
+                      }}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+                    >
+                      <Download className="h-4 w-4" />
+                      View Invoice
+                    </button>
                   </div>
                   {order.notes && (
                     <div className="mt-3 pt-3 border-t border-neutral-800">
@@ -879,6 +890,126 @@ export default function OrdersPage() {
           </div>
         )
       }
+    </div >
+  );
+}
+
+{/* Invoice Modal */ }
+{
+  invoiceOrder && (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 print:p-0 print:bg-white print:fixed print:inset-0">
+      <div className="bg-white text-black rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto print:max-h-none print:max-w-none print:w-full print:h-full print:rounded-none selection:bg-blue-200">
+        {/* Modal Header (Hide when printing) */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 print:hidden">
+          <h2 className="text-lg font-semibold text-gray-900">Invoice Preview</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Print / Save PDF
+            </button>
+            <button
+              onClick={() => setInvoiceOrder(null)}
+              className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Invoice Content */}
+        <div className="p-12 print:p-0">
+          <div className="flex justify-between items-start mb-12">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">INVOICE</h1>
+              <div className="text-gray-600 text-sm space-y-1">
+                <p className="font-semibold text-gray-900">CalcAI</p>
+                <p>contact@calcai.cc</p>
+                <p>calcai.cc</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-gray-600 text-sm space-y-1">
+                <p><span className="font-medium text-gray-900">Invoice #:</span> {invoiceOrder.id.slice(0, 8).toUpperCase()}</p>
+                <p><span className="font-medium text-gray-900">Date:</span> {new Date(invoiceOrder.created * 1000).toLocaleDateString()}</p>
+                <p><span className="font-medium text-gray-900">Status:</span> {invoiceOrder.paymentStatus === 'paid' ? 'Paid' : invoiceOrder.status}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-12 mb-12">
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Bill To</h3>
+              <div className="text-gray-900 text-sm space-y-1">
+                <p className="font-medium">{invoiceOrder.customerName}</p>
+                <p>{invoiceOrder.customerEmail}</p>
+              </div>
+            </div>
+            {invoiceOrder.shippingAddress && (
+              <div>
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ship To</h3>
+                <div className="text-gray-900 text-sm space-y-1">
+                  <p className="font-medium">{invoiceOrder.customerName}</p>
+                  <p>{invoiceOrder.shippingAddress.line1}</p>
+                  {invoiceOrder.shippingAddress.line2 && <p>{invoiceOrder.shippingAddress.line2}</p>}
+                  <p>{invoiceOrder.shippingAddress.city}, {invoiceOrder.shippingAddress.state} {invoiceOrder.shippingAddress.postal_code}</p>
+                  <p>{invoiceOrder.shippingAddress.country}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <table className="w-full mb-12">
+            <thead>
+              <tr className="border-b-2 border-gray-900">
+                <th className="text-left py-3 text-xs font-semibold text-gray-900 uppercase tracking-wider">Item</th>
+                <th className="text-center py-3 text-xs font-semibold text-gray-900 uppercase tracking-wider w-24">Qty</th>
+                <th className="text-right py-3 text-xs font-semibold text-gray-900 uppercase tracking-wider w-32">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {invoiceOrder.items.map((item, i) => (
+                <tr key={i}>
+                  <td className="py-4 text-sm text-gray-900">{item.description}</td>
+                  <td className="py-4 text-sm text-gray-900 text-center">{item.quantity}</td>
+                  <td className="py-4 text-sm text-gray-900 text-right">
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(item.amount / 100)}
+                  </td>
+                </tr>
+              ))}
+              {/* Shipping Line - assume free if not split out, or minimal logic */}
+              {/* Since we don't track separate shipping costs in all order objects, this is simple */}
+            </tbody>
+          </table>
+
+          <div className="flex justify-end border-t border-gray-200 pt-8">
+            <div className="w-64 space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-600">Subtotal</span>
+                <span className="font-medium text-gray-900">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-lg font-bold border-t border-gray-200 pt-3">
+                <span className="text-gray-900">Total</span>
+                <span className="text-gray-900">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-20 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
+            <p>Thank you for your business!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
     </div >
   );
 }
