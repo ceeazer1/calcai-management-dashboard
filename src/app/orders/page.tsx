@@ -712,7 +712,7 @@ export default function OrdersPage() {
                     )}
 
                     {/* Square Refund Button */}
-                    {order.type === "square" && order.paymentStatus === "paid" && (
+                    {order.type === "square" && (order.paymentStatus === "paid" || order.paymentStatus === "COMPLETED") && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
