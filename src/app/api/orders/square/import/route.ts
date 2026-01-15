@@ -99,6 +99,7 @@ export async function POST() {
                     currency: order.totalMoney?.currency?.toLowerCase() || 'usd',
                     status,
                     paymentStatus: order.state || 'unknown',
+                    paymentId: order.tenders?.[0]?.paymentId || undefined,
                     customerEmail,
                     customerName,
                     shippingAddress,
