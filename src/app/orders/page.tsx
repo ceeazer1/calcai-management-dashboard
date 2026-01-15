@@ -26,6 +26,7 @@ interface Order {
     postal_code: string;
     country: string;
   } | null;
+  paymentId?: string; // Square payment ID for refunds
   items: OrderItem[];
   paymentStatus: string;
   receiptUrl?: string;
@@ -58,6 +59,7 @@ export default function OrdersPage() {
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null);
   const [shipResult, setShipResult] = useState<{ id: string; ok: boolean; msg: string } | null>(null);
   const [voidingLabel, setVoidingLabel] = useState<string | null>(null);
+  const [refundingOrder, setRefundingOrder] = useState<string | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -142,6 +144,42 @@ export default function OrdersPage() {
       setShippedEmailResult({ id: orderId, ok: false, msg: "Network error" });
     } finally {
       setResendingShipped(null);
+    }
+  };
+
+
+  const refundSquareOrder = async (order: Order) => {
+    if (!order.paymentId) {
+      alert("Cannot refund: No Payment ID associated with this order.");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to refund ${new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.amount / 100)} to this customer? This cannot be undone.`)) {
+      return;
+    }
+
+    setRefundingOrder(order.id);
+    try {
+      const r = await fetch("/api/orders/square-refund", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          amount: order.amount,
+          currency: order.currency,
+          paymentId: order.paymentId
+        }),
+      });
+
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Refund failed");
+
+      alert("Refund processed successfully!");
+      fetchOrders(); // Refresh status
+    } catch (e: any) {
+      alert(`Error processing refund: ${e.message}`);
+    } finally {
+      setRefundingOrder(null);
     }
   };
 
@@ -667,6 +705,27 @@ export default function OrdersPage() {
                         {shippedEmailResult.msg}
                       </span>
                     )}
+                    {shippedEmailResult && shippedEmailResult.id === order.id && (
+                      <span className={`text-sm ${shippedEmailResult.ok ? "text-green-400" : "text-red-400"}`}>
+                        {shippedEmailResult.msg}
+                      </span>
+                    )}
+
+                    {/* Square Refund Button */}
+                    {order.type === "square" && order.paymentStatus === "paid" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          refundSquareOrder(order);
+                        }}
+                        disabled={refundingOrder === order.id}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-900/40 hover:bg-red-900/60 border border-red-800 disabled:opacity-50 rounded-lg text-sm text-red-200 transition-colors"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${refundingOrder === order.id ? 'animate-spin' : ''}`} />
+                        {refundingOrder === order.id ? "Refunding..." : "Refund"}
+                      </button>
+                    )}
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
