@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendOrderConfirmationEmail, sendShippedEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendShippedEmail, sendPasswordResetEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
     try {
@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
                 carrier: "USPS",
                 service: "Ground Advantage",
             });
+        } else if (type === "reset") {
+            await sendPasswordResetEmail(email, "test_reset_token_abc123");
         } else {
             return NextResponse.json({ error: "Invalid email type" }, { status: 400 });
         }

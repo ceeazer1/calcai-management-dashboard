@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, RefreshCw, X, Lock } from "lucide-react";
+import { Search, RefreshCw, X } from "lucide-react";
 
 interface User {
   email: string;
@@ -97,25 +97,7 @@ export default function UsersPage() {
     } catch { setModalContent(<p className="text-red-400">Failed to load model</p>); }
   }
 
-  async function resetPassword(email: string) {
-    if (!confirm(`Are you sure you want to trigger a password reset for ${email}?`)) return;
-    try {
-      const r = await fetch("/api/users-admin/reset-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const j = await r.json();
-      if (j.ok) {
-        if (j.resetLink) {
-          window.prompt("Password reset generated. Copy this link to send to the user:", j.resetLink);
-        } else {
-          alert(j.message || "Password reset triggered successfully");
-        }
-      }
-      else alert("Failed to trigger password reset: " + (j.error || "unknown"));
-    } catch { alert("Network error triggering password reset"); }
-  }
+
 
   return (
     <div className="p-6 md:p-10">
@@ -167,12 +149,7 @@ export default function UsersPage() {
                     </div>
                   </div>
                 ))}
-                <div className="mt-3 pt-3 border-t border-neutral-800">
-                  <button onClick={() => resetPassword(user.email)} className="flex items-center gap-2 text-xs text-red-400 hover:text-red-300 transition-colors bg-red-900/20 hover:bg-red-900/40 px-3 py-2 rounded w-full justify-center">
-                    <Lock className="h-3 w-3" />
-                    Reset Password
-                  </button>
-                </div>
+
               </div>
             );
           })}

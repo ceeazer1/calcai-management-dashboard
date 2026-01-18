@@ -8,7 +8,7 @@ export default function TestingPage() {
     const [loading, setLoading] = useState<string | null>(null);
     const [result, setResult] = useState<{ type: string; ok: boolean; msg: string } | null>(null);
 
-    const sendTestEmail = async (type: "confirmation" | "shipped") => {
+    const sendTestEmail = async (type: "confirmation" | "shipped" | "reset") => {
         if (!email) {
             setResult({ type, ok: false, msg: "Please enter a recipient email address" });
             return;
@@ -26,7 +26,8 @@ export default function TestingPage() {
             const data = await r.json();
 
             if (r.ok && data.ok) {
-                setResult({ type, ok: true, msg: `Success! ${type === 'confirmation' ? 'Order' : 'Shipping'} email sent.` });
+                const typeLabels = { confirmation: "Order Confirmation", shipped: "Shipping Notification", reset: "Password Reset" };
+                setResult({ type, ok: true, msg: `Success! ${typeLabels[type]} email sent.` });
             } else {
                 setResult({ type, ok: false, msg: data.error || "Failed to send email" });
             }
@@ -97,6 +98,19 @@ export default function TestingPage() {
                                     <Send className="h-4 w-4" />
                                 )}
                                 Send Shipping Notification
+                            </button>
+
+                            <button
+                                onClick={() => sendTestEmail("reset")}
+                                disabled={!!loading}
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                            >
+                                {loading === "reset" ? (
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                                Send Password Reset
                             </button>
                         </div>
 

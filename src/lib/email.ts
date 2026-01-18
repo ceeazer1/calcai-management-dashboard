@@ -36,8 +36,7 @@ export async function sendShippedEmail(p: ShippedEmailParams): Promise<void> {
 
 export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
   const k = process.env.RESEND_API_KEY; if (!k) return;
-  // TODO: Point to actual reset page when it exists. For now, assuming /reset
-  const link = `https://calcai.cc/reset?token=${token}&email=${encodeURIComponent(to)}`;
+  const link = `https://hub.calcai.cc/reset?token=${token}&email=${encodeURIComponent(to)}`;
 
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:20px"><p>Hi,</p><p>A password reset was requested for your CalcAI account.</p><p><a href="${link}" style="background:#000;color:#fff;padding:10px 20px;text-decoration:none;border-radius:5px">Reset Password</a></p><p style="font-size:12px;color:#888">If you didn't ask for this, ignore this email.</p></body></html>`;
   const text = `Reset your password: ${link}`;
