@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: false, error: "email_required" }, { status: 400 });
         }
 
-        const r = await fetch(`${EDGE_BASE}/ai/admin/reset-password`, {
+        const r = await fetch(`${EDGE_BASE}/api/admin/reset-password`, {
             method: "POST",
             headers: {
                 "X-Admin-Token": ADMIN_TOKEN,
