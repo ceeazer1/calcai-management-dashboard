@@ -106,7 +106,13 @@ export default function UsersPage() {
         body: JSON.stringify({ email }),
       });
       const j = await r.json();
-      if (j.ok) alert("Password reset email trigger sent successfully");
+      if (j.ok) {
+        if (j.resetLink) {
+          window.prompt("Password reset generated. Copy this link to send to the user:", j.resetLink);
+        } else {
+          alert(j.message || "Password reset triggered successfully");
+        }
+      }
       else alert("Failed to trigger password reset: " + (j.error || "unknown"));
     } catch { alert("Network error triggering password reset"); }
   }

@@ -35,17 +35,29 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: false, error: data.error || "upstream_error" }, { status: r.status });
         }
 
-        // Intercept: If worker returned a debug token (since it doesn't send email yet), we send it here
+        // Intercept: If worker returned a debug token
         if (data.ok && data.debug_token) {
-            try {
-                await sendPasswordResetEmail(email, data.debug_token);
-                // Clear the token from response so we don't leak it back to client if not needed
-                delete data.debug_token;
-                data.message = "Password reset email sent (handled by dashboard)";
-            } catch (err) {
-                console.error("Failed to send reset email from dashboard:", err);
-                // Still return ok=true because token was generated, but maybe warn
+            const resetLink = `https://calcai.cc/reset?token=${data.debug_token}&email=${encodeURIComponent(email)}`;
+            data.resetLink = resetLink;
+
+            // Only attempt to email if it looks like an email address
+            if (email.includes('@')) {
+                try {
+                    await sendPasswordResetEmail(email, data.debug_token);
+                    data.emailSent = true;
+                    data.message = "Password reset email sent, and link generated below.";
+                } catch (err) {
+                    console.error("Failed to send reset email from dashboard:", err);
+                    data.emailSent = false;
+                    data.message = "Failed to send email, but link generated below.";
+                }
+            } else {
+                data.emailSent = false;
+                data.message = "User has no email address. Copy the link below.";
             }
+
+            // We keep the debug_token in this case or just rely on resetLink
+            // delete data.debug_token; 
         }
 
         return NextResponse.json(data, { status: r.status });
