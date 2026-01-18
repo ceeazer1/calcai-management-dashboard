@@ -21,7 +21,19 @@ export async function POST(req: NextRequest) {
             cache: "no-store",
         });
 
-        const data = await r.json();
+        let data;
+        const text = await r.text();
+        try {
+            data = JSON.parse(text);
+        } catch {
+            data = { error: text || r.statusText };
+        }
+
+        if (!r.ok) {
+            console.error("[users-admin/reset-password] Upstream error:", r.status, text);
+            return NextResponse.json({ ok: false, error: data.error || "upstream_error" }, { status: r.status });
+        }
+
         return NextResponse.json(data, { status: r.status });
     } catch (e) {
         console.error("[users-admin/reset-password] error:", e);
