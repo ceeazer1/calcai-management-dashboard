@@ -63,6 +63,9 @@ export default function OrdersPage() {
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
+  const [reportDate, setReportDate] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
+  const [isReportView, setIsReportView] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [customOrderLoading, setCustomOrderLoading] = useState(false);
   const [customForm, setCustomForm] = useState({
@@ -380,6 +383,13 @@ export default function OrdersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMonthlyReportModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Monthly Report
+          </button>
           <button
             onClick={() => setShowCustomModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-sm text-white transition-colors"
@@ -980,11 +990,12 @@ export default function OrdersPage() {
               <div className="p-12 print:p-0">
                 <div className="flex justify-between items-start mb-12">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-4">INVOICE</h1>
-                    <div className="text-gray-600 text-sm space-y-1">
-                      <p className="font-semibold text-gray-900">CalcAI</p>
+                    <img src="https://www.calcai.cc/logo.png" alt="CalcAI" className="h-10 mb-6" />
+                    <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">INVOICE</h1>
+                    <div className="text-gray-500 text-sm space-y-0.5">
+                      <p className="font-bold text-gray-800">CalcAI</p>
                       <p>contact@calcai.cc</p>
-                      <p>calcai.cc</p>
+                      <p>www.calcai.cc</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -1013,6 +1024,9 @@ export default function OrdersPage() {
                         {invoiceOrder.shippingAddress.line2 && <p>{invoiceOrder.shippingAddress.line2}</p>}
                         <p>{invoiceOrder.shippingAddress.city}, {invoiceOrder.shippingAddress.state} {invoiceOrder.shippingAddress.postal_code}</p>
                         <p>{invoiceOrder.shippingAddress.country}</p>
+                        {invoiceOrder.shippingMethod && (
+                          <p className="mt-2 text-xs text-gray-500 italic">Method: {invoiceOrder.shippingMethod}</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1041,32 +1055,220 @@ export default function OrdersPage() {
                   </tbody>
                 </table>
 
-                <div className="flex justify-end border-t border-gray-200 pt-8">
-                  <div className="w-64 space-y-3">
+                <div className="flex justify-between items-center border-t-2 border-gray-900 pt-6">
+                  <div className="text-xs text-gray-400 max-w-[300px]">
+                    <p className="font-bold text-gray-900 mb-1">Payment Info</p>
+                    <p>Method: {invoiceOrder.type === 'square' ? 'Credit Card / Square' : 'Custom / Invoice'}</p>
+                    <p>Transaction ID: {invoiceOrder.paymentId || invoiceOrder.id.slice(0, 12)}</p>
+                  </div>
+                  <div className="w-64 space-y-2">
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="text-gray-500 font-medium">Subtotal</span>
+                      <span className="font-semibold text-gray-900">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-lg font-bold border-t border-gray-200 pt-3">
-                      <span className="text-gray-900">Total</span>
-                      <span className="text-gray-900">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-500 font-medium">Shipping</span>
+                      <span className="font-semibold text-gray-900">
+                        $0.00
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xl font-black border-t border-gray-100 pt-4 mt-2">
+                      <span className="text-gray-900 uppercase">Total</span>
+                      <span className="text-blue-600">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${invoiceOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}>
+                        {invoiceOrder.paymentStatus === 'paid' ? 'Paid In Full' : 'Payment Pending'}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Footer */}
-                <div className="mt-20 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-                  <p>Thank you for your business!</p>
+                <div className="mt-20 pt-8 border-t border-gray-100 text-center">
+                  <p className="text-sm font-bold text-gray-900 mb-1">Thank you for your order!</p>
+                  <p className="text-xs text-gray-400 italic">If you have any questions, please contact support at contact@calcai.cc</p>
                 </div>
               </div>
             </div>
           </div>
         )
       }
+
+      {/* Monthly Report Selection Modal */}
+      {showMonthlyReportModal && (
+        <MonthlyReportModal
+          onClose={() => setShowMonthlyReportModal(false)}
+          onGenerate={() => { setIsReportView(true); setShowMonthlyReportModal(false); }}
+          reportDate={reportDate}
+          setReportDate={setReportDate}
+        />
+      )}
+
+      {/* Monthly Report Full Screen View */}
+      {isReportView && (
+        <ReportView
+          onClose={() => setIsReportView(false)}
+          month={reportDate.month}
+          year={reportDate.year}
+          orders={orders.filter(o => {
+            const d = new Date(o.created * 1000);
+            return d.getMonth() + 1 === reportDate.month && d.getFullYear() === reportDate.year;
+          })}
+        />
+      )}
+    </div>
+  );
+}
+
+function MonthlyReportModal({
+  onClose,
+  onGenerate,
+  reportDate,
+  setReportDate
+}: {
+  onClose: () => void,
+  onGenerate: () => void,
+  reportDate: { month: number, year: number },
+  setReportDate: (d: { month: number, year: number }) => void
+}) {
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[110] p-4">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-sm">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+          <h2 className="text-lg font-semibold text-white">Select Month</h2>
+          <button onClick={onClose} className="p-1 hover:bg-neutral-800 rounded">
+            <X className="h-5 w-5 text-neutral-400" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 uppercase font-bold mb-1">Month</label>
+              <select
+                value={reportDate.month}
+                onChange={(e) => setReportDate({ ...reportDate, month: parseInt(e.target.value) })}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-2 text-white text-sm"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 uppercase font-bold mb-1">Year</label>
+              <select
+                value={reportDate.year}
+                onChange={(e) => setReportDate({ ...reportDate, year: parseInt(e.target.value) })}
+                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg p-2 text-white text-sm"
+              >
+                {[2024, 2025, 2026].map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <button
+            onClick={onGenerate}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors mt-2"
+          >
+            Generate Report
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportView({
+  orders,
+  month,
+  year,
+  onClose
+}: {
+  orders: any[],
+  month: number,
+  year: number,
+  onClose: () => void
+}) {
+  const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+  const totalSales = orders.reduce((sum, o) => sum + o.amount, 0);
+
+  return (
+    <div className="fixed inset-0 bg-white text-black z-[200] overflow-y-auto p-12 print:p-0 selection:bg-blue-100">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-start mb-12 print:hidden border-b pb-6">
+          <h2 className="text-xl font-bold">Monthly Order Summary</h2>
+          <div className="flex gap-4">
+            <button onClick={() => window.print()} className="px-6 py-2 bg-black text-white rounded-lg font-bold">Print Report</button>
+            <button onClick={onClose} className="px-6 py-2 border border-gray-300 rounded-lg font-bold">Close</button>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-10">
+          <div>
+            <img src="https://www.calcai.cc/logo.png" alt="CalcAI" className="h-10 mb-4" />
+            <h1 className="text-4xl font-black uppercase tracking-tighter">Order Report</h1>
+            <p className="text-gray-500 font-medium">{monthName} {year}</p>
+          </div>
+          <div className="text-right">
+            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-1">Total Sales</p>
+              <p className="text-3xl font-black text-gray-900">
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalSales / 100)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">{orders.length} orders total</p>
+            </div>
+          </div>
+        </div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b-2 border-black text-left">
+              <th className="py-4 font-bold">Date</th>
+              <th className="py-4 font-bold">ID</th>
+              <th className="py-4 font-bold">Customer</th>
+              <th className="py-4 font-bold">Shipping</th>
+              <th className="py-4 font-bold text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {orders.map((o, i) => (
+              <tr key={i} className="hover:bg-gray-50/50">
+                <td className="py-4 text-gray-600">{new Date(o.created * 1000).toLocaleDateString()}</td>
+                <td className="py-4 font-mono text-xs text-gray-400 lowercase">{o.id.slice(0, 8)}</td>
+                <td className="py-4">
+                  <p className="font-bold text-gray-800">{o.customerName}</p>
+                  <p className="text-xs text-gray-500">{o.customerEmail}</p>
+                </td>
+                <td className="py-4 text-gray-500 text-xs">
+                  {o.shippingMethod || o.shipment?.service || "—"}
+                </td>
+                <td className="py-4 text-right font-bold">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: o.currency }).format(o.amount / 100)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {orders.length === 0 && (
+          <div className="py-20 text-center text-gray-400 font-medium italic">
+            No orders found for this period.
+          </div>
+        )}
+
+        <div className="mt-20 pt-8 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400 font-medium uppercase tracking-widest">
+          <p>CalcAI Internal Report</p>
+          <p>Generated {new Date().toLocaleDateString()}</p>
+        </div>
+      </div>
     </div>
   );
 }
