@@ -85,6 +85,23 @@ export default function OrdersPage() {
     weight_oz: 32,
   });
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
+  const [trackingStatuses, setTrackingStatuses] = useState<Record<string, { status: string; loading: boolean }>>({});
+
+  const fetchTrackingStatus = async (orderId: string, carrier: string, trackingNumber: string) => {
+    if (!carrier || !trackingNumber) return;
+    setTrackingStatuses(prev => ({ ...prev, [orderId]: { ...prev[orderId], loading: true } }));
+    try {
+      const r = await fetch(`/api/orders/tracking/status?carrier=${encodeURIComponent(carrier)}&trackingNumber=${encodeURIComponent(trackingNumber)}`);
+      const data = await r.json();
+      if (data.ok) {
+        setTrackingStatuses(prev => ({ ...prev, [orderId]: { status: data.status, loading: false } }));
+      }
+    } catch (e) {
+      console.error("Tracking fetch failed", e);
+    } finally {
+      setTrackingStatuses(prev => ({ ...prev, [orderId]: { ...prev[orderId], loading: false } }));
+    }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -105,6 +122,22 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Auto-fetch tracking for recently shipped orders that aren't marked as delivered yet
+  useEffect(() => {
+    const shippedOrders = orders.filter(o =>
+      o.shipment?.status === "label_created" &&
+      o.shipment?.trackingNumber &&
+      o.shipment?.carrier &&
+      !trackingStatuses[o.id]
+    ).slice(0, 10); // Batch first 10 to avoid rate limits
+
+    shippedOrders.forEach(o => {
+      if (o.shipment) {
+        fetchTrackingStatus(o.id, o.shipment.carrier || "USPS", o.shipment.trackingNumber || "");
+      }
+    });
+  }, [orders]);
 
   const resendConfirmation = async (orderId: string, email: string) => {
     setResendingEmail(orderId);
@@ -343,6 +376,28 @@ export default function OrdersPage() {
     }
   };
 
+  const getTrackingColor = (status: string) => {
+    switch (status) {
+      case "DELIVERED":
+        return "bg-green-900/40 text-green-300 border-green-700/40";
+      case "TRANSIT":
+        return "bg-blue-900/40 text-blue-300 border-blue-700/40";
+      case "PRE_TRANSIT":
+        return "bg-neutral-800 text-neutral-400 border-neutral-700";
+      case "FAILURE":
+      case "RETURNED":
+        return "bg-red-900/40 text-red-300 border-red-700/40";
+      default:
+        return "bg-neutral-800 text-neutral-400 border-neutral-700";
+    }
+  };
+
+  const formatTracking = (s: string) => {
+    if (s === 'TRANSIT') return 'In Transit';
+    if (s === 'PRE_TRANSIT') return 'Pre-Transit';
+    return s.charAt(0) + s.slice(1).toLowerCase().replace('_', ' ');
+  };
+
   // Filter and search orders
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -505,6 +560,11 @@ export default function OrdersPage() {
                         Shipped
                       </span>
                     ) : null}
+                    {trackingStatuses[order.id]?.status && (
+                      <span className={`px-2 py-0.5 rounded text-xs border ${getTrackingColor(trackingStatuses[order.id].status)}`}>
+                        {formatTracking(trackingStatuses[order.id].status)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-6">
                     <span className="text-neutral-400 text-sm">
@@ -515,10 +575,27 @@ export default function OrdersPage() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 flex items-center gap-4 text-sm">
-                  <span className="text-neutral-300">{order.customerName || "—"}</span>
-                  <span className="text-neutral-500">{order.customerEmail || "—"}</span>
-                  {order.customerPhone && <span className="text-neutral-500">{order.customerPhone}</span>}
+                <div className="mt-2 flex items-center gap-4 text-sm justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="text-neutral-300">{order.customerName || "—"}</span>
+                    <span className="text-neutral-500">{order.customerEmail || "—"}</span>
+                    {order.customerPhone && <span className="text-neutral-500">{order.customerPhone}</span>}
+                  </div>
+                  {order.shipment?.trackingNumber && (
+                    <div className="text-[10px] font-mono text-neutral-600 flex items-center gap-2">
+                      {order.shipment.trackingNumber}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (order.shipment) fetchTrackingStatus(order.id, order.shipment.carrier || "USPS", order.shipment.trackingNumber || "");
+                        }}
+                        className="hover:text-neutral-400 transition-colors"
+                        title="Refresh Tracking"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${trackingStatuses[order.id]?.loading ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1000,9 +1077,9 @@ export default function OrdersPage() {
                   </div>
                   <div className="text-right">
                     <div className="text-gray-600 text-sm space-y-1">
-                      <p><span className="font-medium text-gray-900">Invoice #:</span> {invoiceOrder.id.slice(0, 8).toUpperCase()}</p>
-                      <p><span className="font-medium text-gray-900">Date:</span> {new Date(invoiceOrder.created * 1000).toLocaleDateString()}</p>
-                      <p><span className="font-medium text-gray-900">Status:</span> {invoiceOrder.paymentStatus === 'paid' ? 'Paid' : invoiceOrder.status}</p>
+                      <p><span className="font-medium text-gray-900">Invoice #:</span> {invoiceOrder?.id.slice(0, 8).toUpperCase()}</p>
+                      <p><span className="font-medium text-gray-900">Date:</span> {invoiceOrder ? new Date(invoiceOrder.created * 1000).toLocaleDateString() : '—'}</p>
+                      <p><span className="font-medium text-gray-900">Status:</span> {invoiceOrder?.paymentStatus === 'paid' ? 'Paid' : invoiceOrder?.status}</p>
                     </div>
                   </div>
                 </div>
@@ -1011,20 +1088,20 @@ export default function OrdersPage() {
                   <div>
                     <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Bill To</h3>
                     <div className="text-gray-900 text-sm space-y-1">
-                      <p className="font-medium">{invoiceOrder.customerName}</p>
-                      <p>{invoiceOrder.customerEmail}</p>
+                      <p className="font-medium">{invoiceOrder?.customerName}</p>
+                      <p>{invoiceOrder?.customerEmail}</p>
                     </div>
                   </div>
                   {invoiceOrder.shippingAddress && (
                     <div>
                       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Ship To</h3>
                       <div className="text-gray-900 text-sm space-y-1">
-                        <p className="font-medium">{invoiceOrder.customerName}</p>
-                        <p>{invoiceOrder.shippingAddress.line1}</p>
-                        {invoiceOrder.shippingAddress.line2 && <p>{invoiceOrder.shippingAddress.line2}</p>}
-                        <p>{invoiceOrder.shippingAddress.city}, {invoiceOrder.shippingAddress.state} {invoiceOrder.shippingAddress.postal_code}</p>
-                        <p>{invoiceOrder.shippingAddress.country}</p>
-                        {invoiceOrder.shippingMethod && (
+                        <p className="font-medium">{invoiceOrder?.customerName}</p>
+                        <p>{invoiceOrder?.shippingAddress?.line1}</p>
+                        {invoiceOrder?.shippingAddress?.line2 && <p>{invoiceOrder.shippingAddress.line2}</p>}
+                        <p>{invoiceOrder?.shippingAddress?.city}, {invoiceOrder?.shippingAddress?.state} {invoiceOrder?.shippingAddress?.postal_code}</p>
+                        <p>{invoiceOrder?.shippingAddress?.country}</p>
+                        {invoiceOrder?.shippingMethod && (
                           <p className="mt-2 text-xs text-gray-500 italic">Method: {invoiceOrder.shippingMethod}</p>
                         )}
                       </div>
@@ -1041,12 +1118,12 @@ export default function OrdersPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {invoiceOrder.items.map((item, i) => (
+                    {invoiceOrder?.items.map((item, i) => (
                       <tr key={i}>
                         <td className="py-4 text-sm text-gray-900">{item.description}</td>
                         <td className="py-4 text-sm text-gray-900 text-center">{item.quantity}</td>
                         <td className="py-4 text-sm text-gray-900 text-right">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(item.amount / 100)}
+                          {invoiceOrder ? new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(item.amount / 100) : '—'}
                         </td>
                       </tr>
                     ))}
@@ -1058,14 +1135,14 @@ export default function OrdersPage() {
                 <div className="flex justify-between items-center border-t-2 border-gray-900 pt-6">
                   <div className="text-xs text-gray-400 max-w-[300px]">
                     <p className="font-bold text-gray-900 mb-1">Payment Info</p>
-                    <p>Method: {invoiceOrder.type === 'square' ? 'Credit Card / Square' : 'Custom / Invoice'}</p>
-                    <p>Transaction ID: {invoiceOrder.paymentId || invoiceOrder.id.slice(0, 12)}</p>
+                    <p>Method: {invoiceOrder?.type === 'square' ? 'Credit Card / Square' : 'Custom / Invoice'}</p>
+                    <p>Transaction ID: {invoiceOrder?.paymentId || invoiceOrder?.id.slice(0, 12)}</p>
                   </div>
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-500 font-medium">Subtotal</span>
                       <span className="font-semibold text-gray-900">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
+                        {invoiceOrder ? new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100) : '—'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
@@ -1077,7 +1154,7 @@ export default function OrdersPage() {
                     <div className="flex justify-between items-center text-xl font-black border-t border-gray-100 pt-4 mt-2">
                       <span className="text-gray-900 uppercase">Total</span>
                       <span className="text-blue-600">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
+                        {invoiceOrder ? new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100) : '—'}
                       </span>
                     </div>
                   </div>
