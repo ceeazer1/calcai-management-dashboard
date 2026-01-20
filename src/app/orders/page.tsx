@@ -1080,11 +1080,6 @@ export default function OrdersPage() {
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceOrder.currency.toUpperCase() }).format(invoiceOrder.amount / 100)}
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${invoiceOrder.paymentStatus === 'paid' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}>
-                        {invoiceOrder.paymentStatus === 'paid' ? 'Paid In Full' : 'Payment Pending'}
-                      </span>
-                    </div>
                   </div>
                 </div>
 
