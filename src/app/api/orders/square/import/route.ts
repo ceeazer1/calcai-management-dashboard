@@ -63,37 +63,44 @@ export async function POST() {
                     let customerEmail = '';
                     let customerName = '';
 
-                    if (order.customerId) {
+                    let squareCustomerId = order.customerId || order.tenders?.[0]?.customerId || order.tenders?.[0]?.customer_id;
+
+                    if (squareCustomerId) {
                         try {
-                            const customerResponse = await square.customers.get({ customerId: order.customerId });
-                            customerEmail = customerResponse.customer?.emailAddress || '';
-                            customerName = `${customerResponse.customer?.givenName || ''} ${customerResponse.customer?.familyName || ''}`.trim();
+                            // Use retrieve(id) for newest Square SDK
+                            const customerResponse = await (square as any).customers.retrieve(squareCustomerId);
+                            customerEmail = (customerResponse as any).customer?.emailAddress || (customerResponse as any).result?.customer?.emailAddress || '';
+                            const cust = (customerResponse as any).customer || (customerResponse as any).result?.customer;
+                            if (cust) {
+                                customerName = `${cust.givenName || ''} ${cust.familyName || ''}`.trim();
+                            }
                         } catch (e) {
-                            // Ignore customer fetch errors
+                            console.warn(`[square/import] Failed to fetch customer ${order.customerId}`);
                         }
                     }
 
-                    // Extract shipping address
+                    // Extract shipping address and contact info from any fulfillment
                     let shippingAddress = null;
                     if (order.fulfillments && order.fulfillments.length > 0) {
-                        const shipmentFulfillment = order.fulfillments.find((f: any) => f.type === 'SHIPMENT');
-                        if (shipmentFulfillment?.shipmentDetails?.recipient?.address) {
-                            const addr = shipmentFulfillment.shipmentDetails.recipient.address;
-                            shippingAddress = {
-                                line1: addr.addressLine1 || '',
-                                line2: addr.addressLine2 || undefined,
-                                city: addr.locality || '',
-                                state: addr.administrativeDistrictLevel1 || '',
-                                postal_code: addr.postalCode || '',
-                                country: addr.country || 'US',
-                            };
+                        for (const f of order.fulfillments) {
+                            const details = (f as any).shipmentDetails || (f as any).pickupDetails || (f as any).deliveryDetails;
+                            const recipient = details?.recipient;
 
-                            // Get customer name from recipient if not already set
-                            if (!customerName) {
-                                customerName = shipmentFulfillment.shipmentDetails.recipient.displayName || '';
-                            }
-                            if (!customerEmail) {
-                                customerEmail = shipmentFulfillment.shipmentDetails.recipient.emailAddress || '';
+                            if (recipient) {
+                                if (!customerEmail) customerEmail = recipient.emailAddress || '';
+                                if (!customerName) customerName = recipient.displayName || '';
+
+                                if (!shippingAddress && recipient.address) {
+                                    const addr = recipient.address;
+                                    shippingAddress = {
+                                        line1: addr.addressLine1 || '',
+                                        line2: addr.addressLine2 || undefined,
+                                        city: addr.locality || '',
+                                        state: addr.administrativeDistrictLevel1 || '',
+                                        postal_code: addr.postalCode || '',
+                                        country: addr.country || 'US',
+                                    };
+                                }
                             }
                         }
                     }
@@ -118,6 +125,14 @@ export async function POST() {
                         if (shippingItem) {
                             const match = shippingItem.name.match(/\(([^)]+)\)/);
                             if (match) shippingMethod = match[1];
+                        }
+                    }
+
+                    // Fallback: Check order notes for email patterns
+                    if (!customerEmail && order.note) {
+                        const emailMatch = order.note.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+                        if (emailMatch) {
+                            customerEmail = emailMatch[0];
                         }
                     }
 
