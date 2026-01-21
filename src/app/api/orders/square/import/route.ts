@@ -111,7 +111,17 @@ export async function POST() {
                     else if (order.state === 'CANCELED') status = 'expired';
                     else if (order.state === 'DRAFT') status = 'pending';
 
-                    const result = {
+                    // Extract shipping method from line items if present
+                    let shippingMethod = undefined;
+                    if (order.lineItems) {
+                        const shippingItem = order.lineItems.find((li: any) => li.name?.startsWith('Shipping ('));
+                        if (shippingItem) {
+                            const match = shippingItem.name.match(/\(([^)]+)\)/);
+                            if (match) shippingMethod = match[1];
+                        }
+                    }
+
+                    const result: any = {
                         id: order.id || '',
                         type: 'square' as const,
                         created: order.createdAt ? Math.floor(new Date(order.createdAt).getTime() / 1000) : 0,
@@ -123,6 +133,7 @@ export async function POST() {
                         customerEmail,
                         customerName,
                         shippingAddress,
+                        shippingMethod,
                         items,
                         receiptUrl: order.receiptUrl,
                         notes: order.note,

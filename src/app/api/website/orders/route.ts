@@ -31,102 +31,98 @@ export async function POST(req: NextRequest) {
 
         const kv = getKvClient();
 
-        // 1. Actually process the payment with Square
+        // 1. Create a Square Order first (so all details are in Square)
         const square = getSquareClient();
         if (!square) {
-            console.error("[api/website/orders] Square client initialization failed - check Access Token");
+            console.error("[api/website/orders] Square client initialization failed");
             return corsResponse({ error: "Square not configured on server" }, 500);
         }
 
         try {
-            // Ensure amount is a whole number (cents)
-            const rawAmount = Number(order.amount || 0);
-            const amountCents = BigInt(Math.round(rawAmount));
             const locationId = process.env.SQUARE_LOCATION_ID || process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
-
             if (!locationId) {
-                console.error("[api/website/orders] Missing Location ID");
-                return corsResponse({ error: "Server Configuration Error: Missing Location ID" }, 500);
+                return corsResponse({ error: "Missing Location ID" }, 500);
             }
 
-            console.log(`[api/website/orders] Attempting Square payment. Location: ${locationId}, Amount: ${amountCents}`);
+            // Construct Line Items
+            const lineItems = (order.items || []).map((item: any) => ({
+                name: item.description,
+                quantity: String(item.quantity || "1"),
+                basePriceMoney: {
+                    amount: BigInt(Math.round(Number(item.amount))),
+                    currency: (order.currency || 'USD').toUpperCase()
+                }
+            }));
 
-            // Create the payment using the token as sourceId
-            // The token itself (order.id) is unique and makes a great idempotency key.
-            // Square limits idempotency keys to 45 chars.
-            const squareAddress = order.shippingAddress ? {
-                addressLine1: order.shippingAddress.line1,
-                addressLine2: order.shippingAddress.line2,
-                locality: order.shippingAddress.city,
-                administrativeDistrictLevel1: order.shippingAddress.state,
-                postalCode: order.shippingAddress.postal_code || order.shippingAddress.zip,
-                country: (order.shippingAddress.country || 'US').toUpperCase()
-            } : undefined;
+            // Add Shipping as a line item if not already included
+            const shippingAmount = order.amount - (order.items || []).reduce((sum: number, i: any) => sum + (i.amount * i.quantity), 0);
+            if (shippingAmount > 0) {
+                lineItems.push({
+                    name: `Shipping (${order.shippingMethod || 'Standard'})`,
+                    quantity: "1",
+                    basePriceMoney: {
+                        amount: BigInt(Math.round(shippingAmount)),
+                        currency: (order.currency || 'USD').toUpperCase()
+                    }
+                });
+            }
 
-            const squareResponse = await square.payments.create({
+            // Create the order in Square
+            const orderRequest = {
+                order: {
+                    locationId: locationId,
+                    lineItems,
+                    customerId: order.customerId,
+                    fulfillments: [{
+                        type: 'SHIPMENT',
+                        state: 'PROPOSED',
+                        shipmentDetails: {
+                            recipient: {
+                                displayName: order.customerName,
+                                emailAddress: order.customerEmail,
+                                address: {
+                                    addressLine1: order.shippingAddress?.line1,
+                                    addressLine2: order.shippingAddress?.line2,
+                                    locality: order.shippingAddress?.city,
+                                    administrativeDistrictLevel1: order.shippingAddress?.state,
+                                    postalCode: order.shippingAddress?.postal_code || order.shippingAddress?.zip,
+                                    country: (order.shippingAddress?.country || 'US').toUpperCase()
+                                }
+                            }
+                        }
+                    }],
+                    note: order.notes || `Order via Website`
+                },
+                idempotencyKey: `${order.id}_order`
+            };
+
+            const orderResponse = await square.orders.create(orderRequest as any);
+            const squareOrder = (orderResponse as any).result?.order || orderResponse.order;
+
+            // 2. Process the payment linked to this order
+            const amountCents = BigInt(Math.round(Number(order.amount)));
+            const paymentResponse = await square.payments.create({
                 sourceId: order.id,
-                idempotencyKey: order.id, // Use the token as the key (it's unique and < 45 chars)
+                idempotencyKey: order.id,
                 locationId: locationId,
+                orderId: squareOrder.id, // LINK THE PAYMENT TO THE ORDER
                 amountMoney: {
                     amount: amountCents,
                     currency: (order.currency || 'USD').toUpperCase()
                 },
                 buyerEmailAddress: order.customerEmail,
-                shippingAddress: squareAddress,
-                note: `Order: ${order.customerEmail}${order.notes ? ` | ${order.notes}` : ''}`
+                note: `Order: ${order.customerEmail}`
             });
 
-            // The Square SDK returns a 'result' object in newer versions
-            const result = (squareResponse as any).result || squareResponse;
-            const payment = result.payment;
+            const payment = (paymentResponse as any).result?.payment || paymentResponse.payment;
 
             if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
-                console.error("[api/website/orders] Square payment check failed. Status:", payment?.status);
-                return corsResponse({
-                    error: "Payment declined or skipped by Square",
-                    status: payment?.status
-                }, 400);
+                return corsResponse({ error: "Payment failed", status: payment?.status }, 400);
             }
 
-            console.log(`[api/website/orders] Square payment successful: ${payment.id}`);
+            console.log(`[api/website/orders] Square Order & Payment successful: ${squareOrder.id}`);
 
-            // Store strings only to avoid BigInt serialization errors with KV/JSON
-            order.squarePaymentId = String(payment.id);
-            order.paymentStatus = String(payment.status);
-
-        } catch (squareErr: any) {
-            console.error("[api/website/orders] Square SDK Exception:", squareErr);
-            // Extract specific error if available
-            const squareErrors = squareErr.errors || (squareErr.result?.errors);
-            const errorDetail = squareErrors?.[0]?.detail || squareErr.message || "Payment processing failed";
-
-            return corsResponse({
-                error: errorDetail,
-                code: squareErrors?.[0]?.code
-            }, 400);
-        }
-
-        // 2. Save to KV and send email
-        // Load current cached orders
-        const existing = await kv.get<any[]>(WEBSITE_ORDERS_KEY) || [];
-
-        // Check if the order already exists to avoid duplicates
-        const exists = existing.some(o => o.id === order.id || (o.squarePaymentId && o.squarePaymentId === order.squarePaymentId));
-
-        if (!exists) {
-            // Prepend the new order so it shows at the top
-            const newOrder = {
-                ...order,
-                type: "square", // Categorize as square for filtering
-                created: order.created || Math.floor(Date.now() / 1000),
-                paymentStatus: order.paymentStatus || "COMPLETED",
-                status: order.status || "complete"
-            };
-
-            existing.unshift(newOrder);
-            await kv.set(WEBSITE_ORDERS_KEY, existing);
-
-            // Send confirmation email automatically
+            // 3. Send confirmation email (immediate notification)
             try {
                 const shippingMethod = order.notes?.includes("Shipping via")
                     ? order.notes.split("Shipping via ")[1]
@@ -135,20 +131,26 @@ export async function POST(req: NextRequest) {
                 await sendOrderConfirmationEmail({
                     to: order.customerEmail,
                     customerName: order.customerName || "Customer",
-                    orderId: order.id,
+                    orderId: squareOrder.id, // Use Square Order ID here
                     amount: order.amount,
                     currency: order.currency || "usd",
                     items: order.items || [],
                     paymentMethod: order.paymentMethod,
                     shippingMethod: shippingMethod
                 });
-                console.log(`[api/website/orders] Confirmation email sent to ${order.customerEmail}`);
             } catch (emailErr) {
-                console.error("[api/website/orders] Failed to send confirmation email:", emailErr);
+                console.error("[api/website/orders] Email failed:", emailErr);
             }
-        }
 
-        return corsResponse({ ok: true, orderId: order.id });
+            return corsResponse({ ok: true, orderId: squareOrder.id });
+
+        } catch (err: any) {
+            console.error("[api/website/orders] Square Transaction Error:", err);
+            const errors = err.errors || err.result?.errors;
+            return corsResponse({
+                error: errors?.[0]?.detail || err.message || "Transaction failed"
+            }, 400);
+        }
     } catch (e: any) {
         console.error("[api/website/orders] fatal error:", e);
         return corsResponse({
