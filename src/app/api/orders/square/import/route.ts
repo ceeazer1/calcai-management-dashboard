@@ -108,6 +108,21 @@ export async function POST() {
                     notes: order.note,
                 };
 
+                // Fallback: If paymentId is missing, try to find it via Payments API (for online checkout orders)
+                if (!result.paymentId && result.status !== 'canceled') {
+                    try {
+                        const paymentsResp: any = await square.payments.list({ orderId: order.id } as any);
+                        // Check payments in the response (SDK handling)
+                        const payments = paymentsResp.payments || paymentsResp.result?.payments;
+                        const payment = payments?.find((p: any) => p.status === 'COMPLETED' || p.status === 'APPROVED');
+                        if (payment?.id) {
+                            result.paymentId = payment.id;
+                        }
+                    } catch (e) {
+                        console.warn(`Failed to fetch payment for order ${order.id}`, e);
+                    }
+                }
+
                 return result;
             })
         );
