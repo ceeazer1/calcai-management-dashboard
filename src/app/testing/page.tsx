@@ -8,7 +8,7 @@ export default function TestingPage() {
     const [loading, setLoading] = useState<string | null>(null);
     const [result, setResult] = useState<{ type: string; ok: boolean; msg: string } | null>(null);
 
-    const sendTestEmail = async (type: "confirmation" | "shipped" | "reset") => {
+    const sendTestEmail = async (type: "confirmation" | "shipped" | "reset" | "refund") => {
         if (!email) {
             setResult({ type, ok: false, msg: "Please enter a recipient email address" });
             return;
@@ -26,7 +26,7 @@ export default function TestingPage() {
             const data = await r.json();
 
             if (r.ok && data.ok) {
-                const typeLabels = { confirmation: "Order Confirmation", shipped: "Shipping Notification", reset: "Password Reset" };
+                const typeLabels = { confirmation: "Order Confirmation", shipped: "Shipping Notification", reset: "Password Reset", refund: "Order Refund" };
                 setResult({ type, ok: true, msg: `Success! ${typeLabels[type]} email sent.` });
             } else {
                 setResult({ type, ok: false, msg: data.error || "Failed to send email" });
@@ -112,7 +112,21 @@ export default function TestingPage() {
                                 )}
                                 Send Password Reset
                             </button>
+
+                            <button
+                                onClick={() => sendTestEmail("refund")}
+                                disabled={!!loading}
+                                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+                            >
+                                {loading === "refund" ? (
+                                    <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                                Send Order Refund
+                            </button>
                         </div>
+
 
                         {result && (
                             <div
@@ -158,6 +172,6 @@ export default function TestingPage() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

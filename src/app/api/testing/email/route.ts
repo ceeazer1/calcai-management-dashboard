@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sendOrderConfirmationEmail, sendShippedEmail, sendPasswordResetEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendShippedEmail, sendPasswordResetEmail, sendRefundEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
     try {
@@ -42,6 +42,14 @@ export async function POST(req: NextRequest) {
             });
         } else if (type === "reset") {
             await sendPasswordResetEmail(email, "test_reset_token_abc123");
+        } else if (type === "refund") {
+            await sendRefundEmail({
+                to: email,
+                customerName: testCustomerName,
+                orderId: testOrderId,
+                amount: 8999, // $89.99
+                currency: "usd"
+            });
         } else {
             return NextResponse.json({ error: "Invalid email type" }, { status: 400 });
         }

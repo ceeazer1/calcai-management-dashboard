@@ -118,8 +118,8 @@ export default function OrdersPage() {
     }
   };
 
-  const syncSquareOrders = async () => {
-    setLoading(true);
+  const syncSquareOrders = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const r = await fetch("/api/orders/square/import", { method: "POST" });
       const data = await r.json();
@@ -128,15 +128,20 @@ export default function OrdersPage() {
       }
       await fetchOrders();
     } catch (e: any) {
-      alert(`Sync Failed: ${e.message}`);
+      console.error("Sync error:", e);
+      if (!silent) alert(`Sync Failed: ${e.message}`);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
 
   useEffect(() => {
-    fetchOrders();
+    // Initial fetch to show cached data immediately
+    fetchOrders().then(() => {
+      // Background sync to update data
+      syncSquareOrders(true);
+    });
   }, []);
 
   // Auto-fetch tracking for recently shipped orders that aren't marked as delivered yet
