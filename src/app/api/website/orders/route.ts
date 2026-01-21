@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
                 },
                 buyerEmailAddress: order.customerEmail,
                 shippingAddress: squareAddress,
-                note: `CalcAI Order: ${order.customerEmail}`
+                note: `Order: ${order.customerEmail}${order.notes ? ` | ${order.notes}` : ''}`
             });
 
             // The Square SDK returns a 'result' object in newer versions
