@@ -86,6 +86,19 @@ export default function OrdersPage() {
   });
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
   const [trackingStatuses, setTrackingStatuses] = useState<Record<string, { status: string; loading: boolean }>>({});
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editForm, setEditForm] = useState({
+    customerEmail: "",
+    customerName: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "US",
+    notes: ""
+  });
 
   const fetchTrackingStatus = async (orderId: string, carrier: string, trackingNumber: string) => {
     if (!carrier || !trackingNumber) return;
@@ -132,6 +145,48 @@ export default function OrdersPage() {
       if (!silent) alert(`Sync Failed: ${e.message}`);
     } finally {
       if (!silent) setLoading(false);
+    }
+  };
+
+
+  const handleUpdateOrder = async () => {
+    if (!editingOrder) return;
+    setIsUpdating(true);
+    try {
+      const updates = {
+        customerEmail: editForm.customerEmail,
+        customerName: editForm.customerName,
+        shippingAddress: {
+          line1: editForm.line1,
+          line2: editForm.line2,
+          city: editForm.city,
+          state: editForm.state,
+          postal_code: editForm.postal_code,
+          country: editForm.country
+        },
+        notes: editForm.notes
+      };
+
+      const r = await fetch("/api/orders/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: editingOrder.id,
+          updates
+        })
+      });
+
+      if (!r.ok) {
+        const data = await r.json();
+        throw new Error(data.error || "Update failed");
+      }
+
+      setEditingOrder(null);
+      fetchOrders(); // Refresh list
+    } catch (e: any) {
+      alert(`Error updating order: ${e.message}`);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -605,6 +660,28 @@ export default function OrdersPage() {
                     <span className="text-neutral-300">{order.customerName || "—"}</span>
                     <span className="text-neutral-500">{order.customerEmail || "—"}</span>
                     {order.customerPhone && <span className="text-neutral-500">{order.customerPhone}</span>}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingOrder(order);
+                        setEditForm({
+                          customerEmail: order.customerEmail || "",
+                          customerName: order.customerName || "",
+                          line1: order.shippingAddress?.line1 || "",
+                          line2: order.shippingAddress?.line2 || "",
+                          city: order.shippingAddress?.city || "",
+                          state: order.shippingAddress?.state || "",
+                          postal_code: order.shippingAddress?.postal_code || "",
+                          country: order.shippingAddress?.country || "US",
+                          notes: order.notes || ""
+                        });
+                      }}
+                      className="p-1 px-2 text-[10px] bg-neutral-800 hover:bg-neutral-700 text-neutral-400 rounded border border-neutral-700 transition-colors flex items-center gap-1"
+                      title="Edit Details"
+                    >
+                      <FileText className="h-3 w-3" />
+                      Edit
+                    </button>
                   </div>
                   {order.shipment?.trackingNumber && (
                     <div className="text-[10px] font-mono text-neutral-600 flex items-center gap-2">
@@ -1189,6 +1266,138 @@ export default function OrdersPage() {
                 <div className="mt-20 pt-8 border-t border-gray-100 text-center">
                   <p className="text-sm font-bold text-gray-900 mb-1">Thank you for your order!</p>
                   <p className="text-xs text-gray-400 italic">If you have any questions, please contact support at contact@calcai.cc</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Edit Order Modal */}
+      {
+        editingOrder && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[120] p-4 text-white">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-neutral-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">Edit Order</h2>
+                  <p className="text-xs text-neutral-500 font-mono mt-1">{editingOrder.id}</p>
+                </div>
+                <button onClick={() => setEditingOrder(null)} className="p-2 hover:bg-neutral-800 rounded-lg transition-colors">
+                  <X className="h-5 w-5 text-neutral-400" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Customer Name</label>
+                    <input
+                      type="text"
+                      value={editForm.customerName}
+                      onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Customer Email</label>
+                    <input
+                      type="email"
+                      value={editForm.customerEmail}
+                      onChange={(e) => setEditForm({ ...editForm, customerEmail: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Shipping Address</h4>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Address Line 1</label>
+                    <input
+                      type="text"
+                      value={editForm.line1}
+                      onChange={(e) => setEditForm({ ...editForm, line1: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-neutral-400 mb-1">Address Line 2 (Optional)</label>
+                    <input
+                      type="text"
+                      value={editForm.line2}
+                      onChange={(e) => setEditForm({ ...editForm, line2: e.target.value })}
+                      className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={editForm.city}
+                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">State</label>
+                      <input
+                        type="text"
+                        value={editForm.state}
+                        onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">Zip / Postal Code</label>
+                      <input
+                        type="text"
+                        value={editForm.postal_code}
+                        onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-neutral-400 mb-1">Country</label>
+                      <input
+                        type="text"
+                        value={editForm.country}
+                        onChange={(e) => setEditForm({ ...editForm, country: e.target.value })}
+                        className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <label className="block text-sm text-neutral-400 mb-1">Notes</label>
+                  <textarea
+                    rows={3}
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-neutral-200 text-sm focus:outline-none resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-800">
+                  <button
+                    onClick={() => setEditingOrder(null)}
+                    disabled={isUpdating}
+                    className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdateOrder}
+                    disabled={isUpdating}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:cursor-not-allowed rounded-lg text-sm text-white font-bold transition-colors flex items-center gap-2"
+                  >
+                    {isUpdating ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+                    {isUpdating ? "Saving..." : "Save Changes"}
+                  </button>
                 </div>
               </div>
             </div>

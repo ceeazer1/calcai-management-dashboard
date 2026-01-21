@@ -63,11 +63,22 @@ export async function GET() {
       return order;
     });
 
-    const allOrders = [
+    // Combine all sources
+    const allOrdersRaw = [
       ...customOrdersWithShipments,
       ...squareOrdersWithShipments,
       ...websiteOrdersWithShipments
-    ].sort((a, b) => (b.created || 0) - (a.created || 0));
+    ];
+
+    // Fetch and Apply Manual Overrides
+    const manualEdits = await kv.get<Record<string, any>>("orders:manual:overrides") || {};
+
+    const allOrders = allOrdersRaw.map(order => {
+      if (manualEdits[order.id]) {
+        return { ...order, ...manualEdits[order.id], manuallyEdited: true };
+      }
+      return order;
+    }).sort((a, b) => (b.created || 0) - (a.created || 0));
 
     // Dedup by ID just in case
     const uniqueOrders = Array.from(new Map(allOrders.map(item => [item.id, item])).values());
