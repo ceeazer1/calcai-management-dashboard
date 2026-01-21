@@ -37,6 +37,7 @@ export async function POST() {
                 },
             },
             limit: 40,
+            returnEntries: false,
         });
 
         const orders = response.orders || [];
