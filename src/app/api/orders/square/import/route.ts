@@ -138,7 +138,7 @@ export async function POST() {
     } catch (e) {
         console.error('[orders/square/import] Error:', e);
         return NextResponse.json(
-            { error: e instanceof Error ? e.message : 'Failed to import orders from Square' },
+            { error: JSON.stringify(e, Object.getOwnPropertyNames(e)) },
             { status: 500 }
         );
     }
