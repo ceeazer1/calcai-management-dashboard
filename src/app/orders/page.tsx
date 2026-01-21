@@ -122,10 +122,13 @@ export default function OrdersPage() {
     setLoading(true);
     try {
       const r = await fetch("/api/orders/square/import", { method: "POST" });
-      if (!r.ok) throw new Error("Failed to sync Square orders");
+      const data = await r.json();
+      if (!r.ok || !data.ok) {
+        throw new Error(data.error || "Failed to sync Square orders");
+      }
       await fetchOrders();
-    } catch (e) {
-      alert("Failed to sync Square orders");
+    } catch (e: any) {
+      alert(`Sync Failed: ${e.message}`);
     } finally {
       setLoading(false);
     }

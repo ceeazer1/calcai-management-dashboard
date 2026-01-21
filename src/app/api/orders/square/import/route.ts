@@ -37,7 +37,6 @@ export async function POST() {
                 },
             },
             limit: 40,
-            returnEntries: false,
         });
 
         const orders = response.orders || [];
@@ -116,22 +115,20 @@ export async function POST() {
                     };
 
                     // Fallback: If paymentId is missing, try to find it via Payments API (for online checkout orders)
-                    // (Commented out temporarily to rule out crashes in this block)
-                    /*
                     if (!result.paymentId && result.status !== 'canceled') {
                         try {
+                            // @ts-ignore - SDK types might vary
                             const paymentsResp: any = await square.payments.list({ orderId: order.id } as any);
-                            // Check payments in the response (SDK handling)
-                            const payments = paymentsResp.payments || paymentsResp.result?.payments;
-                            const payment = payments?.find((p: any) => p.status === 'COMPLETED' || p.status === 'APPROVED');
+                            const payments = paymentsResp.payments || paymentsResp.result?.payments || [];
+                            const payment = payments.find((p: any) => p.status === 'COMPLETED' || p.status === 'APPROVED');
                             if (payment?.id) {
                                 result.paymentId = payment.id;
                             }
-                        } catch (e) {
-                            console.warn(`Failed to fetch payment for order ${order.id}`, e);
+                        } catch (e: any) {
+                            // Log but don't fail the order
+                            console.warn(`[square/import] Failed to fetch payment ID for order ${order.id}: ${e.message}`);
                         }
                     }
-                    */
 
                     return result;
                 } catch (innerError) {
