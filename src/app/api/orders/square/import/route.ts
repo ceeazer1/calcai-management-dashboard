@@ -143,12 +143,14 @@ export async function POST() {
             count: sanitizedOrders.length,
             orders: sanitizedOrders
         });
-    } catch (e) {
+    } catch (e: any) {
         console.error('[orders/square/import] Error:', e);
-        // Ensure error itself is safe to serialize
-        const safeError = JSON.parse(JSON.stringify(e, replacer));
         return NextResponse.json(
-            { error: safeError || 'An unknown error occurred' },
+            {
+                error: e.message || 'An unknown error occurred',
+                type: e.constructor?.name || 'UnknownError',
+                details: typeof e === 'object' ? JSON.stringify(e, replacer) : String(e)
+            },
             { status: 500 }
         );
     }
