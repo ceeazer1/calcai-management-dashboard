@@ -46,20 +46,13 @@ export async function GET() {
     // Fetch Square orders from cache (Legacy storage location for website orders)
     const rawSquareOrders = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
 
-    // Filter to only include "Website Orders" that were stored here
-    // These are identified by having a populated shippingAddress
-    const legacyWebsiteOrders = rawSquareOrders.filter(o =>
-      o.shippingAddress &&
-      (o.shippingAddress.line1 || o.shippingAddress.city) // Basic validation
-    );
+    // Get shipments for ALL Square orders (including overwritten website orders)
+    const squareShipmentKeys = rawSquareOrders.map((o) => `orders:shipment:${o.id}`);
+    const squareShipments = await Promise.all(squareShipmentKeys.map((k) => kv.get<any>(k)));
 
-    // Get shipments for these legacy orders
-    const legacyShipmentKeys = legacyWebsiteOrders.map((o) => `orders:shipment:${o.id}`);
-    const legacyShipments = await Promise.all(legacyShipmentKeys.map((k) => kv.get<any>(k)));
-
-    const legacyWebsiteOrdersWithShipments = legacyWebsiteOrders.map((order, idx) => ({
+    const squareOrdersWithShipments = rawSquareOrders.map((order, idx) => ({
       ...order,
-      shipment: legacyShipments[idx] || null,
+      shipment: squareShipments[idx] || null,
     }));
 
     // Combine all sources
@@ -72,7 +65,7 @@ export async function GET() {
 
     const allOrders = [
       ...customOrdersWithShipments,
-      ...legacyWebsiteOrdersWithShipments,
+      ...squareOrdersWithShipments,
       ...websiteOrdersWithShipments
     ].sort((a, b) => (b.created || 0) - (a.created || 0));
 
