@@ -139,19 +139,33 @@ export async function POST() {
                         notes: order.note,
                     };
 
-                    // Fallback: If paymentId is missing, try to find it via Payments API (for online checkout orders)
-                    if (!result.paymentId && result.status !== 'canceled') {
+                    // Fallback: If paymentId or customerEmail is missing, try to find it via Payments API
+                    if ((!result.paymentId || !result.customerEmail || !result.shippingAddress) && result.status !== 'canceled') {
                         try {
                             // @ts-ignore - SDK types might vary
                             const paymentsResp: any = await square.payments.list({ orderId: order.id } as any);
                             const payments = paymentsResp.payments || paymentsResp.result?.payments || [];
-                            const payment = payments.find((p: any) => p.status === 'COMPLETED' || p.status === 'APPROVED');
-                            if (payment?.id) {
-                                result.paymentId = payment.id;
+                            const payment = payments.find((p: any) => p.status === 'COMPLETED' || p.status === 'APPROVED' || p.status === 'AUTHORIZED');
+
+                            if (payment) {
+                                if (!result.paymentId) result.paymentId = payment.id;
+                                if (!result.customerEmail) result.customerEmail = payment.buyerEmailAddress;
+
+                                // Get shipping address from payment if order fulfillment was missing it
+                                if (!result.shippingAddress && payment.shippingAddress) {
+                                    const addr = payment.shippingAddress;
+                                    result.shippingAddress = {
+                                        line1: addr.addressLine1 || '',
+                                        line2: addr.addressLine2 || undefined,
+                                        city: addr.locality || '',
+                                        state: addr.administrativeDistrictLevel1 || '',
+                                        postal_code: addr.postalCode || '',
+                                        country: addr.country || 'US',
+                                    };
+                                }
                             }
                         } catch (e: any) {
-                            // Log but don't fail the order
-                            console.warn(`[square/import] Failed to fetch payment ID for order ${order.id}: ${e.message}`);
+                            console.warn(`[square/import] Failed to fetch payment details for order ${order.id}: ${e.message}`);
                         }
                     }
 
