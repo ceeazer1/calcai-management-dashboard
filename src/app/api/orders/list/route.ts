@@ -43,31 +43,36 @@ export async function GET() {
     }));
 
     // Fetch Square orders from cache
-    // Fetch Square orders from cache
-    // const squareOrders = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
+    // Fetch Square orders from cache (Legacy storage location for website orders)
+    const rawSquareOrders = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
 
-    // Get shipments for Square orders
-    // const squareShipmentKeys = squareOrders.map((o) => `orders:shipment:${o.id}`);
-    // const squareShipments = await Promise.all(squareShipmentKeys.map((k) => kv.get<any>(k)));
+    // Filter to only include "Website Orders" that were stored here
+    // These are identified by having a populated shippingAddress
+    const legacyWebsiteOrders = rawSquareOrders.filter(o =>
+      o.shippingAddress &&
+      (o.shippingAddress.line1 || o.shippingAddress.city) // Basic validation
+    );
 
-    // const squareOrdersWithShipments = squareOrders.map((order, idx) => ({
-    //   ...order,
-    //   shipment: squareShipments[idx] || null,
-    // }));
+    // Get shipments for these legacy orders
+    const legacyShipmentKeys = legacyWebsiteOrders.map((o) => `orders:shipment:${o.id}`);
+    const legacyShipments = await Promise.all(legacyShipmentKeys.map((k) => kv.get<any>(k)));
+
+    const legacyWebsiteOrdersWithShipments = legacyWebsiteOrders.map((order, idx) => ({
+      ...order,
+      shipment: legacyShipments[idx] || null,
+    }));
 
     // Combine all sources
     const websiteOrders = await kv.get<any[]>("orders:website:list") || [];
 
-    // Get shipments for website orders (if distinct)
-    // Website orders usually have full data in the object itself, but let's support separate shipments if needed
+    // Get shipments for website orders
     const websiteOrdersWithShipments = websiteOrders.map((order) => {
-      // Website orders save their structure complete usually
       return order;
     });
 
     const allOrders = [
       ...customOrdersWithShipments,
-      // ...squareOrdersWithShipments,
+      ...legacyWebsiteOrdersWithShipments,
       ...websiteOrdersWithShipments
     ].sort((a, b) => (b.created || 0) - (a.created || 0));
 
