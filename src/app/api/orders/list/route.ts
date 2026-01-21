@@ -43,21 +43,38 @@ export async function GET() {
     }));
 
     // Fetch Square orders from cache
-    const squareOrders = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
+    // Fetch Square orders from cache
+    // const squareOrders = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
 
     // Get shipments for Square orders
-    const squareShipmentKeys = squareOrders.map((o) => `orders:shipment:${o.id}`);
-    const squareShipments = await Promise.all(squareShipmentKeys.map((k) => kv.get<any>(k)));
+    // const squareShipmentKeys = squareOrders.map((o) => `orders:shipment:${o.id}`);
+    // const squareShipments = await Promise.all(squareShipmentKeys.map((k) => kv.get<any>(k)));
 
-    const squareOrdersWithShipments = squareOrders.map((order, idx) => ({
-      ...order,
-      shipment: squareShipments[idx] || null,
-    }));
+    // const squareOrdersWithShipments = squareOrders.map((order, idx) => ({
+    //   ...order,
+    //   shipment: squareShipments[idx] || null,
+    // }));
 
-    // Combine and sort by created date (newest first)
-    const allOrders = [...customOrdersWithShipments, ...squareOrdersWithShipments].sort((a, b) => b.created - a.created);
+    // Combine all sources
+    const websiteOrders = await kv.get<any[]>("orders:website:list") || [];
 
-    return NextResponse.json({ orders: allOrders });
+    // Get shipments for website orders (if distinct)
+    // Website orders usually have full data in the object itself, but let's support separate shipments if needed
+    const websiteOrdersWithShipments = websiteOrders.map((order) => {
+      // Website orders save their structure complete usually
+      return order;
+    });
+
+    const allOrders = [
+      ...customOrdersWithShipments,
+      // ...squareOrdersWithShipments,
+      ...websiteOrdersWithShipments
+    ].sort((a, b) => (b.created || 0) - (a.created || 0));
+
+    // Dedup by ID just in case
+    const uniqueOrders = Array.from(new Map(allOrders.map(item => [item.id, item])).values());
+
+    return NextResponse.json({ orders: uniqueOrders });
 
   } catch (e) {
     console.error('[orders/list] KV fetch error:', e);

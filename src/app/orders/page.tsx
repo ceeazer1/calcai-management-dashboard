@@ -206,7 +206,8 @@ export default function OrdersPage() {
 
 
   const refundSquareOrder = async (order: Order) => {
-    if (!order.paymentId) {
+    const paymentId = (order as any).squarePaymentId || order.paymentId;
+    if (!paymentId) {
       alert("Cannot refund: No Payment ID associated with this order.");
       return;
     }
@@ -224,7 +225,7 @@ export default function OrdersPage() {
           orderId: order.id,
           amount: order.amount,
           currency: order.currency,
-          paymentId: order.paymentId,
+          paymentId: paymentId,
           customerEmail: order.customerEmail,
           customerName: order.customerName,
         }),

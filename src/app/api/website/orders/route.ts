@@ -3,7 +3,7 @@ import { getKvClient } from "@/lib/kv";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { getSquareClient } from "@/lib/square";
 
-const SQUARE_ORDERS_KEY = "orders:square:imported";
+const WEBSITE_ORDERS_KEY = "orders:website:list";
 
 function corsResponse(data: any, status: number = 200) {
     const response = NextResponse.json(data, { status });
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Save to KV and send email
         // Load current cached orders
-        const existing = await kv.get<any[]>(SQUARE_ORDERS_KEY) || [];
+        const existing = await kv.get<any[]>(WEBSITE_ORDERS_KEY) || [];
 
         // Check if the order already exists to avoid duplicates
         const exists = existing.some(o => o.id === order.id || (o.squarePaymentId && o.squarePaymentId === order.squarePaymentId));
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
             };
 
             existing.unshift(newOrder);
-            await kv.set(SQUARE_ORDERS_KEY, existing);
+            await kv.set(WEBSITE_ORDERS_KEY, existing);
 
             // Send confirmation email automatically
             try {
