@@ -23,8 +23,22 @@ export async function POST() {
         const kv = getKvClient();
 
         // Fetch orders from Square (Reduced limit to prevent timeouts)
+        let locationIds = process.env.SQUARE_LOCATION_IDS?.split(',') || undefined;
+
+        if (!locationIds) {
+            try {
+                const locResp = await square.locations.list();
+                const locations = locResp.locations || (locResp as any).result?.locations || [];
+                if (locations.length > 0) {
+                    locationIds = locations.map((l: any) => l.id);
+                }
+            } catch (e) {
+                console.warn("[square/import] Failed to auto-detect locations:", e);
+            }
+        }
+
         const response = await square.orders.search({
-            locationIds: process.env.SQUARE_LOCATION_IDS?.split(',') || undefined,
+            locationIds,
             query: {
                 filter: {
                     stateFilter: {
