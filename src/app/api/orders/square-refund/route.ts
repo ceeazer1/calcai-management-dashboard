@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSquareClient } from "@/lib/square";
+import { sendRefundEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { orderId, amount, currency, paymentId } = body;
+        const { orderId, amount, currency, paymentId, customerEmail, customerName } = body;
 
         if (!orderId || !amount || !paymentId) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -31,6 +32,21 @@ export async function POST(req: NextRequest) {
         });
 
         const refund = response.refund;
+
+        // Send refund email if email is provided
+        if (customerEmail) {
+            try {
+                await sendRefundEmail({
+                    to: customerEmail,
+                    customerName: customerName || 'Customer',
+                    orderId,
+                    amount: Number(amount),
+                    currency: currency || 'USD'
+                });
+            } catch (emailError) {
+                console.error("Failed to send refund email:", emailError);
+            }
+        }
 
         return NextResponse.json({ ok: true, refund });
 

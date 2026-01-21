@@ -219,7 +219,9 @@ export default function OrdersPage() {
           orderId: order.id,
           amount: order.amount,
           currency: order.currency,
-          paymentId: order.paymentId
+          paymentId: order.paymentId,
+          customerEmail: order.customerEmail,
+          customerName: order.customerName,
         }),
       });
 
@@ -454,14 +456,7 @@ export default function OrdersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={syncSquareOrders}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors text-sm text-neutral-200 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Sync Square
-          </button>
+
           <button
             onClick={() => setShowMonthlyReportModal(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-sm text-neutral-200 transition-colors"
