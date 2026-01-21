@@ -54,6 +54,15 @@ export async function POST(req: NextRequest) {
             // Create the payment using the token as sourceId
             // The token itself (order.id) is unique and makes a great idempotency key.
             // Square limits idempotency keys to 45 chars.
+            const squareAddress = order.shippingAddress ? {
+                addressLine1: order.shippingAddress.line1,
+                addressLine2: order.shippingAddress.line2,
+                locality: order.shippingAddress.city,
+                administrativeDistrictLevel1: order.shippingAddress.state,
+                postalCode: order.shippingAddress.postal_code || order.shippingAddress.zip,
+                country: (order.shippingAddress.country || 'US').toUpperCase()
+            } : undefined;
+
             const squareResponse = await square.payments.create({
                 sourceId: order.id,
                 idempotencyKey: order.id, // Use the token as the key (it's unique and < 45 chars)
@@ -62,6 +71,8 @@ export async function POST(req: NextRequest) {
                     amount: amountCents,
                     currency: (order.currency || 'USD').toUpperCase()
                 },
+                buyerEmailAddress: order.customerEmail,
+                shippingAddress: squareAddress,
                 note: `CalcAI Order: ${order.customerEmail}`
             });
 
