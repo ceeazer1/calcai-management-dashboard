@@ -91,7 +91,7 @@ export async function POST() {
                 else if (order.state === 'CANCELED') status = 'expired';
                 else if (order.state === 'DRAFT') status = 'pending';
 
-                return {
+                const result = {
                     id: order.id || '',
                     type: 'square' as const,
                     created: order.createdAt ? Math.floor(new Date(order.createdAt).getTime() / 1000) : 0,
@@ -99,7 +99,7 @@ export async function POST() {
                     currency: order.totalMoney?.currency?.toLowerCase() || 'usd',
                     status,
                     paymentStatus: order.state || 'unknown',
-                    paymentId: order.tenders?.[0]?.paymentId || undefined,
+                    paymentId: order.tenders?.[0]?.paymentId || order.tenders?.[0]?.payment_id || order.tenders?.[0]?.id || undefined,
                     customerEmail,
                     customerName,
                     shippingAddress,
@@ -107,6 +107,8 @@ export async function POST() {
                     receiptUrl: order.receiptUrl,
                     notes: order.note,
                 };
+
+                return result;
             })
         );
 
