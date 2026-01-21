@@ -4,6 +4,11 @@ import { getKvClient } from '@/lib/kv';
 
 const SQUARE_ORDERS_KEY = 'orders:square:imported';
 
+// Helper to handle BigInt serialization
+const replacer = (key: string, value: any) => {
+    return typeof value === 'bigint' ? value.toString() : value;
+};
+
 export async function POST() {
     const square = getSquareClient();
 
@@ -81,8 +86,8 @@ export async function POST() {
                 // Extract line items
                 const items = (order.lineItems || []).map((item: any) => ({
                     description: item.name || 'Unknown Item',
-                    quantity: parseInt(item.quantity || '1'),
-                    amount: parseInt(item.totalMoney?.amount || '0'),
+                    quantity: parseInt(String(item.quantity || '1')),
+                    amount: parseInt(String(item.totalMoney?.amount || '0')),
                 }));
 
                 // Determine status
@@ -95,7 +100,7 @@ export async function POST() {
                     id: order.id || '',
                     type: 'square' as const,
                     created: order.createdAt ? Math.floor(new Date(order.createdAt).getTime() / 1000) : 0,
-                    amount: parseInt(order.totalMoney?.amount || '0'),
+                    amount: parseInt(String(order.totalMoney?.amount || '0')),
                     currency: order.totalMoney?.currency?.toLowerCase() || 'usd',
                     status,
                     paymentStatus: order.state || 'unknown',
@@ -138,7 +143,7 @@ export async function POST() {
     } catch (e) {
         console.error('[orders/square/import] Error:', e);
         return NextResponse.json(
-            { error: JSON.stringify(e, Object.getOwnPropertyNames(e)) },
+            { error: JSON.stringify(e, replacer) },
             { status: 500 }
         );
     }
