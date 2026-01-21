@@ -132,18 +132,23 @@ export async function POST() {
             })
         );
 
+        // Sanitize transformed orders to ensure no BigInts remain (for KV and Response)
+        const sanitizedOrders = JSON.parse(JSON.stringify(transformedOrders, replacer));
+
         // Store in KV for caching
-        await kv.set(SQUARE_ORDERS_KEY, transformedOrders);
+        await kv.set(SQUARE_ORDERS_KEY, sanitizedOrders);
 
         return NextResponse.json({
             ok: true,
-            count: transformedOrders.length,
-            orders: transformedOrders
+            count: sanitizedOrders.length,
+            orders: sanitizedOrders
         });
     } catch (e) {
         console.error('[orders/square/import] Error:', e);
+        // Ensure error itself is safe to serialize
+        const safeError = JSON.parse(JSON.stringify(e, replacer));
         return NextResponse.json(
-            { error: JSON.stringify(e, replacer) },
+            { error: safeError || 'An unknown error occurred' },
             { status: 500 }
         );
     }
