@@ -5,11 +5,23 @@ import { getSquareClient } from "@/lib/square";
 
 const WEBSITE_ORDERS_KEY = "orders:website:list";
 
+// Helper to handle BigInt serialization in JSON
+const replacer = (key: string, value: any) => {
+    return typeof value === 'bigint' ? value.toString() : value;
+};
+
 function corsResponse(data: any, status: number = 200) {
-    const response = NextResponse.json(data, { status });
-    response.headers.set("Access-Control-Allow-Origin", "*");
-    response.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, x-api-key");
+    // We use JSON.stringify with a replacer to avoid BigInt errors
+    const body = JSON.stringify(data, replacer);
+    const response = new NextResponse(body, {
+        status,
+        headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, x-api-key",
+        }
+    });
     return response;
 }
 
@@ -99,8 +111,12 @@ export async function POST(req: NextRequest) {
             const orderResponse = await square.orders.create(orderRequest as any);
             const squareOrder = (orderResponse as any).result?.order || orderResponse.order;
 
+            console.log(`[api/website/orders] Square Order created: ${squareOrder.id}`);
+
             // 2. Process the payment linked to this order
             const amountCents = BigInt(Math.round(Number(order.amount)));
+            console.log(`[api/website/orders] Creating payment for ${amountCents} cents...`);
+
             const paymentResponse = await square.payments.create({
                 sourceId: order.id,
                 idempotencyKey: order.id,
@@ -117,10 +133,15 @@ export async function POST(req: NextRequest) {
             const payment = (paymentResponse as any).result?.payment || paymentResponse.payment;
 
             if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
-                return corsResponse({ error: "Payment failed", status: payment?.status }, 400);
+                console.error("[api/website/orders] Payment failed status:", payment?.status);
+                return corsResponse({
+                    error: "Payment failed",
+                    status: payment?.status,
+                    details: payment?.processingCode || "Check Square dashboard for details"
+                }, 400);
             }
 
-            console.log(`[api/website/orders] Square Order & Payment successful: ${squareOrder.id}`);
+            console.log(`[api/website/orders] Payment successful: ${payment.id}`);
 
             // 3. Send confirmation email (immediate notification)
             try {
