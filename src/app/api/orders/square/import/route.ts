@@ -45,12 +45,7 @@ export async function POST() {
             query: {
                 filter: {
                     stateFilter: {
-                        states: ['COMPLETED', 'OPEN', 'CANCELED']
-                    },
-                    dateTimeFilter: {
-                        updatedAt: {
-                            startAt: oneYearAgo.toISOString()
-                        }
+                        states: ['OPEN']
                     }
                 },
                 sort: {
