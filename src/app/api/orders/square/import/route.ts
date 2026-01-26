@@ -122,7 +122,15 @@ export async function POST() {
                 // Skip "Ghost" orders: Any order without real payment (tenders) is likely a failed/authorized transaction
                 // Even if state is COMPLETED, if there are no tenders, it's a ghost.
                 if (!hasTenders) {
-                    console.log(`[square/import] Skipping non-paid ghost order: ${order.id}`);
+                    console.log(`[square/import] Skipping non-paid ghost order (No Tenders): ${order.id}`);
+                    return null;
+                }
+
+                // CHECK FOR FAILED TENDERS SPECIFICALLY.
+                // If the API says the payment FAILED, we must ignore it.
+                const hasFailedTender = order.tenders?.some((t: any) => t.cardDetails?.status === 'FAILED' || t.card_details?.status === 'FAILED');
+                if (hasFailedTender) {
+                    console.log(`[square/import] Skipping FAILED payment order: ${order.id}`);
                     return null;
                 }
 
