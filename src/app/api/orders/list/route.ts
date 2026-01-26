@@ -56,19 +56,8 @@ export async function GET() {
     }));
 
     // Combine all sources
-    const websiteOrders = await kv.get<any[]>("orders:website:list") || [];
-
-    // Get shipments for website orders
-    const websiteOrdersWithShipments = websiteOrders.map((order) => {
-      return order;
-    });
-
-    // Combine all sources
-    // WE PUT SQUARE LAST so that if an ID exists in both Website Push and Square Sync,
-    // the more detailed Square Sync data "wins" the deduplication.
     const allOrdersRaw = [
       ...customOrdersWithShipments,
-      ...websiteOrdersWithShipments,
       ...squareOrdersWithShipments
     ];
 

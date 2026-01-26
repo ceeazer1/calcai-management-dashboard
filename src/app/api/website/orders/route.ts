@@ -3,7 +3,6 @@ import { getKvClient } from "@/lib/kv";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { getSquareClient } from "@/lib/square";
 
-const WEBSITE_ORDERS_KEY = "orders:website:list";
 
 // Helper to handle BigInt serialization in JSON
 const replacer = (key: string, value: any) => {
