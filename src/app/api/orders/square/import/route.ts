@@ -124,18 +124,21 @@ export async function POST() {
                     let status = 'open';
                     const orderState = (order.state || '').toUpperCase();
 
-                    const isClosed = orderState === 'COMPLETED' || !!order.closedAt;
-                    // Check if it's paid (has tenders OR Square state is explicitly COMPLETED for a non-zero amount)
-                    const isPaid = (order.tenders && order.tenders.length > 0) ||
-                        (orderState === 'COMPLETED' && parseInt(String(order.totalMoney?.amount || '0')) > 0);
+                    const isExplicitlyClosed = orderState === 'COMPLETED' || !!order.closedAt;
+                    const fulfillments = order.fulfillments || [];
+                    const allFulfillmentsDone = fulfillments.length > 0 && fulfillments.every((f: any) =>
+                        ['COMPLETED', 'CANCELED', 'FAILED'].includes((f.state || '').toUpperCase())
+                    );
 
-                    // LOGIC: For your online business, once it's PAID it's effectively "Complete"
-                    if (isClosed || isPaid) {
+                    // To match Square Dashboard: Only mark complete if Square says it's COMPLETED or if all fulfillments are done.
+                    if (isExplicitlyClosed || allFulfillmentsDone) {
                         status = 'complete';
                     } else if (orderState === 'CANCELED') {
                         status = 'expired';
                     } else if (orderState === 'DRAFT') {
                         status = 'pending';
+                    } else {
+                        status = 'open';
                     }
 
                     // Extract shipping method from line items if present
