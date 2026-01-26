@@ -109,14 +109,21 @@ export async function POST() {
                 let status = 'open';
                 const orderState = (order.state || '').toUpperCase();
                 const isExplicitlyClosed = orderState === 'COMPLETED' || !!order.closedAt;
-                const isPaid = (order.tenders && order.tenders.length > 0) ||
-                    (orderState === 'COMPLETED' && parseInt(String(order.totalMoney?.amount || '0')) > 0);
+
+                // CRITICAL FIX: Only consider it paid if it has TENDERS (actual processed payment)
+                // This filters out "ghost" orders that are authorized but never completed.
+                const hasTenders = (order.tenders && order.tenders.length > 0);
+                const isPaid = hasTenders || (orderState === 'COMPLETED' && parseInt(String(order.totalMoney?.amount || '0')) > 0);
 
                 if (isExplicitlyClosed) status = 'complete';
                 else if (isPaid) status = 'paid';
-                else if (orderState === 'CANCELED') status = 'expired';
-                else if (orderState === 'DRAFT') status = 'pending';
                 else status = 'open';
+
+                // Skip "Ghost" orders: Any order without real payment (tenders) is likely a failed/authorized transaction
+                if (!hasTenders && orderState !== 'COMPLETED') {
+                    console.log(`[square/import] Skipping non-paid ghost order: ${order.id}`);
+                    return null;
+                }
 
                 // Extract shipping method from line items if present
                 let shippingMethod = undefined;
@@ -146,9 +153,8 @@ export async function POST() {
                     notes: order.note,
                 };
 
-                // Filter out orders that don't have enough data to be useful
+                // Final safety filter
                 if (!result.id || !result.customerEmail || result.amount === 0) {
-                    console.warn(`[square/import] Skipping order ${order.id} due to missing essential data.`);
                     return null;
                 }
 
