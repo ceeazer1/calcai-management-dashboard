@@ -114,9 +114,22 @@ export async function POST() {
 
                     // Determine status
                     let status = 'open';
-                    if (order.state === 'COMPLETED') status = 'complete';
-                    else if (order.state === 'CANCELED') status = 'expired';
-                    else if (order.state === 'DRAFT') status = 'pending';
+                    const orderState = (order.state || '').toUpperCase();
+
+                    // An order is complete if:
+                    // 1. Its state is COMPLETED
+                    // 2. It has a closedAt timestamp
+                    // 3. All fulfillments are COMPLETED or CANCELED
+                    const allFulfillmentsDone = order.fulfillments && order.fulfillments.length > 0 &&
+                        order.fulfillments.every((f: any) => ['COMPLETED', 'CANCELED', 'FAILED'].includes(f.state));
+
+                    if (orderState === 'COMPLETED' || order.closedAt || allFulfillmentsDone) {
+                        status = 'complete';
+                    } else if (orderState === 'CANCELED') {
+                        status = 'expired';
+                    } else if (orderState === 'DRAFT') {
+                        status = 'pending';
+                    }
 
                     // Extract shipping method from line items if present
                     let shippingMethod = undefined;
