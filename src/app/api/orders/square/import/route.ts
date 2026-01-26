@@ -116,19 +116,24 @@ export async function POST() {
                     let status = 'open';
                     const orderState = (order.state || '').toUpperCase();
 
-                    // An order is complete if:
-                    // 1. Its state is COMPLETED
-                    // 2. It has a closedAt timestamp
-                    // 3. All fulfillments are COMPLETED or CANCELED
-                    const allFulfillmentsDone = order.fulfillments && order.fulfillments.length > 0 &&
-                        order.fulfillments.every((f: any) => ['COMPLETED', 'CANCELED', 'FAILED'].includes(f.state));
+                    const isClosed = orderState === 'COMPLETED' || !!order.closedAt;
+                    const fulfillments = order.fulfillments || [];
+                    const hasFulfillments = fulfillments.length > 0;
+                    const allFulfillmentsDone = hasFulfillments && fulfillments.every((f: any) =>
+                        ['COMPLETED', 'CANCELED', 'FAILED'].includes((f.state || '').toUpperCase())
+                    );
+                    const isPaid = (order.tenders && order.tenders.length > 0) || (parseInt(String(order.totalMoney?.amount || '0')) === 0);
 
-                    if (orderState === 'COMPLETED' || order.closedAt || allFulfillmentsDone) {
+                    if (isClosed || allFulfillmentsDone || (isPaid && !hasFulfillments)) {
                         status = 'complete';
                     } else if (orderState === 'CANCELED') {
                         status = 'expired';
                     } else if (orderState === 'DRAFT') {
                         status = 'pending';
+                    }
+
+                    if (status === 'open' && isPaid) {
+                        console.log(`[square/import] Debug: Order ${order.id} is PAID but remains OPEN. State: ${orderState}`);
                     }
 
                     // Extract shipping method from line items if present
