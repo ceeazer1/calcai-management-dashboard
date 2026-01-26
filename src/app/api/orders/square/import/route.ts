@@ -45,7 +45,7 @@ export async function POST() {
             query: {
                 filter: {
                     stateFilter: {
-                        states: ['COMPLETED', 'OPEN', 'CANCELED', 'DRAFT']
+                        states: ['COMPLETED', 'OPEN', 'CANCELED']
                     },
                     dateTimeFilter: {
                         updatedAt: {

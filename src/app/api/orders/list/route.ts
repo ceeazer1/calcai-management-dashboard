@@ -81,12 +81,20 @@ export async function GET() {
       // WORKFLOW LOGIC:
       // Since you manage shipping/fulfillment ON THIS DASHBOARD (not on Square):
       // 1. If we have a local shipment record (label created) -> That order is "Complete" for you.
-      // 2. If Square says it's COMPLETED -> That order is "Complete".
-      // 3. Otherwise -> It's "Open" (To-Do).
-      if (order.shipment?.status === "label_created" || String(order.status).toLowerCase() === "complete") {
+      // 2. If Square Sync already marked it as COMPLETED -> That order is "Complete".
+      // 3. If Square Sync marked it as PAID -> Keep it as "Paid".
+      // 4. Otherwise -> It's "Open" (To-Do).
+
+      const currentStatus = String(order.status).toLowerCase();
+
+      if (order.shipment?.status === "label_created" || currentStatus === "complete") {
         finalStatus = "complete";
-      } else if (order.status === "expired" || order.status === "canceled") {
+      } else if (currentStatus === "paid") {
+        finalStatus = "paid";
+      } else if (currentStatus === "expired" || currentStatus === "canceled") {
         finalStatus = "expired";
+      } else if (currentStatus === "pending") {
+        finalStatus = "pending";
       } else {
         finalStatus = "open";
       }
