@@ -64,10 +64,12 @@ export async function GET() {
     });
 
     // Combine all sources
+    // WE PUT SQUARE LAST so that if an ID exists in both Website Push and Square Sync,
+    // the more detailed Square Sync data "wins" the deduplication.
     const allOrdersRaw = [
       ...customOrdersWithShipments,
-      ...squareOrdersWithShipments,
-      ...websiteOrdersWithShipments
+      ...websiteOrdersWithShipments,
+      ...squareOrdersWithShipments
     ];
 
     // Fetch and Apply Manual Overrides
@@ -80,10 +82,17 @@ export async function GET() {
       return order;
     }).sort((a, b) => (b.created || 0) - (a.created || 0));
 
-    // Dedup by ID just in case
+    // Dedup by ID - Square data will overwrite website data because it came later in the array
     const uniqueOrders = Array.from(new Map(allOrders.map(item => [item.id, item])).values());
 
-    return NextResponse.json({ orders: uniqueOrders });
+    return new NextResponse(JSON.stringify({ orders: uniqueOrders }), {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
+    });
 
   } catch (e) {
     console.error('[orders/list] KV fetch error:', e);
@@ -93,3 +102,4 @@ export async function GET() {
     );
   }
 }
+

@@ -37,12 +37,20 @@ export async function POST() {
             }
         }
 
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
         const response = await square.orders.search({
             locationIds,
             query: {
                 filter: {
                     stateFilter: {
                         states: ['COMPLETED', 'OPEN', 'CANCELED', 'DRAFT']
+                    },
+                    dateTimeFilter: {
+                        updatedAt: {
+                            startAt: oneYearAgo.toISOString()
+                        }
                     }
                 },
                 sort: {
@@ -117,23 +125,17 @@ export async function POST() {
                     const orderState = (order.state || '').toUpperCase();
 
                     const isClosed = orderState === 'COMPLETED' || !!order.closedAt;
-                    const fulfillments = order.fulfillments || [];
-                    const hasFulfillments = fulfillments.length > 0;
-                    const allFulfillmentsDone = hasFulfillments && fulfillments.every((f: any) =>
-                        ['COMPLETED', 'CANCELED', 'FAILED'].includes((f.state || '').toUpperCase())
-                    );
-                    const isPaid = (order.tenders && order.tenders.length > 0) || (parseInt(String(order.totalMoney?.amount || '0')) === 0);
+                    // Check if it's paid (has tenders OR Square state is explicitly COMPLETED for a non-zero amount)
+                    const isPaid = (order.tenders && order.tenders.length > 0) ||
+                        (orderState === 'COMPLETED' && parseInt(String(order.totalMoney?.amount || '0')) > 0);
 
-                    if (isClosed || allFulfillmentsDone || (isPaid && !hasFulfillments)) {
+                    // LOGIC: For your online business, once it's PAID it's effectively "Complete"
+                    if (isClosed || isPaid) {
                         status = 'complete';
                     } else if (orderState === 'CANCELED') {
                         status = 'expired';
                     } else if (orderState === 'DRAFT') {
                         status = 'pending';
-                    }
-
-                    if (status === 'open' && isPaid) {
-                        console.log(`[square/import] Debug: Order ${order.id} is PAID but remains OPEN. State: ${orderState}`);
                     }
 
                     // Extract shipping method from line items if present
