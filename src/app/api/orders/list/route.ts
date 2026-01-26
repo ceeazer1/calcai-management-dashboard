@@ -76,10 +76,27 @@ export async function GET() {
     const manualEdits = await kv.get<Record<string, any>>("orders:manual:overrides") || {};
 
     const allOrders = allOrdersRaw.map(order => {
-      if (manualEdits[order.id]) {
-        return { ...order, ...manualEdits[order.id], manuallyEdited: true };
+      let finalStatus = order.status;
+
+      // WORKFLOW LOGIC:
+      // Since you manage shipping/fulfillment ON THIS DASHBOARD (not on Square):
+      // 1. If we have a local shipment record (label created) -> That order is "Complete" for you.
+      // 2. If Square says it's COMPLETED -> That order is "Complete".
+      // 3. Otherwise -> It's "Open" (To-Do).
+      if (order.shipment?.status === "label_created" || String(order.status).toLowerCase() === "complete") {
+        finalStatus = "complete";
+      } else if (order.status === "expired" || order.status === "canceled") {
+        finalStatus = "expired";
+      } else {
+        finalStatus = "open";
       }
-      return order;
+
+      const updatedOrder = { ...order, status: finalStatus };
+
+      if (manualEdits[order.id]) {
+        return { ...updatedOrder, ...manualEdits[order.id], manuallyEdited: true };
+      }
+      return updatedOrder;
     }).sort((a, b) => (b.created || 0) - (a.created || 0));
 
     // Dedup by ID - Square data will overwrite website data because it came later in the array
