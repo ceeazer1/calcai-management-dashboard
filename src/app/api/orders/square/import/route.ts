@@ -42,18 +42,18 @@ export async function POST() {
             query: {
                 filter: {
                     stateFilter: {
-                        states: ['COMPLETED', 'OPEN']
+                        states: ['COMPLETED', 'OPEN', 'CANCELED', 'DRAFT']
                     }
                 },
                 sort: {
-                    sortField: 'CREATED_AT',
+                    sortField: 'UPDATED_AT',
                     sortOrder: 'DESC',
                 },
             },
-            limit: 40,
+            limit: 500,
         });
 
-        const orders = response.orders || [];
+        const orders = response.orders || (response as any).result?.orders || [];
 
         // Transform Square orders to our format
         const transformedOrdersResults = await Promise.all(
