@@ -57,8 +57,7 @@ export async function POST(req: NextRequest) {
                     },
                     checkout: {
                         speedPolicy: "HighSpeed",
-                        paymentMethods: ["BTC", "BTC-LightningNetwork"],
-                        defaultPaymentMethod: "BTC-LightningNetwork",
+                        paymentMethods: ["BTC"], // Requesting only on-chain BTC for maximum compatibility
                         expirationMinutes: 90,
                         monitoringMinutes: 90,
                         paymentTolerance: 0,
@@ -72,8 +71,13 @@ export async function POST(req: NextRequest) {
                 invoiceId = btcpayData.id;
                 console.log(`[api/website/orders] BTCPay Invoice created: ${invoiceId}`);
             } else {
-                const errorText = await btcpayResponse.text();
-                console.error(`[api/website/orders] BTCPay Error: ${btcpayResponse.status} - ${errorText}`);
+                const errorData = await btcpayResponse.json();
+                console.error(`[api/website/orders] BTCPay Error Status: ${btcpayResponse.status}`);
+                console.error(`[api/website/orders] BTCPay Error Details:`, JSON.stringify(errorData));
+
+                if (btcpayResponse.status === 422) {
+                    console.error("[api/website/orders] 422 Error - Check Store Price Provider and Wallet.");
+                }
             }
         } catch (btcpayErr) {
             console.error("[api/website/orders] Failed to connect to BTCPay:", btcpayErr);
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
         // 3. Store order in KV
         const orderRecord = {
             id: localOrderId,
-            btcpayInvoiceId: invoiceId, // Link BTCPay invoice
+            btcpayInvoiceId: invoiceId,
             type: "btc",
             created: Math.floor(Date.now() / 1000),
             amount: order.amount,
@@ -131,7 +135,7 @@ export async function POST(req: NextRequest) {
             ok: true,
             orderId: localOrderId,
             invoiceId: invoiceId,
-            message: invoiceId ? "Invoice created" : "Order created (BTCPay offline)"
+            message: invoiceId ? "Invoice created" : "Order created (BTCPay Error)"
         });
 
     } catch (e: any) {
