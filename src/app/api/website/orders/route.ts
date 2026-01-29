@@ -5,7 +5,7 @@ import { sendOrderConfirmationEmail } from "@/lib/email";
 // BTCPay Server Configuration
 const BTCPAY_URL = "https://btc.calcai.cc";
 const BTCPAY_STORE_ID = "6kZiuhRu7hMzr18iMCdTgum78M8pYNxAjmsNDKkDGuLD";
-const BTCPAY_API_KEY = "e5ef0d618eaf4f081bad57eb8fa1dcd9c01ca7e1";
+const BTCPAY_API_KEY = "061cdfa6f84d09babffd6160a0d2b3ee937b30a7";
 
 function corsResponse(data: any, status: number = 200) {
     const body = JSON.stringify(data);
