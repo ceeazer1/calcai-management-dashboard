@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
+// BTCPay Server Configuration
+const BTCPAY_URL = "https://btc.calcai.cc";
+const BTCPAY_STORE_ID = "6kZiuhRu7hMzr18iMCdTgum78M8pYNxAjmsNDKkDGuLD";
+const BTCPAY_API_KEY = "e5ef0d618eaf4f081bad57eb8fa1dcd9c01ca7e1";
+
 function corsResponse(data: any, status: number = 200) {
     const body = JSON.stringify(data);
     const response = new NextResponse(body, {
@@ -32,19 +37,62 @@ export async function POST(req: NextRequest) {
             return corsResponse({ error: "Invalid order data" }, 400);
         }
 
+        // 1. Create Invoice in BTCPay Server
+        let invoiceId = null;
+        try {
+            const btcpayResponse = await fetch(`${BTCPAY_URL}/api/v1/stores/${BTCPAY_STORE_ID}/invoices`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `token ${BTCPAY_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    amount: order.amount / 100, // Convert cents to dollars
+                    currency: (order.currency || "USD").toUpperCase(),
+                    metadata: {
+                        orderId: order.id || `web_${Date.now()}`,
+                        customerName: order.customerName,
+                        customerEmail: order.customerEmail,
+                        items: order.items
+                    },
+                    checkout: {
+                        speedPolicy: "HighSpeed",
+                        paymentMethods: ["BTC", "BTC-LightningNetwork"],
+                        defaultPaymentMethod: "BTC-LightningNetwork",
+                        expirationMinutes: 90,
+                        monitoringMinutes: 90,
+                        paymentTolerance: 0,
+                        redirectAutomatically: false
+                    }
+                })
+            });
+
+            if (btcpayResponse.ok) {
+                const btcpayData = await btcpayResponse.json();
+                invoiceId = btcpayData.id;
+                console.log(`[api/website/orders] BTCPay Invoice created: ${invoiceId}`);
+            } else {
+                const errorText = await btcpayResponse.text();
+                console.error(`[api/website/orders] BTCPay Error: ${btcpayResponse.status} - ${errorText}`);
+            }
+        } catch (btcpayErr) {
+            console.error("[api/website/orders] Failed to connect to BTCPay:", btcpayErr);
+        }
+
         const kv = getKvClient();
 
-        // Generate a unique order ID
-        const orderId = `btc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+        // 2. Generate a local tracking ID
+        const localOrderId = `btc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-        // Store order in KV with pending status (awaiting BTC payment)
+        // 3. Store order in KV
         const orderRecord = {
-            id: orderId,
+            id: localOrderId,
+            btcpayInvoiceId: invoiceId, // Link BTCPay invoice
             type: "btc",
             created: Math.floor(Date.now() / 1000),
             amount: order.amount,
             currency: order.currency || "usd",
-            status: "pending", // Will be updated to "complete" when BTC payment confirmed
+            status: "pending",
             paymentStatus: "awaiting_payment",
             customerEmail: order.customerEmail,
             customerName: order.customerName,
@@ -52,35 +100,23 @@ export async function POST(req: NextRequest) {
             shippingAddress: order.shippingAddress,
             shippingMethod: order.shippingMethod,
             items: order.items || [],
-            paymentMethod: order.paymentMethod || "BTC",
+            paymentMethod: "BTC",
             notes: order.notes,
         };
 
-        // Store in KV
         const ordersKey = "orders:all";
         const existingOrders = await kv.get(ordersKey) || [];
         const ordersList = Array.isArray(existingOrders) ? existingOrders : [];
         ordersList.unshift(orderRecord);
         await kv.set(ordersKey, ordersList);
+        await kv.set(`order:${localOrderId}`, orderRecord);
 
-        // Also store individually for quick lookup
-        await kv.set(`order:${orderId}`, orderRecord);
-
-        console.log(`[api/website/orders] BTC Order created: ${orderId}`);
-
-        // TODO: Integrate with BTCPay Server to create invoice
-        // For now, return success with order ID
-        // In a full implementation, you would:
-        // 1. Call BTCPay API to create an invoice
-        // 2. Return the invoice ID for the frontend to display
-        // 3. Set up a webhook to receive payment confirmations from BTCPay
-
-        // Send confirmation email (order received, awaiting payment)
+        // 4. Send confirmation email
         try {
             await sendOrderConfirmationEmail({
                 to: order.customerEmail,
                 customerName: order.customerName || "Customer",
-                orderId: orderId,
+                orderId: localOrderId,
                 amount: order.amount,
                 currency: order.currency || "usd",
                 items: order.items || [],
@@ -93,9 +129,9 @@ export async function POST(req: NextRequest) {
 
         return corsResponse({
             ok: true,
-            orderId: orderId,
-            // invoiceId: null, // Will be populated when BTCPay is integrated
-            message: "Order created successfully. Awaiting BTC payment."
+            orderId: localOrderId,
+            invoiceId: invoiceId,
+            message: invoiceId ? "Invoice created" : "Order created (BTCPay offline)"
         });
 
     } catch (e: any) {
