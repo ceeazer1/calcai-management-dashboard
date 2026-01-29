@@ -11,7 +11,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
-  type?: "custom" | "square";
+  type?: "custom" | "btc";
   created: number;
   amount: number;
   currency: string;
@@ -26,7 +26,7 @@ interface Order {
     postal_code: string;
     country: string;
   } | null;
-  paymentId?: string; // Square payment ID for refunds
+  paymentId?: string; // Payment ID for refunds
   items: OrderItem[];
   paymentStatus: string;
   receiptUrl?: string;
@@ -45,7 +45,7 @@ interface Order {
   } | null;
 }
 
-type FilterType = "all" | "complete" | "shipped" | "expired" | "custom" | "square";
+type FilterType = "all" | "complete" | "shipped" | "expired" | "custom" | "btc";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -131,22 +131,7 @@ export default function OrdersPage() {
     }
   };
 
-  const syncSquareOrders = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const r = await fetch("/api/orders/square/import", { method: "POST" });
-      const data = await r.json();
-      if (!r.ok || !data.ok) {
-        throw new Error(data.error || "Failed to sync Square orders");
-      }
-      await fetchOrders();
-    } catch (e: any) {
-      console.error("Sync error:", e);
-      if (!silent) alert(`Sync Failed: ${e.message}`);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
+
 
 
   const handleUpdateOrder = async () => {
@@ -192,11 +177,8 @@ export default function OrdersPage() {
 
 
   useEffect(() => {
-    // Initial fetch to show cached data immediately
-    fetchOrders().then(() => {
-      // Background sync to update data
-      syncSquareOrders(true);
-    });
+    // Initial fetch to show orders
+    fetchOrders();
   }, []);
 
   // Auto-fetch tracking for recently shipped orders that aren't marked as delivered yet
@@ -260,43 +242,7 @@ export default function OrdersPage() {
   };
 
 
-  const refundSquareOrder = async (order: Order) => {
-    const paymentId = (order as any).squarePaymentId || order.paymentId;
-    if (!paymentId) {
-      alert("Cannot refund: No Payment ID associated with this order.");
-      return;
-    }
-
-    if (!confirm(`Are you sure you want to refund ${new Intl.NumberFormat('en-US', { style: 'currency', currency: order.currency }).format(order.amount / 100)} to this customer? This cannot be undone.`)) {
-      return;
-    }
-
-    setRefundingOrder(order.id);
-    try {
-      const r = await fetch("/api/orders/square-refund", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: order.id,
-          amount: order.amount,
-          currency: order.currency,
-          paymentId: paymentId,
-          customerEmail: order.customerEmail,
-          customerName: order.customerName,
-        }),
-      });
-
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || "Refund failed");
-
-      alert("Refund processed successfully!");
-      fetchOrders(); // Refresh status
-    } catch (e: any) {
-      alert(`Error processing refund: ${e.message}`);
-    } finally {
-      setRefundingOrder(null);
-    }
-  };
+  // Refund functionality removed - BTC payments require manual refund processing
 
   const createLabel = async (orderId: string) => {
     setShippingOrderId(orderId);
@@ -900,20 +846,7 @@ export default function OrdersPage() {
                       </span>
                     )}
 
-                    {/* Square Refund Button */}
-                    {order.type === "square" && (order.paymentStatus === "paid" || order.paymentStatus === "COMPLETED") && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          refundSquareOrder(order);
-                        }}
-                        disabled={refundingOrder === order.id}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-900/40 hover:bg-red-900/60 border border-red-800 disabled:opacity-50 rounded-lg text-sm text-red-200 transition-colors"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${refundingOrder === order.id ? 'animate-spin' : ''}`} />
-                        {refundingOrder === order.id ? "Refunding..." : "Refund"}
-                      </button>
-                    )}
+                    {/* BTC orders - manual refund required */}
 
                     <button
                       onClick={(e) => {
@@ -1237,7 +1170,7 @@ export default function OrdersPage() {
                 <div className="flex justify-between items-center border-t-2 border-gray-900 pt-6">
                   <div className="text-xs text-gray-400 max-w-[300px]">
                     <p className="font-bold text-gray-900 mb-1">Payment Info</p>
-                    <p>Method: {invoiceOrder?.type === 'square' ? 'Credit Card / Square' : 'Custom / Invoice'}</p>
+                    <p>Method: {invoiceOrder?.type === 'btc' ? 'Bitcoin' : 'Custom / Invoice'}</p>
                     <p>Transaction ID: {invoiceOrder?.paymentId || invoiceOrder?.id.slice(0, 12)}</p>
                   </div>
                   <div className="w-64 space-y-2">

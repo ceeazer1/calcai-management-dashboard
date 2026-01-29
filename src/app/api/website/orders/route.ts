@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendOrderConfirmationEmail } from "@/lib/email";
-import { getSquareClient } from "@/lib/square";
-
-
-// Helper to handle BigInt serialization in JSON
-const replacer = (key: string, value: any) => {
-    return typeof value === 'bigint' ? value.toString() : value;
-};
 
 function corsResponse(data: any, status: number = 200) {
-    // We use JSON.stringify with a replacer to avoid BigInt errors
-    const body = JSON.stringify(data, replacer);
+    const body = JSON.stringify(data);
     const response = new NextResponse(body, {
         status,
         headers: {
@@ -36,141 +28,76 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
         const { order } = body;
 
-        if (!order || !order.id) {
+        if (!order) {
             return corsResponse({ error: "Invalid order data" }, 400);
         }
 
         const kv = getKvClient();
 
-        // 1. Create a Square Order first (so all details are in Square)
-        const square = getSquareClient();
-        if (!square) {
-            console.error("[api/website/orders] Square client initialization failed");
-            return corsResponse({ error: "Square not configured on server" }, 500);
-        }
+        // Generate a unique order ID
+        const orderId = `btc_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
+        // Store order in KV with pending status (awaiting BTC payment)
+        const orderRecord = {
+            id: orderId,
+            type: "btc",
+            created: Math.floor(Date.now() / 1000),
+            amount: order.amount,
+            currency: order.currency || "usd",
+            status: "pending", // Will be updated to "complete" when BTC payment confirmed
+            paymentStatus: "awaiting_payment",
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            customerPhone: order.customerPhone,
+            shippingAddress: order.shippingAddress,
+            shippingMethod: order.shippingMethod,
+            items: order.items || [],
+            paymentMethod: order.paymentMethod || "BTC",
+            notes: order.notes,
+        };
+
+        // Store in KV
+        const ordersKey = "orders:all";
+        const existingOrders = await kv.get(ordersKey) || [];
+        const ordersList = Array.isArray(existingOrders) ? existingOrders : [];
+        ordersList.unshift(orderRecord);
+        await kv.set(ordersKey, ordersList);
+
+        // Also store individually for quick lookup
+        await kv.set(`order:${orderId}`, orderRecord);
+
+        console.log(`[api/website/orders] BTC Order created: ${orderId}`);
+
+        // TODO: Integrate with BTCPay Server to create invoice
+        // For now, return success with order ID
+        // In a full implementation, you would:
+        // 1. Call BTCPay API to create an invoice
+        // 2. Return the invoice ID for the frontend to display
+        // 3. Set up a webhook to receive payment confirmations from BTCPay
+
+        // Send confirmation email (order received, awaiting payment)
         try {
-            const locationId = process.env.SQUARE_LOCATION_ID || process.env.NEXT_PUBLIC_SQUARE_LOCATION_ID;
-            if (!locationId) {
-                return corsResponse({ error: "Missing Location ID" }, 500);
-            }
-
-            // Construct Line Items
-            const lineItems = (order.items || []).map((item: any) => ({
-                name: item.description,
-                quantity: String(item.quantity || "1"),
-                basePriceMoney: {
-                    amount: BigInt(Math.round(Number(item.amount))),
-                    currency: (order.currency || 'USD').toUpperCase()
-                }
-            }));
-
-            // Add Shipping as a line item if not already included
-            const shippingAmount = order.amount - (order.items || []).reduce((sum: number, i: any) => sum + (i.amount * i.quantity), 0);
-            if (shippingAmount > 0) {
-                lineItems.push({
-                    name: `Shipping (${order.shippingMethod || 'Standard'})`,
-                    quantity: "1",
-                    basePriceMoney: {
-                        amount: BigInt(Math.round(shippingAmount)),
-                        currency: (order.currency || 'USD').toUpperCase()
-                    }
-                });
-            }
-
-            // Create the order in Square
-            const orderRequest = {
-                order: {
-                    locationId: locationId,
-                    lineItems,
-                    customerId: order.customerId,
-                    fulfillments: [{
-                        type: 'SHIPMENT',
-                        state: 'PROPOSED',
-                        shipmentDetails: {
-                            recipient: {
-                                displayName: order.customerName,
-                                emailAddress: order.customerEmail,
-                                address: {
-                                    addressLine1: order.shippingAddress?.line1,
-                                    addressLine2: order.shippingAddress?.line2,
-                                    locality: order.shippingAddress?.city,
-                                    administrativeDistrictLevel1: order.shippingAddress?.state,
-                                    postalCode: order.shippingAddress?.postal_code || order.shippingAddress?.zip,
-                                    country: (order.shippingAddress?.country || 'US').toUpperCase()
-                                }
-                            }
-                        }
-                    }],
-                    note: order.notes || `Order via Website`
-                },
-                idempotencyKey: `${order.id}_order`
-            };
-
-            const orderResponse = await square.orders.create(orderRequest as any);
-            const squareOrder = (orderResponse as any).result?.order || orderResponse.order;
-
-            console.log(`[api/website/orders] Square Order created: ${squareOrder.id}`);
-
-            // 2. Process the payment linked to this order
-            const amountCents = BigInt(Math.round(Number(order.amount)));
-            console.log(`[api/website/orders] Creating payment for ${amountCents} cents...`);
-
-            const paymentResponse = await square.payments.create({
-                sourceId: order.id,
-                idempotencyKey: order.id,
-                locationId: locationId,
-                orderId: squareOrder.id, // LINK THE PAYMENT TO THE ORDER
-                amountMoney: {
-                    amount: amountCents,
-                    currency: (order.currency || 'USD').toUpperCase()
-                },
-                buyerEmailAddress: order.customerEmail,
-                note: `Order: ${order.customerEmail}`
+            await sendOrderConfirmationEmail({
+                to: order.customerEmail,
+                customerName: order.customerName || "Customer",
+                orderId: orderId,
+                amount: order.amount,
+                currency: order.currency || "usd",
+                items: order.items || [],
+                paymentMethod: "Bitcoin",
+                shippingMethod: order.shippingMethod
             });
-
-            const payment = (paymentResponse as any).result?.payment || paymentResponse.payment;
-
-            if (!payment || (payment.status !== 'COMPLETED' && payment.status !== 'APPROVED')) {
-                console.error("[api/website/orders] Payment failed status:", payment?.status);
-                return corsResponse({
-                    error: "Payment failed",
-                    status: payment?.status,
-                    details: payment?.processingCode || "Check Square dashboard for details"
-                }, 400);
-            }
-
-            console.log(`[api/website/orders] Payment successful: ${payment.id}`);
-
-            // 3. Send confirmation email (immediate notification)
-            try {
-                const shippingMethod = order.notes?.includes("Shipping via")
-                    ? order.notes.split("Shipping via ")[1]
-                    : undefined;
-
-                await sendOrderConfirmationEmail({
-                    to: order.customerEmail,
-                    customerName: order.customerName || "Customer",
-                    orderId: squareOrder.id, // Use Square Order ID here
-                    amount: order.amount,
-                    currency: order.currency || "usd",
-                    items: order.items || [],
-                    paymentMethod: order.paymentMethod,
-                    shippingMethod: shippingMethod
-                });
-            } catch (emailErr) {
-                console.error("[api/website/orders] Email failed:", emailErr);
-            }
-
-            return corsResponse({ ok: true, orderId: squareOrder.id });
-
-        } catch (err: any) {
-            console.error("[api/website/orders] Square Transaction Error:", err);
-            const errors = err.errors || err.result?.errors;
-            return corsResponse({
-                error: errors?.[0]?.detail || err.message || "Transaction failed"
-            }, 400);
+        } catch (emailErr) {
+            console.error("[api/website/orders] Email failed:", emailErr);
         }
+
+        return corsResponse({
+            ok: true,
+            orderId: orderId,
+            // invoiceId: null, // Will be populated when BTCPay is integrated
+            message: "Order created successfully. Awaiting BTC payment."
+        });
+
     } catch (e: any) {
         console.error("[api/website/orders] fatal error:", e);
         return corsResponse({
