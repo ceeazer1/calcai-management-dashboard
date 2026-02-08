@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, RefreshCw, X } from "lucide-react";
+import { Search, RefreshCw, X, Trash2 } from "lucide-react";
 
 interface User {
   email: string;
@@ -53,6 +53,26 @@ export default function UsersPage() {
     const s = String(id || "").toLowerCase();
     if (/^[0-9a-f]{12}$/.test(s)) return s.match(/.{1,2}/g)?.join(":") || s;
     return s;
+  }
+
+  async function deleteUser(email: string) {
+    if (!confirm(`Are you sure you want to delete user ${email}? This will unpair all their devices and cannot be undone.`)) return;
+    try {
+      const res = await fetch("/api/users-admin/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert(`User ${email} deleted.`);
+        loadData();
+      } else {
+        alert("Failed to delete user: " + (data.error || "Unknown error"));
+      }
+    } catch (e) {
+      alert("Error deleting user");
+    }
   }
 
   async function viewLogs(mac: string) {
@@ -135,8 +155,11 @@ export default function UsersPage() {
           {filtered.map((user, i) => {
             const userDevices = devices.filter(d => d.owner === user.email);
             return (
-              <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
-                <h3 className="text-white font-medium truncate mb-1">{user.email}</h3>
+              <div key={i} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 relative group">
+                <button onClick={() => deleteUser(user.email)} className="absolute top-4 right-4 text-neutral-600 hover:text-red-500 transition-colors" title="Delete User">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <h3 className="text-white font-medium truncate mb-1 pr-8">{user.email}</h3>
                 <p className="text-xs text-neutral-500 mb-3">Joined: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "Unknown"}</p>
                 <div className="text-xs text-neutral-400 mb-2">{userDevices.length} device{userDevices.length !== 1 ? "s" : ""}</div>
                 {userDevices.map((d, j) => (
