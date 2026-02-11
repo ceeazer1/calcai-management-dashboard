@@ -116,20 +116,23 @@ export async function POST(req: NextRequest) {
         await kv.set(ordersKey, ordersList);
         await kv.set(`order:${localOrderId}`, orderRecord);
 
-        // 4. Send confirmation email
-        try {
-            await sendOrderConfirmationEmail({
-                to: order.customerEmail,
-                customerName: order.customerName || "Customer",
-                orderId: localOrderId,
-                amount: order.amount,
-                currency: order.currency || "usd",
-                items: order.items || [],
-                paymentMethod: "Bitcoin",
-                shippingMethod: order.shippingMethod
-            });
-        } catch (emailErr) {
-            console.error("[api/website/orders] Email failed:", emailErr);
+        // 4. Send confirmation email (only for non-BTC orders initially)
+        // For BTC, we wait until payment is confirmed to send the "Order Confirmed" email
+        if (order.paymentMethod !== "BTC") {
+            try {
+                await sendOrderConfirmationEmail({
+                    to: order.customerEmail,
+                    customerName: order.customerName || "Customer",
+                    orderId: localOrderId,
+                    amount: order.amount,
+                    currency: order.currency || "usd",
+                    items: order.items || [],
+                    paymentMethod: order.paymentMethod || "Credit Card",
+                    shippingMethod: order.shippingMethod
+                });
+            } catch (emailErr) {
+                console.error("[api/website/orders] Email failed:", emailErr);
+            }
         }
 
         return corsResponse({
