@@ -45,7 +45,7 @@ interface Order {
   } | null;
 }
 
-type FilterType = "all" | "complete" | "shipped" | "expired" | "custom" | "btc";
+type FilterType = "all" | "paid" | "shipped" | "expired" | "custom" | "btc";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -61,7 +61,7 @@ export default function OrdersPage() {
   const [voidingLabel, setVoidingLabel] = useState<string | null>(null);
   const [refundingOrder, setRefundingOrder] = useState<string | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
-  const [filter, setFilter] = useState<FilterType>("complete");
+  const [filter, setFilter] = useState<FilterType>("paid");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [reportDate, setReportDate] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
@@ -427,7 +427,7 @@ export default function OrdersPage() {
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       // Apply status filter
-      if (filter === "complete" && order.status !== "complete") return false;
+      if (filter === "paid" && order.status !== "paid" && order.status !== "complete") return false;
       if (filter === "shipped" && order.shipment?.status !== "label_created") return false;
       if (filter === "expired" && order.status !== "expired") return false;
       if (filter === "custom" && order.type !== "custom") return false;
@@ -447,7 +447,7 @@ export default function OrdersPage() {
 
   const filterButtons: { label: string; value: FilterType }[] = [
     { label: "All", value: "all" },
-    { label: "Completed", value: "complete" },
+    { label: "Paid", value: "paid" },
     { label: "Shipped", value: "shipped" },
     { label: "Expired", value: "expired" },
     { label: "Custom", value: "custom" },
@@ -570,11 +570,11 @@ export default function OrdersPage() {
                       </span>
                     </div>
                     <span
-                      className={`px-2 py-0.5 rounded text-xs border ${getStatusColor(
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${getStatusColor(
                         order.status
                       )}`}
                     >
-                      {order.status}
+                      {(order.status === "complete" || order.status === "paid") ? "PAID" : order.status}
                     </span>
                     {order.type === "custom" && (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border bg-orange-950/30 text-orange-400 border-orange-700/30 whitespace-nowrap">
