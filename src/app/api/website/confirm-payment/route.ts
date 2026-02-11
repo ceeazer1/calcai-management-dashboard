@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         await kv.set(orderKey, order);
 
         // Update in the main list too
-        const ordersKey = "orders:all";
+        const ordersKey = "orders:square:imported";
         const orders: any[] = await kv.get(ordersKey) || [];
         const index = orders.findIndex(o => o.id === orderId);
         if (index !== -1) {

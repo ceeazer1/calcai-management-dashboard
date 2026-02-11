@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
             notes: order.notes,
         };
 
-        const ordersKey = "orders:all";
+        const ordersKey = "orders:square:imported";
         const existingOrders = await kv.get(ordersKey) || [];
         const ordersList = Array.isArray(existingOrders) ? existingOrders : [];
         ordersList.unshift(orderRecord);
