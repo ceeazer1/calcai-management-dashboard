@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
             }
         } catch (btcpayErr) {
             console.error("[api/website/orders] Failed to connect to BTCPay:", btcpayErr);
+            // We continue anyway to allow for emergency manual payments
         }
 
         const kv = getKvClient();
