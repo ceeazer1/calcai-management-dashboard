@@ -61,7 +61,7 @@ export default function OrdersPage() {
   const [voidingLabel, setVoidingLabel] = useState<string | null>(null);
   const [refundingOrder, setRefundingOrder] = useState<string | null>(null);
   const [invoiceOrder, setInvoiceOrder] = useState<Order | null>(null);
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>("complete");
   const [searchQuery, setSearchQuery] = useState("");
   const [showMonthlyReportModal, setShowMonthlyReportModal] = useState(false);
   const [reportDate, setReportDate] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
@@ -577,15 +577,17 @@ export default function OrdersPage() {
                       {order.status}
                     </span>
                     {order.type === "custom" && (
-                      <span className="px-2 py-0.5 rounded text-xs border bg-orange-900/30 text-orange-300 border-orange-700/30">
-                        Custom
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border bg-orange-950/30 text-orange-400 border-orange-700/30 whitespace-nowrap">
+                        <FileText className="h-2.5 w-2.5" />
+                        CUSTOM
                       </span>
                     )}
-                    {order.shipment?.status === "label_created" ? (
-                      <span className="px-2 py-0.5 rounded text-xs border bg-blue-900/30 text-blue-300 border-blue-700/30">
-                        Shipped
+                    {order.shipment?.status === "label_created" && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border bg-blue-900/30 text-blue-400 border-blue-700/30 whitespace-nowrap">
+                        <Truck className="h-2.5 w-2.5" />
+                        SHIPPED
                       </span>
-                    ) : null}
+                    )}
                     {trackingStatuses[order.id]?.status && (
                       <span className={`px-2 py-0.5 rounded text-xs border ${getTrackingColor(trackingStatuses[order.id].status)}`}>
                         {formatTracking(trackingStatuses[order.id].status)}

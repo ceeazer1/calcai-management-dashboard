@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
             return corsResponse({ error: "Unauthorized" }, 401);
         }
 
-        const { orderId, txId } = await req.json();
+        const { orderId, txId, status } = await req.json();
 
         if (!orderId) {
             return corsResponse({ error: "Missing orderId" }, 400);
@@ -41,12 +41,30 @@ export async function POST(req: NextRequest) {
             return corsResponse({ error: " Order not found" }, 404);
         }
 
-        // Only process if it's not already paid
+        // Handle Expiration signal
+        if (status === "expired") {
+            order.status = "expired";
+            order.paymentStatus = "expired";
+            order.notes = (order.notes || "") + `\n[Auto-Expired via Website Timer]`;
+            await kv.set(orderKey, order);
+
+            const ordersKey = "orders:square:imported";
+            const orders: any[] = await kv.get(ordersKey) || [];
+            const index = orders.findIndex(o => o.id === orderId);
+            if (index !== -1) {
+                orders[index].status = "expired";
+                orders[index].paymentStatus = "expired";
+                await kv.set(ordersKey, orders);
+            }
+            return corsResponse({ ok: true, message: "Order marked as expired" });
+        }
+
+        // Only process paid if it's not already paid
         if (order.status === "paid") {
             return corsResponse({ ok: true, message: "Already paid" });
         }
 
-        // Update order status
+        // Update order status to PAID
         order.status = "paid";
         order.paymentStatus = "paid";
         order.notes = (order.notes || "") + `\n[Auto-Confirmed via Blockchain Watcher] TX: ${txId || "unknown"}`;
