@@ -33,6 +33,6 @@ export async function GET() {
             message: "Legacy orders have been merged into the dashboard list."
         });
     } catch (err: any) {
-        return NextResponse.json({ error: err.message }, 500);
+        return NextResponse.json({ error: err.message }, { status: 500 });
     }
 }
