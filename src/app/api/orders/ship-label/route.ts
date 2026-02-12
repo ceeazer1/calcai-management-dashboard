@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       body: JSON.stringify({
         rate: best.object_id,
-        label_file_type: "PDF",
+        label_file_type: "PDF_4x6", // Optimized for 100mm x 150mm (PL80E/Thermal)
         async: false,
       }),
     });
