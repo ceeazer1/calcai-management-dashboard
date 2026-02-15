@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { getPayPalAccessToken } from "@/lib/paypal";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -114,6 +115,20 @@ export async function POST(req: NextRequest) {
 
             newOrders.push(orderRecord);
             syncedCount++;
+
+            // Send confirmation email asynchronously (don't block sync)
+            sendOrderConfirmationEmail({
+                to: orderRecord.customerEmail,
+                customerName: orderRecord.customerName,
+                orderId: orderRecord.id, // Use our ID (pp_...) or original ID? The component uses this for display using slice(-12). pp_... is fine.
+                amount: orderRecord.amount,
+                currency: orderRecord.currency,
+                items: orderRecord.items,
+                paymentMethod: "PayPal",
+                shippingMethod: orderRecord.shippingMethod,
+                shippingAmount: 0, // We don't have exact shipping breakdown from the simple transaction view
+                shippingCurrency: orderRecord.currency
+            }).catch(err => console.error(`Failed to send email for ${orderRecord.id}:`, err));
         }
 
         if (newOrders.length > 0) {
