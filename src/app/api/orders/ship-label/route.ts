@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getKvClient } from "@/lib/kv";
 import { sendShippedEmail } from "@/lib/email";
-import { addPayPalTracking } from "@/lib/paypal";
+
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -308,20 +308,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Sync tracking info to PayPal if this was a PayPal order
-    if (orderFound.paymentMethod === 'PayPal' && orderFound.paypalOrderId) {
-      try {
-        console.log(`[ship-label] Syncing tracking to PayPal for order ${orderId}`);
-        await addPayPalTracking(
-          orderFound.paypalOrderId,
-          record.trackingNumber,
-          record.carrier
-        );
-      } catch (ppErr) {
-        console.error("[ship-label] Failed to sync to PayPal:", ppErr);
-        // We don't fail the whole request since the label IS created
-      }
-    }
+
 
     return NextResponse.json({ ok: true, shipment: record });
   } catch (e: any) {
