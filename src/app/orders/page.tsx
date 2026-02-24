@@ -67,7 +67,6 @@ export default function OrdersPage() {
   const [reportDate, setReportDate] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear() });
   const [isReportView, setIsReportView] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
-  const [syncingPayPal, setSyncingPayPal] = useState(false);
   const [customOrderLoading, setCustomOrderLoading] = useState(false);
   const [customForm, setCustomForm] = useState({
     customerName: "",
@@ -132,27 +131,7 @@ export default function OrdersPage() {
     }
   };
 
-  const syncPayPal = async () => {
-    setSyncingPayPal(true);
-    try {
-      const r = await fetch("/api/orders/sync-paypal", { method: "POST" });
-      const data = await r.json();
-      if (data.ok) {
-        if (data.syncedCount > 0) {
-          alert(`Success! Synced ${data.syncedCount} new order(s) from PayPal.`);
-          fetchOrders();
-        } else {
-          alert("No new PayPal orders found.");
-        }
-      } else {
-        throw new Error(data.error || "Sync failed");
-      }
-    } catch (e: any) {
-      alert(`PayPal Sync Error: ${e.message}`);
-    } finally {
-      setSyncingPayPal(false);
-    }
-  };
+
 
 
 
@@ -500,14 +479,6 @@ export default function OrdersPage() {
           >
             <Plus className="h-4 w-4" />
             Create Custom Order
-          </button>
-          <button
-            onClick={syncPayPal}
-            disabled={syncingPayPal || loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-900 border border-blue-800 rounded-lg hover:bg-blue-800 transition-colors text-sm text-blue-200 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncingPayPal ? "animate-spin" : ""}`} />
-            Sync PayPal
           </button>
           <button
             onClick={fetchOrders}
