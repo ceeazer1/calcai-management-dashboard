@@ -46,7 +46,7 @@ const links = [
     icon: <Package className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
   },
   {
-    label: "eBay",
+    label: "Clawdbot's Picks",
     href: "/ebay",
     icon: <ShoppingBag className="text-neutral-300 h-5 w-5 flex-shrink-0" />,
   },
