@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, MessageSquare, ShoppingCart, DollarSign, RefreshCw } from "lucide-react";
+import { Users, MessageSquare, ShoppingCart, DollarSign, RefreshCw, Activity } from "lucide-react";
+import { AgentPlayground } from "./components/AgentPlayground";
 
 interface DashboardStats {
   totalUsers: number | null;
@@ -94,6 +95,14 @@ export default function Home() {
           loading={loading}
           isCurrency
         />
+      </div>
+
+      <div className="mt-12">
+        <div className="flex items-center gap-3 mb-6">
+          <Activity className="h-6 w-6 text-blue-500" />
+          <h2 className="text-xl font-bold text-white">Live Voice Agent</h2>
+        </div>
+        <AgentPlayground />
       </div>
     </div>
   );
