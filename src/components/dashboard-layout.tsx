@@ -90,8 +90,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {/* Logout removed - no auth in this dashboard */}
         </SidebarBody>
       </Sidebar>
-      <main className="flex-1 overflow-auto p-6 md:p-10">
-        <div className="max-w-6xl mx-auto w-full">
+      <main className={cn("flex-1 overflow-auto flex flex-col", pathname === "/" ? "p-0" : "p-6 md:p-10")}>
+        <div className={cn("mx-auto w-full h-full flex flex-col flex-1", pathname === "/" ? "max-w-none" : "max-w-6xl")}>
           {children}
         </div>
       </main>

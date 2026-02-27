@@ -64,12 +64,12 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-h-[100dvh] bg-black text-white font-sans p-4 sm:p-6 overflow-hidden relative selection:bg-cyan-900/50">
+    <div className="flex flex-col h-screen max-h-[100dvh] bg-black text-white font-sans p-0 overflow-hidden relative selection:bg-cyan-900/50">
       {/* Background layer */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(0,10,20,1)_0%,rgba(0,0,0,1)_100%)]"></div>
 
       {/* Header & Stats Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 z-10 shrink-0 border-b border-neutral-900/50 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-0 z-10 shrink-0 border-b border-neutral-900/50 px-6 py-4 bg-black/60 backdrop-blur-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
           <h1 className="text-xl font-bold tracking-[0.3em] text-neutral-300 max-w-min uppercase leading-none border-b-2 border-cyan-500/50 pb-1">
             SYS.CORE
@@ -106,7 +106,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="flex-1 w-full relative z-10 min-h-0 bg-black/50 rounded-2xl border border-neutral-900 overflow-hidden shadow-2xl">
+      <div className="flex-1 w-full relative z-10 min-h-0 bg-transparent flex flex-col">
         <AgentPlayground />
       </div>
     </div>
