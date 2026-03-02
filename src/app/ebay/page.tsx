@@ -53,7 +53,7 @@ export default function ClawdbotEbayPicks() {
   const [offered, setOffered] = useState<EbayPick[]>([]);
   const [bought, setBought] = useState<EbayPick[]>([]);
   const [loading, setLoading] = useState(true);
-  const [actionId, setActionId] = useState<string | null>(null);
+  const [actionKey, setActionKey] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -80,7 +80,7 @@ export default function ClawdbotEbayPicks() {
   // --- Actions ---
 
   async function handleApprove(itemId: string) {
-    setActionId(itemId);
+    setActionKey(`approve:${itemId}`);
     try {
       const r = await fetch("/api/clawdbot/decide", {
         method: "POST",
@@ -94,25 +94,22 @@ export default function ClawdbotEbayPicks() {
         setPicks((prev) => prev.filter((p) => p.itemId !== itemId));
       }
     } catch (e) { console.error(e); }
-    setActionId(null);
+    setActionKey(null);
   }
 
   async function handleDismiss(itemId: string) {
-    setActionId(itemId);
-    try {
-      const r = await fetch("/api/clawdbot/dismissed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ itemId }),
-      });
-      const j = await r.json();
-      if (j.ok) setPicks((prev) => prev.filter((p) => p.itemId !== itemId));
-    } catch (e) { console.error(e); }
-    setActionId(null);
+    // Optimistic: remove from UI immediately
+    setPicks((prev) => prev.filter((p) => p.itemId !== itemId));
+    // Fire API in background (no loading state needed)
+    fetch("/api/clawdbot/dismissed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId }),
+    }).catch((e) => console.error("Dismiss failed:", e));
   }
 
   async function handleRemoveApproved(itemId: string) {
-    setActionId(itemId);
+    setActionKey(`remove:${itemId}`);
     try {
       const r = await fetch("/api/clawdbot/approved", {
         method: "DELETE",
@@ -122,11 +119,11 @@ export default function ClawdbotEbayPicks() {
       const j = await r.json();
       if (j.ok) setApproved((prev) => prev.filter((a) => a.itemId !== itemId));
     } catch (e) { console.error(e); }
-    setActionId(null);
+    setActionKey(null);
   }
 
   async function handleMarkBought(itemId: string) {
-    setActionId(itemId);
+    setActionKey(`bought:${itemId}`);
     try {
       const item = offered.find((o) => o.itemId === itemId);
       const r = await fetch("/api/clawdbot/bought", {
@@ -140,11 +137,11 @@ export default function ClawdbotEbayPicks() {
         setOffered((prev) => prev.filter((o) => o.itemId !== itemId));
       }
     } catch (e) { console.error(e); }
-    setActionId(null);
+    setActionKey(null);
   }
 
   async function handleRemoveOffered(itemId: string) {
-    setActionId(itemId);
+    setActionKey(`remove:${itemId}`);
     try {
       const r = await fetch("/api/clawdbot/offered", {
         method: "DELETE",
@@ -154,11 +151,11 @@ export default function ClawdbotEbayPicks() {
       const j = await r.json();
       if (j.ok) setOffered((prev) => prev.filter((o) => o.itemId !== itemId));
     } catch (e) { console.error(e); }
-    setActionId(null);
+    setActionKey(null);
   }
 
   async function handleRemoveBought(itemId: string) {
-    setActionId(itemId);
+    setActionKey(`remove:${itemId}`);
     try {
       const r = await fetch("/api/clawdbot/bought", {
         method: "DELETE",
@@ -168,7 +165,7 @@ export default function ClawdbotEbayPicks() {
       const j = await r.json();
       if (j.ok) setBought((prev) => prev.filter((b) => b.itemId !== itemId));
     } catch (e) { console.error(e); }
-    setActionId(null);
+    setActionKey(null);
   }
 
   // --- Tab counts ---
@@ -219,8 +216,8 @@ export default function ClawdbotEbayPicks() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all whitespace-nowrap ${active
-                  ? `${c.activeBg} ${c.activeBorder} ${c.text}`
-                  : `${c.bg} ${c.border} text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50`
+                ? `${c.activeBg} ${c.activeBorder} ${c.text}`
+                : `${c.bg} ${c.border} text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50`
                 }`}
             >
               {t.icon}
@@ -271,18 +268,17 @@ export default function ClawdbotEbayPicks() {
                             <div className="flex items-center gap-3">
                               <button
                                 onClick={() => handleApprove(pick.itemId)}
-                                disabled={actionId === pick.itemId}
+                                disabled={actionKey === `approve:${pick.itemId}`}
                                 className="inline-flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-900/20 text-sm"
                               >
-                                {actionId === pick.itemId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                {actionKey === `approve:${pick.itemId}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                                 Approve
                               </button>
                               <button
                                 onClick={() => handleDismiss(pick.itemId)}
-                                disabled={actionId === pick.itemId}
                                 className="inline-flex items-center gap-2 px-5 py-2 bg-neutral-800 hover:bg-red-900/50 hover:text-red-300 text-white font-bold rounded-xl transition-all text-sm"
                               >
-                                {actionId === pick.itemId ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                <X className="h-4 w-4" />
                                 Dismiss
                               </button>
                             </div>
@@ -314,8 +310,8 @@ export default function ClawdbotEbayPicks() {
                         </span>
                       )}
                       <EbayLink url={item.url} compact />
-                      <button onClick={() => handleRemoveApproved(item.itemId)} disabled={actionId === item.itemId} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
-                        {actionId === item.itemId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <button onClick={() => handleRemoveApproved(item.itemId)} disabled={actionKey === `remove:${item.itemId}`} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
+                        {actionKey === `remove:${item.itemId}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
                     </CompactRow>
                   ))}
@@ -352,12 +348,12 @@ export default function ClawdbotEbayPicks() {
                         </span>
                       )}
                       <EbayLink url={item.url} compact />
-                      <button onClick={() => handleMarkBought(item.itemId)} disabled={actionId === item.itemId} className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg transition-all" title="Mark as bought">
-                        {actionId === item.itemId ? <Loader2 className="h-3 w-3 animate-spin" /> : <PackageCheck className="h-3 w-3" />}
+                      <button onClick={() => handleMarkBought(item.itemId)} disabled={actionKey === `bought:${item.itemId}`} className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg transition-all" title="Mark as bought">
+                        {actionKey === `bought:${item.itemId}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <PackageCheck className="h-3 w-3" />}
                         Bought
                       </button>
-                      <button onClick={() => handleRemoveOffered(item.itemId)} disabled={actionId === item.itemId} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
-                        {actionId === item.itemId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <button onClick={() => handleRemoveOffered(item.itemId)} disabled={actionKey === `remove:${item.itemId}`} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
+                        {actionKey === `remove:${item.itemId}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
                     </CompactRow>
                   ))}
@@ -383,8 +379,8 @@ export default function ClawdbotEbayPicks() {
                         </span>
                       )}
                       <EbayLink url={item.url} compact />
-                      <button onClick={() => handleRemoveBought(item.itemId)} disabled={actionId === item.itemId} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
-                        {actionId === item.itemId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <button onClick={() => handleRemoveBought(item.itemId)} disabled={actionKey === `remove:${item.itemId}`} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
+                        {actionKey === `remove:${item.itemId}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
                     </CompactRow>
                   ))}
