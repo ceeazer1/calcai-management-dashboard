@@ -15,23 +15,25 @@ export async function POST(req: Request) {
         const { itemId, pricePaid } = await req.json();
         if (!itemId) return NextResponse.json({ ok: false, message: "Missing itemId" }, { status: 400 });
 
+        const idMatch = (a: string, b: string) => a === b || a.includes(b) || b.includes(a);
+
         // Check offered list first
         const offered = (await kv.get("clawdbot:ebay_offered") as any[]) || [];
-        const item = offered.find((o: any) => o.itemId === itemId);
+        const item = offered.find((o: any) => idMatch(o.itemId, itemId));
 
         // Add to bought
         const bought = (await kv.get("clawdbot:ebay_bought") as any[]) || [];
-        if (!bought.some((b: any) => b.itemId === itemId)) {
+        if (!bought.some((b: any) => idMatch(b.itemId, itemId))) {
             bought.push({ ...(item || { itemId }), pricePaid, boughtAt: Date.now() });
             await kv.set("clawdbot:ebay_bought", bought);
         }
 
         // Remove from offered
-        await kv.set("clawdbot:ebay_offered", offered.filter((o: any) => o.itemId !== itemId));
+        await kv.set("clawdbot:ebay_offered", offered.filter((o: any) => !idMatch(o.itemId, itemId)));
 
         // Also remove from approved just in case
         const approved = (await kv.get("clawdbot:ebay_approved") as any[]) || [];
-        await kv.set("clawdbot:ebay_approved", approved.filter((a: any) => a.itemId !== itemId));
+        await kv.set("clawdbot:ebay_approved", approved.filter((a: any) => !idMatch(a.itemId, itemId)));
 
         return NextResponse.json({ ok: true });
     } catch (e: any) {
@@ -44,8 +46,9 @@ export async function DELETE(req: Request) {
     const kv = getKvClient();
     try {
         const { itemId } = await req.json();
+        const idMatch = (a: string, b: string) => a === b || a.includes(b) || b.includes(a);
         const bought = (await kv.get("clawdbot:ebay_bought") as any[]) || [];
-        await kv.set("clawdbot:ebay_bought", bought.filter((i: any) => i.itemId !== itemId));
+        await kv.set("clawdbot:ebay_bought", bought.filter((i: any) => !idMatch(i.itemId, itemId)));
         return NextResponse.json({ ok: true });
     } catch (e: any) {
         return NextResponse.json({ ok: false, message: e.message }, { status: 500 });
