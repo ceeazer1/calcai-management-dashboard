@@ -348,10 +348,10 @@ export default function ClawdbotEbayPicks() {
                         </span>
                       )}
                       <EbayLink url={item.url} compact />
-                      <button onClick={() => handleMarkBought(item.itemId)} disabled={actionKey === `bought:${item.itemId}`} className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-lg transition-all" title="Mark as bought">
-                        {actionKey === `bought:${item.itemId}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <PackageCheck className="h-3 w-3" />}
-                        Bought
-                      </button>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-950/50 border border-purple-800/30 text-purple-300 text-xs rounded-lg">
+                        <Clock className="h-3 w-3" />
+                        Awaiting response
+                      </span>
                       <button onClick={() => handleRemoveOffered(item.itemId)} disabled={actionKey === `remove:${item.itemId}`} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
                         {actionKey === `remove:${item.itemId}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
@@ -366,7 +366,7 @@ export default function ClawdbotEbayPicks() {
           {tab === "bought" && (
             <section>
               {bought.length === 0 ? (
-                <EmptyState icon={<PackageCheck className="h-7 w-7 text-neutral-500" />} title="No purchases yet" subtitle="Items you mark as bought will appear here." />
+                <EmptyState icon={<PackageCheck className="h-7 w-7 text-neutral-500" />} title="No purchases yet" subtitle="Items move here automatically when offers are accepted." />
               ) : (
                 <div className="grid gap-3">
                   {bought.map((item) => (
