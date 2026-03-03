@@ -33,6 +33,7 @@ interface EbayPick {
   approvedAt?: number;
   offerAmount?: number;
   offeredAt?: number;
+  status?: string;
   pricePaid?: number;
   boughtAt?: number;
 }
@@ -349,8 +350,8 @@ export default function ClawdbotEbayPicks() {
                       )}
                       <EbayLink url={item.url} compact />
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-950/50 border border-purple-800/30 text-purple-300 text-xs rounded-lg">
-                        <Clock className="h-3 w-3" />
-                        Awaiting response
+                        {item.status === "Awaiting Payment" ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3" />}
+                        {item.status || "Awaiting response"}
                       </span>
                       <button onClick={() => handleRemoveOffered(item.itemId)} disabled={actionKey === `remove:${item.itemId}`} className="p-2 text-neutral-600 hover:text-red-400 transition-colors" title="Remove">
                         {actionKey === `remove:${item.itemId}` ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-4 w-4" />}

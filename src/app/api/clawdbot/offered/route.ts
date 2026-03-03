@@ -39,6 +39,35 @@ export async function POST(req: Request) {
     }
 }
 
+// PUT: update status of an offered item
+export async function PUT(req: Request) {
+    const kv = getKvClient();
+    try {
+        const { itemId, status } = await req.json();
+        if (!itemId || !status) return NextResponse.json({ ok: false, message: "Missing itemId or status" }, { status: 400 });
+
+        const idMatch = (a: string, b: string) => a === b || a.includes(b) || b.includes(a);
+        const offered = (await kv.get("clawdbot:ebay_offered") as any[]) || [];
+
+        let found = false;
+        const updated = offered.map((o: any) => {
+            if (idMatch(String(o.itemId), String(itemId))) {
+                found = true;
+                return { ...o, status };
+            }
+            return o;
+        });
+
+        if (found) {
+            await kv.set("clawdbot:ebay_offered", updated);
+        }
+
+        return NextResponse.json({ ok: true, updated: found });
+    } catch (e: any) {
+        return NextResponse.json({ ok: false, message: e.message }, { status: 500 });
+    }
+}
+
 // DELETE: remove from offered
 export async function DELETE(req: Request) {
     const kv = getKvClient();
