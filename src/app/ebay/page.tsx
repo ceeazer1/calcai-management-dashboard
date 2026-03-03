@@ -34,6 +34,7 @@ interface EbayPick {
   offerAmount?: number;
   offeredAt?: number;
   status?: string;
+  description?: string;
   pricePaid?: number;
   boughtAt?: number;
 }
@@ -443,9 +444,14 @@ function ItemMeta({ pick }: { pick: EbayPick }) {
           </span>
         )}
       </div>
-      <div className="text-sm text-neutral-500 mt-2">
+      <div className="text-sm text-neutral-500 mt-2 mb-2">
         Seller: <span className="text-neutral-300">{pick.seller}</span> ({pick.feedbackPct}%)
       </div>
+      {pick.description && (
+        <div className="text-xs text-neutral-400 bg-neutral-800/40 p-3 rounded-xl border border-neutral-800/60 line-clamp-3 leading-relaxed">
+          {pick.description}
+        </div>
+      )}
     </>
   );
 }
