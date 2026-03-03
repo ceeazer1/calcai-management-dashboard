@@ -12,7 +12,8 @@ export async function GET() {
 export async function POST(req: Request) {
     const kv = getKvClient();
     try {
-        const { itemId, offerAmount } = await req.json();
+        const body = await req.json();
+        const { itemId, offerAmount } = body;
         if (!itemId) return NextResponse.json({ ok: false, message: "Missing itemId" }, { status: 400 });
 
         // Fuzzy match: eBay API uses "v1|123456|0" but URL-based IDs are just "123456"
@@ -22,10 +23,10 @@ export async function POST(req: Request) {
         const approved = (await kv.get("clawdbot:ebay_approved") as any[]) || [];
         const item = approved.find((a: any) => idMatch(a.itemId, itemId));
 
-        // Add to offered list
+        // Add to offered list — merge approved data + request body (keeps title, url, thumbnail, etc.)
         const offered = (await kv.get("clawdbot:ebay_offered") as any[]) || [];
         if (!offered.some((o: any) => idMatch(o.itemId, itemId))) {
-            offered.push({ ...(item || { itemId }), offerAmount, offeredAt: Date.now() });
+            offered.push({ ...(item || {}), ...body, offerAmount, offeredAt: Date.now() });
             await kv.set("clawdbot:ebay_offered", offered);
         }
 
