@@ -16,6 +16,7 @@ import {
   Inbox,
   Send,
   PackageCheck,
+  Truck,
 } from "lucide-react";
 
 interface EbayPick {
@@ -37,6 +38,9 @@ interface EbayPick {
   description?: string;
   pricePaid?: number;
   boughtAt?: number;
+  tracking?: string;
+  carrier?: string;
+  shippedAt?: number;
 }
 
 type Tab = "review" | "approved" | "offered" | "bought";
@@ -372,12 +376,19 @@ export default function ClawdbotEbayPicks() {
               ) : (
                 <div className="grid gap-3">
                   {bought.map((item) => (
-                    <CompactRow key={item.itemId} item={item} borderColor="border-amber-900/40 hover:border-amber-700/40">
+                    <CompactRow key={item.itemId} item={item} borderColor={item.tracking ? "border-green-900/40 hover:border-green-700/40" : "border-amber-900/40 hover:border-amber-700/40"}>
                       {item.pricePaid && <span className="text-amber-400 font-bold text-sm">Paid ${item.pricePaid.toFixed(2)}</span>}
                       {item.boughtAt && (
                         <span className="flex items-center gap-1 text-xs text-neutral-500">
                           <Clock className="h-3 w-3" />
                           {new Date(item.boughtAt).toLocaleDateString([], { month: "short", day: "numeric" })}
+                        </span>
+                      )}
+                      {item.tracking ? (
+                        <TrackingBadge tracking={item.tracking} carrier={item.carrier} />
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-neutral-600 italic">
+                          <Truck className="h-3 w-3" /> Awaiting shipment
                         </span>
                       )}
                       <EbayLink url={item.url} compact />
@@ -463,6 +474,30 @@ function EbayLink({ url, compact }: { url: string; compact?: boolean }) {
     >
       {compact ? <ExternalLink className="h-3.5 w-3.5" /> : <>View on eBay <ExternalLink className="h-3.5 w-3.5" /></>}
     </a>
+  );
+}
+
+function TrackingBadge({ tracking, carrier }: { tracking: string; carrier?: string }) {
+  const urls: Record<string, string> = {
+    USPS: `https://tools.usps.com/go/TrackConfirmAction?tLabels=${tracking}`,
+    UPS: `https://www.ups.com/track?tracknum=${tracking}`,
+    FEDEX: `https://www.fedex.com/fedextrack/?trknbr=${tracking}`,
+  };
+  const url = carrier ? urls[carrier.toUpperCase()] : null;
+  const label = `${carrier ? carrier + " " : ""}${tracking}`;
+  return url ? (
+    <a href={url} target="_blank" rel="noopener noreferrer"
+      className="flex items-center gap-1.5 px-2 py-0.5 bg-green-950/50 border border-green-800/40 text-green-300 text-xs rounded-lg hover:bg-green-900/40 transition-colors font-mono"
+    >
+      <Truck className="h-3 w-3 flex-shrink-0" />
+      {label}
+      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+    </a>
+  ) : (
+    <span className="flex items-center gap-1.5 px-2 py-0.5 bg-green-950/50 border border-green-800/40 text-green-300 text-xs rounded-lg font-mono">
+      <Truck className="h-3 w-3 flex-shrink-0" />
+      {label}
+    </span>
   );
 }
 
